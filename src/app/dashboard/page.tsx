@@ -1,4 +1,4 @@
-import { AppSidebar } from "@/src/components/app-sidebar"
+import { AppSidebar } from "@/src/components/sidebar/app-sidebar"
 import { ChartAreaInteractive } from "@/src/components/chart-area-interactive"
 import { DataTable } from "@/src/components/data-table"
 import { SectionCards } from "@/src/components/section-cards"
