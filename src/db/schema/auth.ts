@@ -1,6 +1,8 @@
+import { Roles, type Role } from "@/src/lib/constants";
 import { relations } from "drizzle-orm";
 import {
   mysqlTable,
+  mysqlEnum,
   varchar,
   text,
   timestamp,
@@ -8,6 +10,13 @@ import {
   boolean,
   index,
 } from "drizzle-orm/mysql-core";
+
+export const userTypeEnum = mysqlEnum("user_type", ["client", "admin"]);
+export const adminRoleEnum = mysqlEnum("admin_role", [
+  Roles.SUPER_ADMIN,
+  Roles.ADMIN,
+  Roles.MANAGER
+]);
 
 export const user = mysqlTable("user", {
   id: varchar("id", { length: 36 }).primaryKey(),
@@ -18,8 +27,16 @@ export const user = mysqlTable("user", {
   createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { fsp: 3 })
     .defaultNow()
-    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .$onUpdate(() => new Date())
     .notNull(),
+  // Type discriminator — present on every user
+  userType: mysqlEnum("user_type", ["client", "admin"]).notNull().default("client"),
+  // Only populated for admin-type users; null for clients
+  adminRole: mysqlEnum("admin_role", [
+    Roles.SUPER_ADMIN,
+    Roles.ADMIN,
+    Roles.MANAGER
+  ]),
 });
 
 export const session = mysqlTable(
@@ -31,7 +48,7 @@ export const session = mysqlTable(
     createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { fsp: 3 })
       .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .$onUpdate(() => new Date())
       .notNull(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
@@ -61,7 +78,7 @@ export const account = mysqlTable(
     createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { fsp: 3 })
       .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .$onUpdate(() => new Date())
       .notNull(),
   },
   (table) => [index("account_userId_idx").on(table.userId)],
@@ -77,15 +94,39 @@ export const verification = mysqlTable(
     createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { fsp: 3 })
       .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .$onUpdate(() => new Date())
       .notNull(),
   },
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
-export const userRelations = relations(user, ({ many }) => ({
+// Stores KYC fields mandatory for client-type users only.
+// Created immediately after a client registers.
+export const clientProfile = mysqlTable("client_profile", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: varchar("user_id", { length: 36 })
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: "cascade" }),
+  // India KYC identifiers
+  aadharNumber: varchar("aadhar_number", { length: 12 }).notNull().unique(),
+  panNumber: varchar("pan_number", { length: 10 }).notNull().unique(),
+  createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { fsp: 3 })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
+// ─── Relations ───────────────────────────────────────────────────────────────
+
+export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),
+  clientProfile: one(clientProfile, {
+    fields: [user.id],
+    references: [clientProfile.userId],
+  }),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -101,3 +142,18 @@ export const accountRelations = relations(account, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+export const clientProfileRelations = relations(clientProfile, ({ one }) => ({
+  user: one(user, {
+    fields: [clientProfile.userId],
+    references: [user.id],
+  }),
+}));
+
+// ─── Exported types ───────────────────────────────────────────────────────────
+
+export type UserType = "client" | "admin";
+export type AdminRole = Role;
+
+export type User = typeof user.$inferSelect;
+export type ClientProfile = typeof clientProfile.$inferSelect;

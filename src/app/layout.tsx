@@ -1,9 +1,8 @@
 import { Inter, Open_Sans } from "next/font/google"
 
 import "@/src/app/globals.css"
-import { ThemeProvider } from "@/src/components/theme-provider"
-import { TooltipProvider } from "@/src/components/ui/tooltip";
-import { cn } from "@/src/lib/utils";
+import { Providers } from "@/src/components/providers"
+import { cn } from "@/src/lib/utils"
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
@@ -21,11 +20,9 @@ export default function RootLayout({
       className={cn("antialiased", openSans.variable, inter.variable)}
     >
       <body>
-        <ThemeProvider>
-          <TooltipProvider>
-            {children}
-          </TooltipProvider>
-        </ThemeProvider>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   )
