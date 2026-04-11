@@ -37,6 +37,8 @@ export const user = mysqlTable("user", {
     Roles.ADMIN,
     Roles.MANAGER
   ]),
+  // True when the account was created with an auto-generated password.
+  mustChangePassword: boolean("must_change_password").default(false).notNull(),
 });
 
 export const session = mysqlTable(
@@ -108,7 +110,9 @@ export const clientProfile = mysqlTable("client_profile", {
     .notNull()
     .unique()
     .references(() => user.id, { onDelete: "cascade" }),
-  // India KYC identifiers
+  username: varchar("username", { length: 30 }).notNull().unique(),
+  phone: varchar("phone", { length: 20 }).notNull().unique(),
+  phoneVerified: boolean("phone_verified").default(false).notNull(),
   aadharNumber: varchar("aadhar_number", { length: 12 }).notNull().unique(),
   panNumber: varchar("pan_number", { length: 10 }).notNull().unique(),
   createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),

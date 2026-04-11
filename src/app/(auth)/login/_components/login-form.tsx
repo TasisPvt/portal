@@ -3,7 +3,9 @@
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { useMutation } from "@tanstack/react-query"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { CheckCircle2Icon } from "lucide-react"
 
 import {
    Field,
@@ -15,11 +17,17 @@ import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
 import { AlertDestructive } from "@/src/components/alerts/alertDestructive"
 
-import { LoginType } from "@/src/types/loginType"
 import { Spinner } from "@/src/components/ui/spinner"
+
+type LoginType = {
+   email: string;
+   password: string;
+};
 
 export function LoginForm() {
    const router = useRouter()
+   const searchParams = useSearchParams()
+   const passwordChanged = searchParams.get("passwordChanged") === "1"
    const [isRedirecting, setIsRedirecting] = useState(false);
    const [formError, setFormError] = useState<string | null>(null)
 
@@ -68,6 +76,13 @@ export function LoginForm() {
                Enter your email and password to access your account.
             </p>
          </div>
+
+         {passwordChanged && (
+            <div className="mb-6 flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
+               <CheckCircle2Icon className="size-4 shrink-0" />
+               Password updated successfully. Log in with your new password.
+            </div>
+         )}
 
          {formError && (
             <AlertDestructive className="mb-6" title={formError} />
@@ -123,6 +138,14 @@ export function LoginForm() {
                      )}
                   </Button>
                </Field>
+
+               <p className="text-center text-sm text-muted-foreground">
+                  Don&apos;t have an account?{" "}
+                  <Link href="/signup" className="font-medium text-primary hover:underline">
+                     Sign up
+                  </Link>
+               </p>
+
             </FieldGroup>
          </form>
       </div>

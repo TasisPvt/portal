@@ -33,6 +33,13 @@ export const auth = betterAuth({
             // Never accepted from the client — set programmatically by super_admin.
             input: false,
          },
+         mustChangePassword: {
+            type: "boolean" as const,
+            required: false,
+            defaultValue: false,
+            // Never accepted from the client — set by the server on account creation.
+            input: false,
+         },
       },
    },
 
@@ -43,4 +50,5 @@ export type Session = typeof auth.$Infer.Session
 export type User = typeof auth.$Infer.Session.user & {
    userType: UserType
    adminRole: AdminRole | null
+   mustChangePassword: boolean
 }

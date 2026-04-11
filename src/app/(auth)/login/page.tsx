@@ -1,13 +1,16 @@
+import { Suspense } from "react"
 import { LoginForm } from "@/src/app/(auth)/login/_components/login-form"
 import Logo from "@/src/components/logo"
 
-function page() {
+function Login() {
     return (
         <div className="flex min-h-screen">
             <div className="flex flex-1 flex-col justify-between p-8 lg:p-12">
                 <Logo />
 
-                <LoginForm />
+                <Suspense>
+                    <LoginForm />
+                </Suspense>
 
                 <div className="flex flex-col items-center justify-between gap-2 text-sm text-muted-foreground sm:flex-row">
                     <span>Copyright ©{new Date().getFullYear()} Tasis Pvt Ltd.</span>
@@ -31,4 +34,4 @@ function page() {
     )
 }
 
-export default page
+export default Login

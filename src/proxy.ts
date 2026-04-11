@@ -11,6 +11,7 @@ interface SessionUser {
    email: string
    userType: UserType
    adminRole: "super_admin" | "admin" | "manager" | "support" | null
+   mustChangePassword: boolean
 }
 
 interface Session {
@@ -21,7 +22,7 @@ interface Session {
 // ─── Route config ─────────────────────────────────────────────────────────────
 
 /** Routes accessible without a session. */
-const PUBLIC_ROUTES = ["/login"]
+const PUBLIC_ROUTES = ["/login", "/signup"]
 
 /** Where each user type lands after login (or when hitting /). */
 const HOME: Record<UserType, string> = {
@@ -64,13 +65,24 @@ export async function proxy(request: NextRequest) {
 
    // ── Authenticated ──────────────────────────────────────────────────────────
 
-   // Redirect away from login page
+   // Redirect away from public routes (login, signup)
    if (PUBLIC_ROUTES.some((r) => pathname.startsWith(r))) {
       return NextResponse.redirect(new URL(HOME[user.userType], request.url))
    }
 
    // Root → type-specific home
    if (pathname === "/") {
+      return NextResponse.redirect(new URL(HOME[user.userType], request.url))
+   }
+
+   // Force password change — lock the user to /change-password until done
+   if (user.mustChangePassword) {
+      if (pathname.startsWith("/change-password")) return NextResponse.next()
+      return NextResponse.redirect(new URL("/change-password", request.url))
+   }
+
+   // Prevent accessing /change-password when not required
+   if (pathname.startsWith("/change-password")) {
       return NextResponse.redirect(new URL(HOME[user.userType], request.url))
    }
 

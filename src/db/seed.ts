@@ -28,9 +28,14 @@ async function seedClient() {
    await db.insert(clientProfile).values({
       id: randomUUID(),
       userId: created.id,
+      username: "democlient",
+      phone: "9000000001",
       aadharNumber: "234567890123",
       panNumber: "BCDFE2345G",
    })
+
+   // signUpEmail creates a session — revoke it so seed doesn't leave stale sessions
+   await auth.api.signOut({ headers: new Headers() })
 
    console.log(`✓ Client       ${created.email}  (id: ${created.id})`)
 }
