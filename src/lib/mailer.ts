@@ -28,6 +28,12 @@ export function generatePassword(): string {
    return [...required, ...rest].sort(() => Math.random() - 0.5).join("")
 }
 
+// ─── OTP generator ───────────────────────────────────────────────────────────
+
+export function generateOtp(): string {
+   return Math.floor(100000 + Math.random() * 900000).toString()
+}
+
 // ─── Email templates ──────────────────────────────────────────────────────────
 
 export async function sendWelcomeEmail({
@@ -129,6 +135,81 @@ export async function sendWelcomeEmail({
       replyTo: process.env.DEFAULT_REPLY_TO_EMAIL,
       to,
       subject: "Your Tasis Portal account is ready",
+      html,
+   })
+}
+
+export async function sendOtpEmail({
+   to,
+   name,
+   otp,
+}: {
+   to: string
+   name: string
+   otp: string
+}) {
+   const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+         <meta charset="UTF-8" />
+         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+         <title>Your OTP - Tasis Portal</title>
+      </head>
+      <body style="margin:0;padding:0;background:#f4f4f5;font-family:Inter,Arial,sans-serif;">
+         <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
+            <tr>
+               <td align="center">
+                  <table width="560" cellpadding="0" cellspacing="0"
+                     style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                     <tr>
+                        <td style="background:#18181b;padding:32px 40px;text-align:center;">
+                           <span style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">Tasis Portal</span>
+                        </td>
+                     </tr>
+                     <tr>
+                        <td style="padding:40px 40px 24px;">
+                           <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#18181b;">Verify your identity</p>
+                           <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.6;">
+                              Hi ${name}, use the OTP below to reset your password. It expires in <strong>10 minutes</strong>.
+                           </p>
+                           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                              <tr>
+                                 <td style="background:#f4f4f5;border:1px solid #e4e4e7;border-radius:8px;padding:20px;text-align:center;">
+                                    <p style="margin:0 0 6px;font-size:12px;color:#71717a;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;">
+                                       One-Time Password
+                                    </p>
+                                    <p style="margin:0;font-size:36px;font-weight:700;color:#18181b;letter-spacing:8px;font-family:monospace;">
+                                       ${otp}
+                                    </p>
+                                 </td>
+                              </tr>
+                           </table>
+                           <p style="margin:0;font-size:14px;color:#71717a;line-height:1.6;">
+                              If you didn't request a password reset, you can safely ignore this email.
+                           </p>
+                        </td>
+                     </tr>
+                     <tr>
+                        <td style="border-top:1px solid #f4f4f5;padding:20px 40px;text-align:center;">
+                           <p style="margin:0;font-size:12px;color:#a1a1aa;">
+                              © ${new Date().getFullYear()} Tasis Pvt Ltd. · This OTP is valid for 10 minutes only.
+                           </p>
+                        </td>
+                     </tr>
+                  </table>
+               </td>
+            </tr>
+         </table>
+      </body>
+      </html>
+   `
+
+   await transporter.sendMail({
+      from: `"Tasis Portal" <${process.env.DEFAULT_REPLY_TO_EMAIL}>`,
+      replyTo: process.env.DEFAULT_REPLY_TO_EMAIL,
+      to,
+      subject: "Your password reset OTP",
       html,
    })
 }

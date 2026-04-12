@@ -125,9 +125,9 @@ export default function ClientDashboardPage() {
                      <a
                         key={action.label}
                         href={action.href}
-                        className="group flex items-center gap-4 rounded-lg border bg-card p-4 shadow-xs transition-all hover:border-primary/30 hover:shadow-sm"
+                        className="group flex items-center gap-4 rounded-xl border bg-card p-4 shadow-xs transition-all hover:border-primary/30 hover:shadow-sm"
                      >
-                        <div className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${action.iconBg}`}>
+                        <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${action.iconBg}`}>
                            <action.icon className={`size-5 ${action.iconColor}`} />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -209,7 +209,7 @@ export default function ClientDashboardPage() {
                         </div>
                      ))}
 
-                     <div className="mt-4 rounded-lg bg-muted/50 p-3">
+                     <div className="mt-4 rounded-xl bg-muted/50 p-3">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                            <ClockIcon className="size-3.5" />
                            <span>2 of 5 steps complete</span>

@@ -22,7 +22,7 @@ interface Session {
 // ─── Route config ─────────────────────────────────────────────────────────────
 
 /** Routes accessible without a session. */
-const PUBLIC_ROUTES = ["/login", "/signup"]
+const PUBLIC_ROUTES = ["/login", "/signup", "/forgot-password"]
 
 /** Where each user type lands after login (or when hitting /). */
 const HOME: Record<UserType, string> = {

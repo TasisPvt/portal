@@ -72,7 +72,7 @@ export function SectionCards() {
         <Card key={card.label} className="@container/card">
           <CardHeader>
             <div className="flex items-start justify-between gap-3">
-              <div className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${card.iconBg}`}>
+              <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${card.iconBg}`}>
                 <card.icon className={`size-5 ${card.iconColor}`} />
               </div>
               <CardAction>

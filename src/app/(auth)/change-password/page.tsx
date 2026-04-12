@@ -48,7 +48,7 @@ export default function ChangePasswordPage() {
             {/* Content */}
             <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16">
                {/* Top logo mark */}
-               {/* <div className="flex size-10 items-center justify-center rounded-lg bg-white/15 backdrop-blur-sm">
+               {/* <div className="flex size-10 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
                   <div className="grid grid-cols-2 gap-0.5">
                      {[...Array(4)].map((_, i) => (
                         <div key={i} className="size-1.5 rounded-[2px] bg-white" />

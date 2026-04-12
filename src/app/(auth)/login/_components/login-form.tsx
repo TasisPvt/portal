@@ -72,7 +72,7 @@ export function LoginForm() {
          </div>
 
          {passwordChanged && (
-            <div className="mb-6 flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950/50 dark:text-green-300">
+            <div className="mb-6 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950/50 dark:text-green-300">
                <CheckCircle2Icon className="size-4 shrink-0" />
                Password updated successfully. Sign in with your new password.
             </div>
@@ -108,7 +108,14 @@ export function LoginForm() {
                </Field>
 
                <Field className="gap-1.5">
-                  <FieldLabel className="text-sm font-medium">Password</FieldLabel>
+                  <div className="flex items-center">
+                     <FieldLabel className="text-sm font-medium">Password</FieldLabel>
+                     <Link
+                        href="/forgot-password"
+                        className="ml-auto inline-block text-sm text-primary hover:underline">
+                        Forgot your password?
+                     </Link>
+                  </div>
                   <div className="relative">
                      <Input
                         type={showPassword ? "text" : "password"}
@@ -149,12 +156,14 @@ export function LoginForm() {
                   </Button>
                </Field>
 
-               <p className="text-center text-sm text-muted-foreground">
-                  Don&apos;t have an account?{" "}
-                  <Link href="/signup" className="font-semibold text-primary hover:underline">
-                     Create one
-                  </Link>
-               </p>
+               <div className="flex flex-col items-center gap-1.5 text-center text-sm text-muted-foreground">
+                  <span>
+                     Don&apos;t have an account?{" "}
+                     <Link href="/signup" className="font-semibold text-primary hover:underline">
+                        Create one
+                     </Link>
+                  </span>
+               </div>
 
             </FieldGroup>
          </form>
