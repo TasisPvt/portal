@@ -1,202 +1,139 @@
 "use client"
 
 import * as React from "react"
-
-import { NavDocuments } from "@/src/components/sidebar/nav-documents"
+import {
+   LayoutDashboardIcon,
+   TrendingUpIcon,
+   RocketIcon,
+   LayersIcon,
+   PieChartIcon,
+   Building2Icon,
+   GanttChartIcon,
+   Settings2Icon,
+   SearchIcon,
+   ShieldCheckIcon,
+   BarChart3Icon,
+   UsersIcon,
+} from "lucide-react"
+import { NavCollapsible } from "@/src/components/sidebar/nav-collapsible"
 import { NavMain } from "@/src/components/sidebar/nav-main"
 import { NavSecondary } from "@/src/components/sidebar/nav-secondary"
-import { NavUser } from "@/src/components/sidebar/nav-user"
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
+   Sidebar,
+   SidebarContent,
+   SidebarFooter,
+   SidebarHeader,
+   SidebarMenu,
+   SidebarMenuButton,
+   SidebarMenuItem,
 } from "@/src/components/ui/sidebar"
-import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon } from "lucide-react"
 import Logo from "@/src/components/logo"
+import type { User } from "@/src/lib/auth"
+import { UserType } from "@/src/lib/constants"
+import { NavUser } from "@/src/components/sidebar/nav-user"
 
-const data = {
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "#",
-      icon: (
-        <LayoutDashboardIcon
-        />
-      ),
-    },
-    {
-      title: "Lifecycle",
-      url: "#",
-      icon: (
-        <ListIcon
-        />
-      ),
-    },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: (
-        <ChartBarIcon
-        />
-      ),
-    },
-    {
-      title: "Projects",
-      url: "#",
-      icon: (
-        <FolderIcon
-        />
-      ),
-    },
-    {
-      title: "Team",
-      url: "#",
-      icon: (
-        <UsersIcon
-        />
-      ),
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: (
-        <CameraIcon
-        />
-      ),
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: (
-        <FileTextIcon
-        />
-      ),
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: (
-        <FileTextIcon
-        />
-      ),
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: (
-        <Settings2Icon
-        />
-      ),
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: (
-        <CircleHelpIcon
-        />
-      ),
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: (
-        <SearchIcon
-        />
-      ),
-    },
-  ],
-  documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: (
-        <DatabaseIcon
-        />
-      ),
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: (
-        <FileChartColumnIcon
-        />
-      ),
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: (
-        <FileIcon
-        />
-      ),
-    },
-  ],
+const clientNav = {
+   navMain: [
+      { title: "Dashboard", url: "/dashboard", icon: <LayoutDashboardIcon /> },
+   ],
+   navScreening: [
+      {
+         title: "Stocks",
+         url: "#",
+         icon: TrendingUpIcon,
+         isActive: false,
+         items: [{ title: "Snapshot", url: "#" }, { title: "List", url: "#" }],
+      },
+      {
+         title: "IPO",
+         url: "#",
+         icon: RocketIcon,
+         isActive: false,
+         items: [{ title: "Snapshot", url: "#" }, { title: "List", url: "#" }],
+      },
+      {
+         title: "ETFs & FOFs",
+         url: "#",
+         icon: LayersIcon,
+         isActive: false,
+         items: [{ title: "Snapshot", url: "#" }, { title: "List", url: "#" }],
+      },
+      {
+         title: "Mutual Funds",
+         url: "#",
+         icon: PieChartIcon,
+         isActive: false,
+         items: [{ title: "Snapshot", url: "#" }, { title: "List", url: "#" }],
+      },
+   ],
+   navSecondary: [
+      { title: "Settings", url: "#", icon: <Settings2Icon /> },
+      { title: "Search", url: "#", icon: <SearchIcon /> },
+   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  return (
-    <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:p-2! hover:bg-transparent"
-            >
-              <a href="#">
-                <Logo />
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
-      </SidebarContent>
-      <SidebarFooter>
-        <NavUser />
-      </SidebarFooter>
-    </Sidebar>
-  )
+const adminNav = {
+   navMain: [
+      { title: "Dashboard", url: "/admin/dashboard", icon: <LayoutDashboardIcon /> },
+      { title: "Clients", url: "/admin/clients", icon: <UsersIcon /> },
+      { title: "Users", url: "/admin/users", icon: <BarChart3Icon /> },
+   ],
+   navMaster: [
+      {
+         title: "Company",
+         url: "/admin/CompanyMaster",
+         icon: Building2Icon,
+      },
+      {
+         title: "Index",
+         url: "/admin/IndexMaster",
+         icon: GanttChartIcon,
+      },
+   ],
+   navSecondary: [
+      { title: "Team", url: "/admin/team", icon: <ShieldCheckIcon /> },
+      { title: "Settings", url: "/admin/settings", icon: <Settings2Icon /> },
+   ],
+}
+
+export function AppSidebar({
+   user,
+   ...props
+}: React.ComponentProps<typeof Sidebar> & { user: User | null }) {
+   const userType = user?.userType ?? UserType.CLIENT
+   // const nav = userType === UserType.ADMIN ? adminNav : clientNav
+
+   return (
+      <Sidebar collapsible="offcanvas" {...props}>
+         <SidebarHeader>
+            <SidebarMenu>
+               <SidebarMenuItem>
+                  <SidebarMenuButton
+                     asChild
+                     className="data-[slot=sidebar-menu-button]:p-2! hover:bg-transparent"
+                  >
+                     <a href={userType === UserType.ADMIN ? "/admin/dashboard" : "/dashboard"}>
+                        <Logo />
+                     </a>
+                  </SidebarMenuButton>
+               </SidebarMenuItem>
+            </SidebarMenu>
+         </SidebarHeader>
+
+         <SidebarContent className="gap-0">
+            <NavMain items={userType === UserType.ADMIN ? adminNav.navMain : clientNav.navMain} />
+            {userType === UserType.CLIENT && (
+               <NavCollapsible title="Screening" items={clientNav.navScreening} />
+            )}
+            {userType === UserType.ADMIN && (
+               <NavCollapsible title="Master" items={adminNav.navMaster} />
+            )}
+            <NavSecondary items={userType === UserType.ADMIN ? adminNav.navSecondary : clientNav.navSecondary} className="mt-auto" />
+         </SidebarContent>
+
+         <SidebarFooter>
+            <NavUser user={user} />
+         </SidebarFooter>
+      </Sidebar>
+   )
 }
