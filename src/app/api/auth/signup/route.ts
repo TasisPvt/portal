@@ -8,10 +8,10 @@ import { user, clientProfile } from "@/src/db/schema"
 import { generatePassword, sendWelcomeEmail } from "@/src/lib/mailer"
 
 export async function POST(req: Request) {
-   const { name, username, email, phone, aadharNumber, panNumber } =
+   const { name, username, state, email, phone, aadharNumber, panNumber } =
       await req.json()
 
-   if (!name || !username || !email || !phone || !aadharNumber || !panNumber) {
+   if (!name || !username || !state || !email || !phone || !aadharNumber || !panNumber) {
       return NextResponse.json(
          { message: "All fields are required" },
          { status: 400 },
@@ -71,6 +71,7 @@ export async function POST(req: Request) {
          id: randomUUID(),
          userId: createdUserId,
          username,
+         state,
          phone,
          aadharNumber,
          panNumber,

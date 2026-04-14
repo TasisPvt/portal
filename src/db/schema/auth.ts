@@ -115,6 +115,7 @@ export const clientProfile = mysqlTable("client_profile", {
   phoneVerified: boolean("phone_verified").default(false).notNull(),
   aadharNumber: varchar("aadhar_number", { length: 12 }).notNull().unique(),
   panNumber: varchar("pan_number", { length: 10 }).notNull().unique(),
+  state: varchar("state", { length: 100 }).notNull(),
   createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { fsp: 3 })
     .defaultNow()

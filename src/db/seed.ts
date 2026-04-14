@@ -29,6 +29,7 @@ async function seedClient() {
       id: randomUUID(),
       userId: created.id,
       username: "democlient",
+      state: "Maharashtra",
       phone: "9000000001",
       aadharNumber: "234567890123",
       panNumber: "BCDFE2345G",
