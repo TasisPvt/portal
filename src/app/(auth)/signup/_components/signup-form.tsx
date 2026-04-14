@@ -1,25 +1,40 @@
 'use client'
 
 import { useState } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, Controller } from "react-hook-form"
 import { useMutation } from "@tanstack/react-query"
 import Link from "next/link"
-import { MailCheckIcon } from "lucide-react"
-
+import { MailCheckIcon, ChevronsUpDown, Check } from "lucide-react"
 import {
    Field,
    FieldDescription,
    FieldGroup,
    FieldLabel,
 } from "@/src/components/ui/field"
+import {
+   Command,
+   CommandEmpty,
+   CommandGroup,
+   CommandInput,
+   CommandItem,
+   CommandList,
+} from "@/src/components/ui/command"
+import {
+   Popover,
+   PopoverContent,
+   PopoverTrigger,
+} from "@/src/components/ui/popover"
 import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
 import { AlertDestructive } from "@/src/components/alerts/alertDestructive"
 import { Spinner } from "@/src/components/ui/spinner"
+import { stateData } from "@/src/lib/data/stateData"
+import { cn } from "@/src/lib/utils"
 
 type SignupType = {
    name: string
    username: string
+   state: string
    email: string
    phone: string
    aadharNumber: string
@@ -54,10 +69,12 @@ function SuccessScreen({ email }: { email: string }) {
 export function SignupForm() {
    const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
    const [formError, setFormError] = useState<string | null>(null)
+   const [statePopoverOpen, setStatePopoverOpen] = useState(false)
 
    const {
       register,
       handleSubmit,
+      control,
       formState: { errors },
    } = useForm<SignupType>()
 
@@ -104,7 +121,7 @@ export function SignupForm() {
             <FieldGroup className="gap-5">
 
                {/* Row 1: Name + Username */}
-               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+               <div className="">
                   <Field className="gap-2">
                      <FieldLabel>Full Name</FieldLabel>
                      <Input
@@ -121,7 +138,10 @@ export function SignupForm() {
                         </FieldDescription>
                      )}
                   </Field>
+               </div>
 
+               {/* Row 2: State + Email */}
+               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <Field className="gap-2">
                      <FieldLabel>Username</FieldLabel>
                      <Input
@@ -143,9 +163,74 @@ export function SignupForm() {
                         </FieldDescription>
                      )}
                   </Field>
+
+                  <Field className="gap-2">
+                     <FieldLabel>State</FieldLabel>
+                     <Controller
+                        name="state"
+                        control={control}
+                        rules={{ required: "State is required" }}
+                        render={({ field }) => (
+                           <Popover open={statePopoverOpen} onOpenChange={setStatePopoverOpen}>
+                              <PopoverTrigger asChild>
+                                 <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={statePopoverOpen}
+                                    className={cn(
+                                       "w-full justify-between font-normal",
+                                       errors.state ? "border-red-500" : "",
+                                       !field.value && "text-muted-foreground",
+                                    )}
+                                 >
+                                    <span className="truncate">
+                                       {field.value
+                                          ? stateData.find((s) => s.value === field.value)?.label
+                                          : "Select state..."}
+                                    </span>
+                                    <ChevronsUpDown className="ml-2 shrink-0 opacity-50" />
+                                 </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                 <Command>
+                                    <CommandInput placeholder="Search state..." className="h-9" />
+                                    <CommandList>
+                                       <CommandEmpty>No state found.</CommandEmpty>
+                                       <CommandGroup>
+                                          {stateData.map((s) => (
+                                             <CommandItem
+                                                key={s.value}
+                                                value={s.value}
+                                                onSelect={(currentValue) => {
+                                                   field.onChange(currentValue === field.value ? "" : currentValue)
+                                                   setStatePopoverOpen(false)
+                                                }}
+                                             >
+                                                {s.label}
+                                                <Check
+                                                   className={cn(
+                                                      "ml-auto",
+                                                      field.value === s.value ? "opacity-100" : "opacity-0",
+                                                   )}
+                                                />
+                                             </CommandItem>
+                                          ))}
+                                       </CommandGroup>
+                                    </CommandList>
+                                 </Command>
+                              </PopoverContent>
+                           </Popover>
+                        )}
+                     />
+                     {errors.state && (
+                        <FieldDescription className="text-xs text-red-500">
+                           {errors.state.message}
+                        </FieldDescription>
+                     )}
+                  </Field>
                </div>
 
-               {/* Row 2: Email + Phone */}
+               {/* Row 3: Phone */}
                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <Field className="gap-2">
                      <FieldLabel>Email</FieldLabel>
@@ -190,7 +275,7 @@ export function SignupForm() {
                   </Field>
                </div>
 
-               {/* Row 3: Aadhar + PAN */}
+               {/* Row 4: Aadhar + PAN */}
                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <Field className="gap-2">
                      <FieldLabel>Aadhar Number</FieldLabel>

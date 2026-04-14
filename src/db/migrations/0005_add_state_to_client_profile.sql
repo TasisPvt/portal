@@ -1,0 +1,1 @@
+ALTER TABLE `client_profile` ADD `state` varchar(100) NOT NULL;
