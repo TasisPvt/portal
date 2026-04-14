@@ -11,17 +11,11 @@ import { Input } from "@/src/components/ui/input"
 import { Label } from "@/src/components/ui/label"
 import { AlertDestructive } from "@/src/components/alerts/alertDestructive"
 import { Spinner } from "@/src/components/ui/spinner"
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/src/components/ui/input-otp"
 
 type Step = "email" | "otp" | "password" | "done"
 
-// ── Each step is its own component so React fully unmounts/remounts
-// the DOM inputs on transition — prevents value bleed-through between steps.
-
-function EmailStep({
-   onSuccess,
-}: {
-   onSuccess: (email: string) => void
-}) {
+function EmailStep({ onSuccess }: { onSuccess: (email: string) => void }) {
    const { register, handleSubmit, formState: { errors } } = useForm<{ email: string }>()
    const [formError, setFormError] = useState<string | null>(null)
 
@@ -41,23 +35,23 @@ function EmailStep({
    })
 
    return (
-      <div className="mx-auto w-full max-w-md animate-fade-in">
-         <div className="mb-8">
-            <h1 className="mb-2 text-3xl font-bold">Forgot password?</h1>
-            <p className="text-muted-foreground">
-               Enter your registered email and we&apos;ll send you a verification code.
+      <div className="w-full animate-fade-in">
+         <div className="mb-6 text-center">
+            <h1 className="mb-1 text-2xl font-bold text-primary">Forgot Password?</h1>
+            <p className="text-sm text-muted-foreground">
+               Enter your email and we&apos;ll send you a verification code.
             </p>
          </div>
 
-         {formError && <AlertDestructive className="mb-6" title={formError} />}
+         {formError && <AlertDestructive className="mb-5" title={formError} />}
 
          <form
             onSubmit={handleSubmit((data) => { setFormError(null); mutation.mutate(data) })}
-            className="space-y-5"
+            className="space-y-4"
             noValidate
          >
             <div className="space-y-1.5">
-               <Label htmlFor="fp-email">Email address</Label>
+               <Label htmlFor="fp-email" className="text-sm font-medium">Email address</Label>
                <Input
                   id="fp-email"
                   type="email"
@@ -72,15 +66,15 @@ function EmailStep({
                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
 
-            <Button type="submit" className="w-full" disabled={mutation.isPending}>
+            <Button type="submit" className="w-full font-semibold" disabled={mutation.isPending}>
                {mutation.isPending ? "Sending…" : "Send OTP"}
                {mutation.isPending && <Spinner className="ml-2" />}
             </Button>
          </form>
 
-         <p className="mt-6 text-center text-sm text-muted-foreground">
+         <p className="mt-5 text-center text-sm text-muted-foreground">
             Remember your password?{" "}
-            <Link href="/login" className="font-medium text-primary hover:underline">Back to Login</Link>
+            <Link href="/login" className="font-semibold text-primary hover:underline">Back to Login</Link>
          </p>
       </div>
    )
@@ -95,7 +89,8 @@ function OtpStep({
    onSuccess: (otp: string) => void
    onBack: () => void
 }) {
-   const { register, handleSubmit, formState: { errors } } = useForm<{ otp: string }>()
+   const [otp, setOtp] = useState("")
+   const [otpError, setOtpError] = useState<string | null>(null)
    const [formError, setFormError] = useState<string | null>(null)
 
    const mutation = useMutation({
@@ -113,47 +108,58 @@ function OtpStep({
       onError: (err: any) => setFormError(err.message || "Something went wrong"),
    })
 
+   const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault()
+      if (otp.length < 6) {
+         setOtpError("Enter all 6 digits")
+         return
+      }
+      setOtpError(null)
+      setFormError(null)
+      mutation.mutate({ otp })
+   }
+
    return (
-      <div className="mx-auto w-full max-w-md animate-fade-in">
-         <div className="mb-8">
-            <div className="mb-4 flex size-11 items-center justify-center rounded-xl bg-primary/10">
-               <ShieldCheckIcon className="size-5 text-primary" />
+      <div className="w-full animate-fade-in">
+         <div className="mb-6 text-center">
+            <div className="mb-3 flex justify-center">
+               <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10">
+                  <ShieldCheckIcon className="size-5 text-primary" />
+               </div>
             </div>
-            <h1 className="mb-2 text-3xl font-bold">Enter OTP</h1>
-            <p className="text-muted-foreground">
+            <h1 className="mb-1 text-2xl font-bold text-primary">Enter OTP</h1>
+            <p className="text-sm text-muted-foreground">
                We sent a 6-digit code to{" "}
                <span className="font-medium text-foreground">{email}</span>.
-               It expires in 10 minutes.
             </p>
          </div>
 
-         {formError && <AlertDestructive className="mb-6" title={formError} />}
+         {formError && <AlertDestructive className="mb-5" title={formError} />}
 
-         <form
-            onSubmit={handleSubmit((data) => { setFormError(null); mutation.mutate(data) })}
-            className="space-y-5"
-            noValidate
-         >
-            <div className="space-y-1.5">
-               <Label htmlFor="fp-otp">Verification code</Label>
-               <Input
-                  id="fp-otp"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="123456"
-                  maxLength={6}
-                  autoComplete="one-time-code"
-                  autoFocus
-                  className={`text-center text-lg tracking-widest ${errors.otp ? "border-destructive" : ""}`}
-                  {...register("otp", {
-                     required: "OTP is required",
-                     pattern: { value: /^\d{6}$/, message: "Enter the 6-digit code" },
-                  })}
-               />
-               {errors.otp && <p className="text-xs text-destructive">{errors.otp.message}</p>}
+         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <div className="space-y-2">
+               <Label className="block text-center text-sm font-medium">Verification code</Label>
+               <div className="flex justify-center">
+                  <InputOTP
+                     maxLength={6}
+                     value={otp}
+                     onChange={(val) => { setOtp(val); setOtpError(null) }}
+                     autoFocus
+                     containerClassName="gap-2"
+                  >
+                     {[0, 1, 2, 3, 4, 5].map((i) => (
+                        <InputOTPGroup key={i}>
+                           <InputOTPSlot index={i} aria-invalid={!!otpError} />
+                        </InputOTPGroup>
+                     ))}
+                  </InputOTP>
+               </div>
+               {otpError && (
+                  <p className="text-center text-xs text-destructive">{otpError}</p>
+               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={mutation.isPending}>
+            <Button type="submit" className="w-full font-semibold" disabled={mutation.isPending}>
                {mutation.isPending ? "Verifying…" : "Verify Code"}
                {mutation.isPending && <Spinner className="ml-2" />}
             </Button>
@@ -162,7 +168,7 @@ function OtpStep({
          <button
             type="button"
             onClick={onBack}
-            className="mt-6 flex w-full items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+            className="mt-5 flex w-full items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
          >
             <ArrowLeftIcon className="size-3.5" />
             Use a different email
@@ -201,21 +207,21 @@ function PasswordStep({
    })
 
    return (
-      <div className="mx-auto w-full max-w-md animate-fade-in">
-         <div className="mb-8">
-            <h1 className="mb-2 text-3xl font-bold">Set new password</h1>
-            <p className="text-muted-foreground">Choose a strong password for your account.</p>
+      <div className="w-full animate-fade-in">
+         <div className="mb-6 text-center">
+            <h1 className="mb-1 text-2xl font-bold text-primary">Set New Password</h1>
+            <p className="text-sm text-muted-foreground">Choose a strong password for your account.</p>
          </div>
 
-         {formError && <AlertDestructive className="mb-6" title={formError} />}
+         {formError && <AlertDestructive className="mb-5" title={formError} />}
 
          <form
             onSubmit={handleSubmit((data) => { setFormError(null); mutation.mutate(data) })}
-            className="space-y-5"
+            className="space-y-4"
             noValidate
          >
             <div className="space-y-1.5">
-               <Label htmlFor="fp-new-password">New password</Label>
+               <Label htmlFor="fp-new-password" className="text-sm font-medium">New password</Label>
                <div className="relative">
                   <Input
                      id="fp-new-password"
@@ -230,7 +236,8 @@ function PasswordStep({
                   />
                   <Button type="button" variant="ghost" size="icon"
                      className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:bg-transparent hover:text-foreground"
-                     onClick={() => setShowPassword((s) => !s)} tabIndex={-1}>
+                     onClick={() => setShowPassword((s) => !s)} tabIndex={-1}
+                     aria-label={showPassword ? "Hide password" : "Show password"}>
                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </Button>
                </div>
@@ -238,7 +245,7 @@ function PasswordStep({
             </div>
 
             <div className="space-y-1.5">
-               <Label htmlFor="fp-confirm-password">Confirm new password</Label>
+               <Label htmlFor="fp-confirm-password" className="text-sm font-medium">Confirm new password</Label>
                <div className="relative">
                   <Input
                      id="fp-confirm-password"
@@ -253,14 +260,15 @@ function PasswordStep({
                   />
                   <Button type="button" variant="ghost" size="icon"
                      className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:bg-transparent hover:text-foreground"
-                     onClick={() => setShowConfirm((s) => !s)} tabIndex={-1}>
+                     onClick={() => setShowConfirm((s) => !s)} tabIndex={-1}
+                     aria-label={showConfirm ? "Hide password" : "Show password"}>
                      {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </Button>
                </div>
                {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>}
             </div>
 
-            <Button type="submit" className="w-full" disabled={mutation.isPending}>
+            <Button type="submit" className="w-full font-semibold" disabled={mutation.isPending}>
                {mutation.isPending ? "Saving…" : "Reset Password"}
                {mutation.isPending && <Spinner className="ml-2" />}
             </Button>
@@ -278,17 +286,17 @@ export function ForgotPasswordForm() {
 
    if (step === "done") {
       return (
-         <div className="mx-auto w-full max-w-md animate-fade-in text-center">
-            <div className="mb-6 flex justify-center">
+         <div className="w-full animate-fade-in text-center">
+            <div className="mb-5 flex justify-center">
                <div className="flex size-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
                   <CheckCircle2Icon className="size-7 text-green-600 dark:text-green-400" />
                </div>
             </div>
-            <h1 className="mb-2 text-2xl font-bold">Password updated</h1>
-            <p className="mb-8 text-muted-foreground">
+            <h1 className="mb-1 text-2xl font-bold text-primary">Password Updated!</h1>
+            <p className="mb-6 text-sm text-muted-foreground">
                Your password has been reset. You can now log in with your new password.
             </p>
-            <Button asChild className="w-full">
+            <Button asChild className="w-full font-semibold">
                <Link href="/login">Go to Login</Link>
             </Button>
          </div>
@@ -296,11 +304,7 @@ export function ForgotPasswordForm() {
    }
 
    if (step === "email") {
-      return (
-         <EmailStep
-            onSuccess={(e) => { setEmail(e); setStep("otp") }}
-         />
-      )
+      return <EmailStep onSuccess={(e) => { setEmail(e); setStep("otp") }} />
    }
 
    if (step === "otp") {

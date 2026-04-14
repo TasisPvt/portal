@@ -184,6 +184,7 @@ h4,
 h5,
 h6 {
   font-family: var(--font-heading), sans-serif;
+  letter-spacing: 0.02em;
 }
 
 /* ── Custom animations ── */

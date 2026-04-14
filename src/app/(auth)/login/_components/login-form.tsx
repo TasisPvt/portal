@@ -19,9 +19,9 @@ import { AlertDestructive } from "@/src/components/alerts/alertDestructive"
 import { Spinner } from "@/src/components/ui/spinner"
 
 type LoginType = {
-   email: string;
-   password: string;
-};
+   email: string
+   password: string
+}
 
 export function LoginForm() {
    const router = useRouter()
@@ -61,37 +61,38 @@ export function LoginForm() {
    }
 
    return (
-      <div className="mx-auto w-full max-w-md animate-fade-in">
-         <div className="mb-8">
-            <h1 className="mb-2 text-3xl font-bold tracking-tight text-foreground">
-               Welcome back
+      <div className="w-full animate-fade-in">
+         {/* Heading */}
+         <div className="mb-6 text-center">
+            <h1 className="mb-1 text-2xl font-bold text-primary">
+               Welcome Back!
             </h1>
-            <p className="text-base text-muted-foreground">
-               Sign in to your account to continue.
+            <p className="text-sm text-muted-foreground">
+               Sign in to continue to your portal.
             </p>
          </div>
 
          {passwordChanged && (
-            <div className="mb-6 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950/50 dark:text-green-300">
+            <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-green-200 bg-green-50 px-3.5 py-2.5 text-sm text-green-800 dark:border-green-800 dark:bg-green-950/50 dark:text-green-300">
                <CheckCircle2Icon className="size-4 shrink-0" />
-               Password updated successfully. Sign in with your new password.
+               Password updated. Sign in with your new password.
             </div>
          )}
 
          {formError && (
-            <AlertDestructive className="mb-6" title={formError} />
+            <AlertDestructive className="mb-5" title={formError} />
          )}
 
-         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-            <FieldGroup className="gap-5">
+         <form onSubmit={handleSubmit(onSubmit)} noValidate>
+            <FieldGroup className="gap-4">
 
                <Field className="gap-1.5">
-                  <FieldLabel className="text-sm font-medium">Email address</FieldLabel>
+                  <FieldLabel className="text-sm font-medium">Email</FieldLabel>
                   <Input
                      type="email"
-                     placeholder="you@example.com"
+                     placeholder="Enter your email"
                      autoComplete="email"
-                     className={errors.email ? "border-destructive focus-visible:ring-destructive/30" : ""}
+                     className={errors.email ? "border-destructive" : ""}
                      {...register("email", {
                         required: "Email address is required",
                         pattern: {
@@ -108,12 +109,13 @@ export function LoginForm() {
                </Field>
 
                <Field className="gap-1.5">
-                  <div className="flex items-center">
+                  <div className="flex items-center justify-between">
                      <FieldLabel className="text-sm font-medium">Password</FieldLabel>
                      <Link
                         href="/forgot-password"
-                        className="ml-auto inline-block text-sm text-primary hover:underline">
-                        Forgot your password?
+                        className="text-xs text-primary hover:underline"
+                     >
+                        Forgot password?
                      </Link>
                   </div>
                   <div className="relative">
@@ -121,7 +123,7 @@ export function LoginForm() {
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
                         autoComplete="current-password"
-                        className={errors.password ? "border-destructive pr-10 focus-visible:ring-destructive/30" : "pr-10"}
+                        className={errors.password ? "border-destructive pr-10" : "pr-10"}
                         {...register("password", {
                            required: "Password is required",
                         })}
@@ -145,25 +147,23 @@ export function LoginForm() {
                   )}
                </Field>
 
-               <Field>
+               <Field className="mt-1">
                   <Button
                      type="submit"
-                     className="w-full cursor-pointer font-semibold"
+                     className="w-full font-semibold"
                      disabled={isLoading}
                   >
-                     {isRedirecting ? "Preparing dashboard…" : isLoading ? "Signing in…" : "Sign in"}
+                     {isRedirecting ? "Preparing dashboard…" : isLoading ? "Signing in…" : "Sign In"}
                      {isLoading && <Spinner className="ml-2" />}
                   </Button>
                </Field>
 
-               <div className="flex flex-col items-center gap-1.5 text-center text-sm text-muted-foreground">
-                  <span>
-                     Don&apos;t have an account?{" "}
-                     <Link href="/signup" className="font-semibold text-primary hover:underline">
-                        Create one
-                     </Link>
-                  </span>
-               </div>
+               <p className="text-center text-sm text-muted-foreground">
+                  Don&apos;t have an account?{" "}
+                  <Link href="/signup" className="font-semibold text-primary hover:underline">
+                     Sign up
+                  </Link>
+               </p>
 
             </FieldGroup>
          </form>

@@ -1,12 +1,12 @@
-import { Inter, Open_Sans } from "next/font/google"
+import { Noto_Sans, Inter } from "next/font/google"
 
 import "@/src/app/globals.css"
 import { Providers } from "@/src/components/providers"
 import { cn } from "@/src/lib/utils"
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', weight: "400"  })
 
-const openSans = Open_Sans({ subsets: ["latin"], variable: "--font-sans", weight: "400" })
+const sans = Noto_Sans({ subsets: ["latin"], variable: "--font-sans"})
 
 export default function RootLayout({
   children,
@@ -17,7 +17,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", openSans.variable, inter.variable)}
+      className={cn("antialiased", sans.variable, inter.variable)}
     >
       <body>
         <Providers>

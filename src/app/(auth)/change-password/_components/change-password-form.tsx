@@ -26,12 +26,7 @@ export function ChangePasswordForm() {
    const toggle = (field: keyof typeof show) =>
       setShow((s) => ({ ...s, [field]: !s[field] }))
 
-   const {
-      register,
-      handleSubmit,
-      watch,
-      formState: { errors },
-   } = useForm<FormValues>()
+   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>()
 
    const mutation = useMutation({
       mutationFn: async (data: FormValues) => {
@@ -47,12 +42,8 @@ export function ChangePasswordForm() {
          if (!res.ok) throw json
          return json
       },
-      onSuccess: () => {
-         router.push("/")
-      },
-      onError: (err: any) => {
-         setFormError(err.message || "Something went wrong")
-      },
+      onSuccess: () => router.push("/"),
+      onError: (err: any) => setFormError(err.message || "Something went wrong"),
    })
 
    const onSubmit = (data: FormValues) => {
@@ -62,25 +53,22 @@ export function ChangePasswordForm() {
 
    return (
       <div className="w-full animate-fade-in">
-         {/* Header */}
-         <div className="mb-8">
-            <div className="mb-4 flex size-11 items-center justify-center rounded-xl bg-primary/10">
-               <ShieldCheckIcon className="size-5 text-primary" />
+         {/* Heading */}
+         <div className="mb-6 text-center">
+            <div className="mb-3 flex justify-center">
+               <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10">
+                  <ShieldCheckIcon className="size-5 text-primary" />
+               </div>
             </div>
-            <h1 className="mb-2 text-3xl font-bold tracking-tight text-foreground">
-               Set your password
-            </h1>
-            <p className="text-base text-muted-foreground">
-               Your account has a temporary password. Please set a permanent one to continue.
+            <h1 className="mb-1 text-2xl font-bold text-primary">Set Your Password</h1>
+            <p className="text-sm text-muted-foreground">
+               Your account has a temporary password. Please set a permanent one.
             </p>
          </div>
 
-         {formError && (
-            <AlertDestructive className="mb-6" title={formError} />
-         )}
+         {formError && <AlertDestructive className="mb-5" title={formError} />}
 
-         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-            {/* Current / temporary password */}
+         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <div className="space-y-1.5">
                <Label htmlFor="currentPassword" className="text-sm font-medium">
                   Temporary Password
@@ -96,13 +84,10 @@ export function ChangePasswordForm() {
                         required: "Enter the temporary password from your email",
                      })}
                   />
-                  <Button
-                     type="button" variant="ghost" size="icon"
+                  <Button type="button" variant="ghost" size="icon"
                      className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:bg-transparent hover:text-foreground"
-                     onClick={() => toggle("current")}
-                     tabIndex={-1}
-                     aria-label={show.current ? "Hide password" : "Show password"}
-                  >
+                     onClick={() => toggle("current")} tabIndex={-1}
+                     aria-label={show.current ? "Hide password" : "Show password"}>
                      {show.current ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </Button>
                </div>
@@ -111,11 +96,8 @@ export function ChangePasswordForm() {
                )}
             </div>
 
-            {/* New password */}
             <div className="space-y-1.5">
-               <Label htmlFor="newPassword" className="text-sm font-medium">
-                  New Password
-               </Label>
+               <Label htmlFor="newPassword" className="text-sm font-medium">New Password</Label>
                <div className="relative">
                   <Input
                      id="newPassword"
@@ -128,13 +110,10 @@ export function ChangePasswordForm() {
                         minLength: { value: 8, message: "Password must be at least 8 characters" },
                      })}
                   />
-                  <Button
-                     type="button" variant="ghost" size="icon"
+                  <Button type="button" variant="ghost" size="icon"
                      className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:bg-transparent hover:text-foreground"
-                     onClick={() => toggle("next")}
-                     tabIndex={-1}
-                     aria-label={show.next ? "Hide password" : "Show password"}
-                  >
+                     onClick={() => toggle("next")} tabIndex={-1}
+                     aria-label={show.next ? "Hide password" : "Show password"}>
                      {show.next ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </Button>
                </div>
@@ -143,11 +122,8 @@ export function ChangePasswordForm() {
                )}
             </div>
 
-            {/* Confirm password */}
             <div className="space-y-1.5">
-               <Label htmlFor="confirmPassword" className="text-sm font-medium">
-                  Confirm New Password
-               </Label>
+               <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm New Password</Label>
                <div className="relative">
                   <Input
                      id="confirmPassword"
@@ -157,17 +133,13 @@ export function ChangePasswordForm() {
                      className={errors.confirmPassword ? "border-destructive pr-10" : "pr-10"}
                      {...register("confirmPassword", {
                         required: "Please confirm your new password",
-                        validate: (v) =>
-                           v === watch("newPassword") || "Passwords do not match",
+                        validate: (v) => v === watch("newPassword") || "Passwords do not match",
                      })}
                   />
-                  <Button
-                     type="button" variant="ghost" size="icon"
+                  <Button type="button" variant="ghost" size="icon"
                      className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:bg-transparent hover:text-foreground"
-                     onClick={() => toggle("confirm")}
-                     tabIndex={-1}
-                     aria-label={show.confirm ? "Hide password" : "Show password"}
-                  >
+                     onClick={() => toggle("confirm")} tabIndex={-1}
+                     aria-label={show.confirm ? "Hide password" : "Show password"}>
                      {show.confirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </Button>
                </div>
@@ -176,17 +148,13 @@ export function ChangePasswordForm() {
                )}
             </div>
 
-            <Button
-               type="submit"
-               className="mt-2 w-full font-semibold"
-               disabled={mutation.isPending}
-            >
+            <Button type="submit" className="mt-1 w-full font-semibold" disabled={mutation.isPending}>
                {mutation.isPending ? "Saving…" : "Set New Password"}
                {mutation.isPending && <Spinner className="ml-2" />}
             </Button>
          </form>
 
-         <p className="mt-6 text-center text-sm text-muted-foreground">
+         <p className="mt-5 text-center text-sm text-muted-foreground">
             After saving you&apos;ll be taken directly to your dashboard.
          </p>
       </div>

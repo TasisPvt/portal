@@ -45,19 +45,19 @@ type SignupType = {
 
 function SuccessScreen({ email }: { email: string }) {
    return (
-      <div className="mx-auto flex w-full max-w-md flex-col items-center gap-5 text-center animate-fade-in">
-         <div className="flex size-16 items-center justify-center rounded-full bg-primary/10">
-            <MailCheckIcon className="size-8 text-primary" />
+      <div className="flex w-full flex-col items-center gap-5 text-center animate-fade-in py-4">
+         <div className="flex size-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+            <MailCheckIcon className="size-7 text-green-600 dark:text-green-400" />
          </div>
          <div>
-            <h2 className="text-2xl font-bold">Check your email</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <h2 className="mb-1 text-2xl font-bold text-primary">Check your email</h2>
+            <p className="text-sm text-muted-foreground">
                We&apos;ve sent a temporary password to{" "}
                <span className="font-medium text-foreground">{email}</span>.
                Use it to log in and set your own password.
             </p>
          </div>
-         <Button asChild className="w-full">
+         <Button asChild className="w-full font-semibold">
             <Link href="/login">Go to Login</Link>
          </Button>
       </div>
@@ -105,10 +105,10 @@ export function SignupForm() {
    }
 
    return (
-      <div className="mx-auto w-full max-w-2xl animate-fade-in">
-         <div className="mb-8 text-center">
-            <h1 className="mb-2 text-3xl font-bold">Create your account</h1>
-            <p className="text-muted-foreground">
+      <div className="w-full animate-fade-in">
+         <div className="mb-6 text-center">
+            <h1 className="mb-1 text-2xl font-bold text-primary">Create your account</h1>
+            <p className="text-sm text-muted-foreground">
                Fill in your details. We&apos;ll email you a temporary password to get started.
             </p>
          </div>
