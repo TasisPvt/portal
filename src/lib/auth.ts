@@ -1,9 +1,12 @@
 import { betterAuth } from "better-auth"
+import { APIError } from "better-auth/api"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { nextCookies } from "better-auth/next-js"
+import { eq } from "drizzle-orm"
 
 import { db } from "@/src/db/client"
 import * as schema from "@/src/db/schema"
+import { user } from "@/src/db/schema"
 import type { AdminRole, UserType } from "@/src/db/schema"
 
 export const auth = betterAuth({
@@ -14,6 +17,29 @@ export const auth = betterAuth({
 
    emailAndPassword: {
       enabled: true,
+   },
+
+   // Block inactive users before a session is ever written to the DB.
+   // Fires after credentials are validated — so wrong passwords still get
+   // the generic "invalid" error, not this one.
+   databaseHooks: {
+      session: {
+         create: {
+            before: async (session) => {
+               const [found] = await db
+                  .select({ isActive: user.isActive })
+                  .from(user)
+                  .where(eq(user.id, session.userId))
+                  .limit(1)
+
+               if (found && !found.isActive) {
+                  throw new APIError("FORBIDDEN", {
+                     message: "Your account has been blocked. Contact the admin for further details.",
+                  })
+               }
+            },
+         },
+      },
    },
 
    // Surfaces userType and adminRole on the session object so every

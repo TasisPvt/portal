@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/src/lib/auth"
 
-const JWT_SECRET = process.env.JWT_SECRET!
-
 export async function POST(req: Request) {
    const { email, password } = await req.json()
 
@@ -14,15 +12,21 @@ export async function POST(req: Request) {
    }
 
    try {
-      const result = await auth.api.signInEmail({
+      await auth.api.signInEmail({
          body: { email, password },
+         headers: req.headers,
       })
-      const user = result.user
 
-      return NextResponse.json({
-         success: true
-      })
-   } catch {
+      return NextResponse.json({ success: true })
+   } catch (err: any) {
+      // better-auth throws APIError with statusCode for known failures
+      if (err?.statusCode === 403) {
+         return NextResponse.json(
+            { message: err.body?.message ?? "Your account has been blocked. Contact the admin for further details." },
+            { status: 403 }
+         )
+      }
+
       return NextResponse.json(
          { message: "Invalid email or password" },
          { status: 401 }

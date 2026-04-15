@@ -17,28 +17,38 @@ export async function POST(req: Request) {
 
    // Look up user — always return the same response to avoid email enumeration
    const [found] = await db
-      .select({ id: user.id, name: user.name, email: user.email })
+      .select({ id: user.id, name: user.name, email: user.email, isActive: user.isActive })
       .from(user)
       .where(eq(user.email, email))
       .limit(1)
 
-   if (found) {
-      const otp = generateOtp()
-      const identifier = `forgot-password:${email}`
-
-      // Upsert: delete any existing OTP for this email then insert fresh
-      await db.delete(verification).where(eq(verification.identifier, identifier))
-
-      await db.insert(verification).values({
-         id: randomUUID(),
-         identifier,
-         value: otp,
-         expiresAt: new Date(Date.now() + OTP_TTL_MS),
-      })
-
-      await sendOtpEmail({ to: found.email, name: found.name, otp })
+   if (!found) {
+      return NextResponse.json(
+         { message: "No account found with this email address." },
+         { status: 404 }
+      )
    }
 
-   // Always return success to prevent email enumeration
+   if (!found.isActive) {
+      return NextResponse.json(
+         { message: "Your account has been blocked. Contact the admin for further details." },
+         { status: 403 }
+      )
+   }
+
+   const otp = generateOtp()
+   const identifier = `forgot-password:${email}`
+
+   await db.delete(verification).where(eq(verification.identifier, identifier))
+
+   await db.insert(verification).values({
+      id: randomUUID(),
+      identifier,
+      value: otp,
+      expiresAt: new Date(Date.now() + OTP_TTL_MS),
+   })
+
+   await sendOtpEmail({ to: found.email, name: found.name, otp })
+
    return NextResponse.json({ success: true })
 }
