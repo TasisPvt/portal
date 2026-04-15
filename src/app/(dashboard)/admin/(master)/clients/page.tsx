@@ -3,6 +3,7 @@ import { user, clientProfile } from "@/src/db/schema"
 import { eq } from "drizzle-orm"
 import { SiteHeader } from "@/src/components/site-header"
 import { ClientsTable } from "./_components/clients-table"
+import { AddClientDialog } from "./_components/add-client-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card"
 import { UsersIcon, UserCheckIcon, UserXIcon } from "lucide-react"
 
@@ -57,6 +58,12 @@ export default async function ClientsPage() {
       <div className="flex flex-1 flex-col">
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+
+            {/* Page heading */}
+            <div className="flex items-center justify-between px-4 lg:px-6">
+              <h2 className="text-xl font-semibold tracking-tight">Clients</h2>
+              <AddClientDialog />
+            </div>
 
             {/* Stat cards */}
             <div className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-3 lg:px-6">
