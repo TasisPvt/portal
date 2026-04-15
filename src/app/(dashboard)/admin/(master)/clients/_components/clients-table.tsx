@@ -42,9 +42,9 @@ import {
   ArrowUpIcon,
   ArrowDownIcon,
   ChevronsUpDownIcon,
-  SlidersHorizontalIcon,
   CheckIcon,
   ClockIcon,
+  DownloadIcon,
 } from "lucide-react"
 import { cn } from "@/src/lib/utils"
 
@@ -59,6 +59,7 @@ export type ClientRow = {
   phoneVerified: boolean | null
   state: string | null
   panNumber: string | null
+  isActive: boolean
 }
 
 function getInitials(name: string) {
@@ -111,7 +112,7 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [stateFilter, setStateFilter] = React.useState("all")
-  const [verifiedFilter, setVerifiedFilter] = React.useState("all")
+  const [statusFilter, setStatusFilter] = React.useState("all")
   const [activeFilters, setActiveFilters] = React.useState<{ key: string; label: string }[]>([])
 
   const uniqueStates = React.useMemo(() => {
@@ -119,17 +120,17 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
     return Array.from(new Set(states)).sort()
   }, [data])
 
-  // Pre-filter data before passing to table (state + verified dropdowns)
+  // Pre-filter data before passing to table (state + verified + status dropdowns)
   const preFiltered = React.useMemo(() => {
     return data.filter((client) => {
       const matchesState = stateFilter === "all" || client.state === stateFilter
-      const matchesVerified =
-        verifiedFilter === "all" ||
-        (verifiedFilter === "verified" && client.emailVerified) ||
-        (verifiedFilter === "unverified" && !client.emailVerified)
-      return matchesState && matchesVerified
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && client.isActive) ||
+        (statusFilter === "inactive" && !client.isActive)
+      return matchesState && matchesStatus
     })
-  }, [data, stateFilter, verifiedFilter])
+  }, [data, stateFilter, statusFilter])
 
   const columns: ColumnDef<ClientRow>[] = React.useMemo(() => [
     {
@@ -226,6 +227,24 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
       ),
     },
     {
+      id: "isActive",
+      accessorFn: (row) => (row.isActive ? "Active" : "Inactive"),
+      header: ({ column }) => <SortableHeader column={column} label="Status" />,
+      cell: ({ row }) => (
+        <Badge
+          variant="outline"
+          className={cn(
+            "text-xs font-medium",
+            row.original.isActive
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400"
+              : "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400"
+          )}
+        >
+          {row.original.isActive ? "Active" : "Inactive"}
+        </Badge>
+      ),
+    },
+    {
       id: "createdAt",
       accessorFn: (row) => row.createdAt,
       sortingFn: "datetime",
@@ -265,23 +284,51 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
     initialState: { pagination: { pageSize: 10 } },
   })
 
-  function applyFilters() {
-    const filters: { key: string; label: string }[] = []
-    if (stateFilter !== "all") filters.push({ key: "state", label: `State: ${stateFilter}` })
-    if (verifiedFilter !== "all")
-      filters.push({
-        key: "verified",
-        label: verifiedFilter === "verified" ? "Email: Verified" : "Email: Unverified",
-      })
-    setActiveFilters(filters)
-    table.setPageIndex(0)
+  function exportCSV() {
+    const rows = table.getSortedRowModel().rows
+    const headers = ["Name", "Email", "Username", "Phone", "Phone Verified", "State", "PAN", "Email Verified", "Status", "Joined"]
+    const lines = rows.map(({ original: c }) =>
+      [
+        c.name,
+        c.email,
+        c.username ?? "",
+        c.phone ?? "",
+        c.phoneVerified ? "Yes" : "No",
+        c.state ?? "",
+        c.panNumber ?? "",
+        c.emailVerified ? "Yes" : "No",
+        c.isActive ? "Active" : "Inactive",
+        c.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")
+    )
+    const csv = [headers.join(","), ...lines].join("\n")
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `clients-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   function removeFilter(key: string) {
     if (key === "state") setStateFilter("all")
-    if (key === "verified") setVerifiedFilter("all")
+    if (key === "status") setStatusFilter("all")
     setActiveFilters((prev) => prev.filter((f) => f.key !== key))
   }
+
+  // Sync active filter chips whenever dropdowns change
+  React.useEffect(() => {
+    const filters: { key: string; label: string }[] = []
+    if (stateFilter !== "all") filters.push({ key: "state", label: `State: ${stateFilter}` })
+    if (statusFilter !== "all")
+      filters.push({
+        key: "status",
+        label: statusFilter === "active" ? "Status: Active" : "Status: Inactive",
+      })
+    setActiveFilters(filters)
+    table.setPageIndex(0)
+  }, [stateFilter, statusFilter])
 
   const { pageIndex, pageSize } = table.getState().pagination
   const pageCount = table.getPageCount()
@@ -316,18 +363,21 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
               </SelectGroup>
             </SelectContent>
           </Select>
-          <Select value={verifiedFilter} onValueChange={setVerifiedFilter}>
-            <SelectTrigger className="w-40" size="sm">
-              <SelectValue placeholder="Verification" />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-32" size="sm">
+              <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="verified">Email Verified</SelectItem>
-                <SelectItem value="unverified">Unverified</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
+          <Button size="sm" variant="outline" onClick={exportCSV} className="gap-1.5 hover:cursor-pointer">
+            <DownloadIcon className="size-3.5" />
+          </Button>
         </div>
       </div>
 

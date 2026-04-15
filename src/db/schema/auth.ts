@@ -39,6 +39,8 @@ export const user = mysqlTable("user", {
   ]),
   // True when the account was created with an auto-generated password.
   mustChangePassword: boolean("must_change_password").default(false).notNull(),
+  // False = account is suspended / deactivated.
+  isActive: boolean("is_active").default(true).notNull(),
 });
 
 export const session = mysqlTable(
