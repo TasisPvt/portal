@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/src/components/ui/select"
+import Link from "next/link"
 import {
   SearchIcon,
   XIcon,
@@ -156,7 +157,7 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
       accessorFn: (row) => row.username ?? "",
       header: ({ column }) => <SortableHeader column={column} label="Username" />,
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {row.original.username ?? <span className="opacity-40">—</span>}
         </span>
       ),
@@ -166,7 +167,7 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
       accessorFn: (row) => row.phone ?? "",
       header: ({ column }) => <SortableHeader column={column} label="Phone" />,
       cell: ({ row }) => (
-        <div className="flex items-center gap-1.5 text-sm">
+        <div className="flex items-center gap-1.5 text-xs">
           {row.original.phone ?? <span className="text-muted-foreground opacity-40">—</span>}
           {row.original.phone && (
             <span
@@ -263,9 +264,11 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
       id: "actions",
       enableSorting: false,
       header: () => null,
-      cell: () => (
-        <Button variant="ghost" size="icon" className="size-7 opacity-0 group-hover:opacity-100 transition-opacity">
-          <ChevronRightIcon className="size-4 text-muted-foreground" />
+      cell: ({ row }) => (
+        <Button variant="ghost" size="icon" className="size-7 opacity-0 group-hover:opacity-100 transition-opacity" asChild>
+          <Link href={`/admin/clients/${row.original.id}`}>
+            <ChevronRightIcon className="size-4 text-muted-foreground" />
+          </Link>
         </Button>
       ),
     },
