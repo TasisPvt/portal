@@ -126,7 +126,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                   <div className="grid grid-cols-1 gap-4 px-4 lg:grid-cols-3 lg:px-6">
 
                      {/* Avatar card */}
-                     <Card size="sm" className="flex flex-col items-center gap-4 py-8 lg:col-span-1">
+                     <Card size="sm" className="flex flex-col items-center gap-4 py-10! lg:col-span-1">
                         <Avatar className="size-20 text-2xl">
                            <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl">
                               {getInitials(client.name)}
