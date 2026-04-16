@@ -94,6 +94,11 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL(HOME[user.userType], request.url))
    }
 
+   // Block managers from accessing user management routes
+   if (user.adminRole === "manager" && pathname.startsWith("/admin/users")) {
+      return NextResponse.redirect(new URL(HOME[user.userType], request.url))
+   }
+
    return NextResponse.next()
 }
 

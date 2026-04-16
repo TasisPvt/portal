@@ -29,7 +29,7 @@ import {
 } from "@/src/components/ui/sidebar"
 import Logo from "@/src/components/logo"
 import type { User } from "@/src/lib/auth"
-import { UserType } from "@/src/lib/constants"
+import { Roles, UserType } from "@/src/lib/constants"
 import { NavUser } from "@/src/components/sidebar/nav-user"
 
 const clientNav = {
@@ -101,7 +101,11 @@ export function AppSidebar({
    ...props
 }: React.ComponentProps<typeof Sidebar> & { user: User | null }) {
    const userType = user?.userType ?? UserType.CLIENT
-   // const nav = userType === UserType.ADMIN ? adminNav : clientNav
+   const isManager = user?.adminRole === Roles.MANAGER
+
+   const adminMainNav = isManager
+      ? adminNav.navMain.filter((item) => item.url !== "/admin/users")
+      : adminNav.navMain
 
    return (
       <Sidebar collapsible="offcanvas" {...props}>
@@ -121,7 +125,7 @@ export function AppSidebar({
          </SidebarHeader>
 
          <SidebarContent className="gap-0">
-            <NavMain items={userType === UserType.ADMIN ? adminNav.navMain : clientNav.navMain} />
+            <NavMain items={userType === UserType.ADMIN ? adminMainNav : clientNav.navMain} />
             {userType === UserType.CLIENT && (
                <NavCollapsible title="Screening" items={clientNav.navScreening} />
             )}
