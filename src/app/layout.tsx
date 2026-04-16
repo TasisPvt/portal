@@ -2,6 +2,7 @@ import { Noto_Sans, Inter } from "next/font/google"
 
 import "@/src/app/globals.css"
 import { Providers } from "@/src/components/providers"
+import { Toaster } from "@/src/components/ui/sonner"
 import { cn } from "@/src/lib/utils"
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', weight: "400"  })
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body>
         <Providers>
           {children}
+          <Toaster />
         </Providers>
       </body>
     </html>
