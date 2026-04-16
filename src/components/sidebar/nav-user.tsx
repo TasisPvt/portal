@@ -27,6 +27,7 @@ import {
    BellIcon,
    LogOutIcon,
 } from "lucide-react"
+import Link from "next/link"
 import { authClient } from "@/src/lib/auth-client"
 import type { User } from "@/src/lib/auth"
 
@@ -95,9 +96,11 @@ export function NavUser({ user }: { user: User | null }) {
                   <DropdownMenuSeparator />
 
                   <DropdownMenuGroup>
-                     <DropdownMenuItem>
-                        <CircleUserRoundIcon />
-                        Account
+                     <DropdownMenuItem asChild>
+                        <Link href="/profile">
+                           <CircleUserRoundIcon />
+                           Account
+                        </Link>
                      </DropdownMenuItem>
                      <DropdownMenuItem>
                         <CreditCardIcon />
