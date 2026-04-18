@@ -1,1 +1,0 @@
-ALTER TABLE `user` MODIFY COLUMN `admin_role` enum('super_admin','admin','manager');

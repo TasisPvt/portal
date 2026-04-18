@@ -1,56 +1,51 @@
 import { Roles, type Role } from "@/src/lib/constants";
 import { relations } from "drizzle-orm";
 import {
-  mysqlTable,
-  mysqlEnum,
+  pgTable,
+  pgEnum,
   varchar,
   text,
   timestamp,
-  datetime,
   boolean,
   index,
-} from "drizzle-orm/mysql-core";
+} from "drizzle-orm/pg-core";
 
-export const userTypeEnum = mysqlEnum("user_type", ["client", "admin"]);
-export const adminRoleEnum = mysqlEnum("admin_role", [
+export const userTypeEnum = pgEnum("user_type", ["client", "admin"]);
+export const adminRoleEnum = pgEnum("admin_role", [
   Roles.SUPER_ADMIN,
   Roles.ADMIN,
-  Roles.MANAGER
+  Roles.MANAGER,
 ]);
 
-export const user = mysqlTable("user", {
+export const user = pgTable("user", {
   id: varchar("id", { length: 36 }).primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
-  createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { fsp: 3 })
+  createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { precision: 3 })
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
   // Type discriminator — present on every user
-  userType: mysqlEnum("user_type", ["client", "admin"]).notNull().default("client"),
+  userType: userTypeEnum("user_type").notNull().default("client"),
   // Only populated for admin-type users; null for clients
-  adminRole: mysqlEnum("admin_role", [
-    Roles.SUPER_ADMIN,
-    Roles.ADMIN,
-    Roles.MANAGER
-  ]),
+  adminRole: adminRoleEnum("admin_role"),
   // True when the account was created with an auto-generated password.
   mustChangePassword: boolean("must_change_password").default(false).notNull(),
   // False = account is suspended / deactivated.
   isActive: boolean("is_active").default(true).notNull(),
 });
 
-export const session = mysqlTable(
+export const session = pgTable(
   "session",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
-    expiresAt: timestamp("expires_at", { fsp: 3 }).notNull(),
+    expiresAt: timestamp("expires_at", { precision: 3 }).notNull(),
     token: varchar("token", { length: 255 }).notNull().unique(),
-    createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { fsp: 3 })
+    createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { precision: 3 })
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
@@ -63,7 +58,7 @@ export const session = mysqlTable(
   (table) => [index("session_userId_idx").on(table.userId)],
 );
 
-export const account = mysqlTable(
+export const account = pgTable(
   "account",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -75,12 +70,12 @@ export const account = mysqlTable(
     accessToken: text("access_token"),
     refreshToken: text("refresh_token"),
     idToken: text("id_token"),
-    accessTokenExpiresAt: datetime("access_token_expires_at", { fsp: 3 }),
-    refreshTokenExpiresAt: datetime("refresh_token_expires_at", { fsp: 3 }),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", { precision: 3 }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { precision: 3 }),
     scope: text("scope"),
     password: text("password"),
-    createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { fsp: 3 })
+    createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { precision: 3 })
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
@@ -88,15 +83,15 @@ export const account = mysqlTable(
   (table) => [index("account_userId_idx").on(table.userId)],
 );
 
-export const verification = mysqlTable(
+export const verification = pgTable(
   "verification",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
     identifier: varchar("identifier", { length: 255 }).notNull(),
     value: text("value").notNull(),
-    expiresAt: timestamp("expires_at", { fsp: 3 }).notNull(),
-    createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { fsp: 3 })
+    expiresAt: timestamp("expires_at", { precision: 3 }).notNull(),
+    createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { precision: 3 })
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
@@ -106,7 +101,7 @@ export const verification = mysqlTable(
 
 // Stores KYC fields mandatory for client-type users only.
 // Created immediately after a client registers.
-export const clientProfile = mysqlTable("client_profile", {
+export const clientProfile = pgTable("client_profile", {
   id: varchar("id", { length: 36 }).primaryKey(),
   userId: varchar("user_id", { length: 36 })
     .notNull()
@@ -118,8 +113,8 @@ export const clientProfile = mysqlTable("client_profile", {
   aadharNumber: varchar("aadhar_number", { length: 12 }).notNull().unique(),
   panNumber: varchar("pan_number", { length: 10 }).notNull().unique(),
   state: varchar("state", { length: 100 }).notNull(),
-  createdAt: timestamp("created_at", { fsp: 3 }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { fsp: 3 })
+  createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { precision: 3 })
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
