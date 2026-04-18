@@ -29,6 +29,7 @@ import { Input } from "@/src/components/ui/input"
 import { AlertDestructive } from "@/src/components/alerts/alertDestructive"
 import { Spinner } from "@/src/components/ui/spinner"
 import { stateData } from "@/src/lib/data/stateData"
+import { countryDialCodes, countryCodeToFlag } from "@/src/lib/data/countryDialCodes"
 import { cn } from "@/src/lib/utils"
 
 type SignupType = {
@@ -70,6 +71,8 @@ export function SignupForm() {
    const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
    const [formError, setFormError] = useState<string | null>(null)
    const [statePopoverOpen, setStatePopoverOpen] = useState(false)
+   const [dialCodePopoverOpen, setDialCodePopoverOpen] = useState(false)
+   const [selectedCountry, setSelectedCountry] = useState(countryDialCodes[0]) // India default
 
    const {
       register,
@@ -101,7 +104,10 @@ export function SignupForm() {
 
    const onSubmit = (data: SignupType) => {
       setFormError(null)
-      signupMutation.mutate(data)
+      signupMutation.mutate({
+         ...data,
+         phone: `${selectedCountry.dial}${data.phone}`,
+      })
    }
 
    return (
@@ -125,7 +131,7 @@ export function SignupForm() {
                   <Field className="gap-2">
                      <FieldLabel>Full Name</FieldLabel>
                      <Input
-                        placeholder="Priya Sharma"
+                        placeholder=""
                         className={errors.name ? "border-red-500" : ""}
                         {...register("name", {
                            required: "Full name is required",
@@ -145,7 +151,7 @@ export function SignupForm() {
                   <Field className="gap-2">
                      <FieldLabel>Username</FieldLabel>
                      <Input
-                        placeholder="priya_sharma"
+                        placeholder=""
                         className={errors.username ? "border-red-500" : ""}
                         {...register("username", {
                            required: "Username is required",
@@ -236,7 +242,7 @@ export function SignupForm() {
                      <FieldLabel>Email</FieldLabel>
                      <Input
                         type="email"
-                        placeholder="priya@example.com"
+                        placeholder=""
                         className={errors.email ? "border-red-500" : ""}
                         {...register("email", {
                            required: "Email is required",
@@ -255,18 +261,69 @@ export function SignupForm() {
 
                   <Field className="gap-2">
                      <FieldLabel>Phone Number</FieldLabel>
-                     <Input
-                        type="tel"
-                        placeholder="9876543210"
-                        className={errors.phone ? "border-red-500" : ""}
-                        {...register("phone", {
-                           required: "Phone number is required",
-                           pattern: {
-                              value: /^[6-9]\d{9}$/,
-                              message: "Enter a valid 10-digit Indian mobile number",
-                           },
-                        })}
-                     />
+                     <div className="flex gap-2">
+                        {/* Country code picker */}
+                        <Popover open={dialCodePopoverOpen} onOpenChange={setDialCodePopoverOpen}>
+                           <PopoverTrigger asChild>
+                              <Button
+                                 type="button"
+                                 variant="outline"
+                                 className="shrink-0 gap-1.5 px-3 font-normal"
+                              >
+                                 <span>{countryCodeToFlag(selectedCountry.iso)}</span>
+                                 <span className="text-muted-foreground">{selectedCountry.dial}</span>
+                                 <ChevronsUpDown className="size-3.5 shrink-0 opacity-50" />
+                              </Button>
+                           </PopoverTrigger>
+                           <PopoverContent className="w-72 p-0">
+                              <Command>
+                                 <CommandInput placeholder="Search country..." className="h-9" />
+                                 <CommandList>
+                                    <CommandEmpty>No country found.</CommandEmpty>
+                                    <CommandGroup>
+                                       {countryDialCodes.map((c) => (
+                                          <CommandItem
+                                             key={c.iso}
+                                             value={`${c.label} ${c.dial} ${c.iso}`}
+                                             onSelect={() => {
+                                                setSelectedCountry(c)
+                                                setDialCodePopoverOpen(false)
+                                             }}
+                                          >
+                                             <span className="mr-2">{countryCodeToFlag(c.iso)}</span>
+                                             <span className="flex-1 truncate">{c.label}</span>
+                                             <span className="text-muted-foreground">{c.dial}</span>
+                                             <Check
+                                                className={cn(
+                                                   "ml-2 size-4 shrink-0",
+                                                   selectedCountry.iso === c.iso ? "opacity-100" : "opacity-0",
+                                                )}
+                                             />
+                                          </CommandItem>
+                                       ))}
+                                    </CommandGroup>
+                                 </CommandList>
+                              </Command>
+                           </PopoverContent>
+                        </Popover>
+
+                        {/* Phone number input */}
+                        <Input
+                           type="tel"
+                           placeholder={selectedCountry.iso === "IN" ? "9876543210" : "Phone number"}
+                           className={cn("flex-1", errors.phone ? "border-red-500" : "")}
+                           {...register("phone", {
+                              required: "Phone number is required",
+                              validate: (value) => {
+                                 const digits = value.replace(/\D/g, "")
+                                 if (selectedCountry.iso === "IN") {
+                                    return /^[6-9]\d{9}$/.test(digits) || "Enter a valid 10-digit Indian mobile number"
+                                 }
+                                 return (digits.length >= 5 && digits.length <= 15) || "Enter a valid phone number"
+                              },
+                           })}
+                        />
+                     </div>
                      {errors.phone && (
                         <FieldDescription className="text-xs text-red-500">
                            {errors.phone.message}

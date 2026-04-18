@@ -117,7 +117,7 @@ export function AddClientDialog() {
 
                      <FormField label="Full Name" error={errors.name?.message}>
                         <Input
-                           placeholder="Priya Sharma"
+                           placeholder=""
                            {...register("name", { required: "Full name is required", minLength: { value: 2, message: "Min. 2 characters" } })}
                            className={errors.name ? "border-destructive" : ""}
                         />
@@ -125,7 +125,7 @@ export function AddClientDialog() {
 
                      <FormField label="Username" error={errors.username?.message}>
                         <Input
-                           placeholder="priya_sharma"
+                           placeholder=""
                            {...register("username", {
                               required: "Username is required",
                               minLength: { value: 3, message: "Min. 3 characters" },
@@ -139,7 +139,7 @@ export function AddClientDialog() {
                      <FormField label="Email Address" error={errors.email?.message}>
                         <Input
                            type="email"
-                           placeholder="priya@example.com"
+                           placeholder=""
                            {...register("email", {
                               required: "Email is required",
                               pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Invalid email format" },

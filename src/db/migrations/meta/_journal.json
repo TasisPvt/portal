@@ -1,47 +1,12 @@
 {
   "version": "7",
-  "dialect": "mysql",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1775856265450,
-      "tag": "0000_tidy_human_fly",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1775856343440,
-      "tag": "0001_chunky_tenebrous",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1775857059577,
-      "tag": "0002_tidy_the_initiative",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "5",
-      "when": 1775859626540,
-      "tag": "0003_marvelous_sway",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "5",
-      "when": 1775936500609,
-      "tag": "0004_lowly_sally_floyd",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "5",
-      "when": 1776194577676,
-      "tag": "0005_cultured_baron_zemo",
+      "version": "7",
+      "when": 1776516740429,
+      "tag": "0000_happy_texas_twister",
       "breakpoints": true
     }
   ]
