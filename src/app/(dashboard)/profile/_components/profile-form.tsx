@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useForm } from "react-hook-form"
+import { useForm, Controller } from "react-hook-form"
 import { useMutation } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -13,7 +13,8 @@ import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
 import { Label } from "@/src/components/ui/label"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/src/components/ui/tabs"
-import { updateDisplayName } from "../_actions"
+import { PhoneInput, validatePhone } from "@/src/components/ui/phone-input"
+import { updateDisplayName, updatePhone } from "../_actions"
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -77,7 +78,7 @@ export interface ProfileData {
   panNumber: string | null
 }
 
-type PersonalForm = { name: string }
+type PersonalForm = { name: string; phone: string }
 type SecurityForm = {
   currentPassword: string
   newPassword: string
@@ -89,6 +90,7 @@ const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
   manager: "Manager",
 }
+
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -106,11 +108,22 @@ export function ProfileForm({
   const {
     register: regPersonal,
     handleSubmit: handlePersonal,
+    control: personalControl,
     formState: { errors: personalErrors },
-  } = useForm<PersonalForm>({ defaultValues: { name: profile.name } })
+  } = useForm<PersonalForm>({
+    defaultValues: {
+      name: profile.name,
+      phone: profile.phone ?? "",
+    },
+  })
 
   const saveMutation = useMutation({
-    mutationFn: ({ name }: PersonalForm) => updateDisplayName(name),
+    mutationFn: async ({ name, phone }: PersonalForm) => {
+      await updateDisplayName(name)
+      if (isClient) {
+        await updatePhone(phone)
+      }
+    },
     onSuccess: () => {
       toast.success("Profile updated successfully.")
       router.refresh()
@@ -250,7 +263,26 @@ export function ProfileForm({
                       <ReadOnlyField label="State" value={profile.state} />
 
                       {/* Mobile */}
-                      <ReadOnlyField label="Mobile" value={profile.phone} />
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs font-semibold">Mobile</Label>
+                        <Controller
+                          name="phone"
+                          control={personalControl}
+                          rules={{ validate: validatePhone }}
+                          render={({ field, fieldState }) => (
+                            <>
+                              <PhoneInput
+                                value={field.value}
+                                onChange={field.onChange}
+                                error={fieldState.error?.message}
+                              />
+                              {fieldState.error && (
+                                <p className="text-xs text-destructive">{fieldState.error.message}</p>
+                              )}
+                            </>
+                          )}
+                        />
+                      </div>
 
                       {/* Aadhar Number — masked */}
                       <MaskedField label="Aadhar Number" value={profile.aadharNumber} />
