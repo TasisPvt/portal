@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useMutation } from "@tanstack/react-query"
 import Link from "next/link"
@@ -80,6 +80,8 @@ function EmailStep({ onSuccess }: { onSuccess: (email: string) => void }) {
    )
 }
 
+const RESEND_COOLDOWN = 60
+
 function OtpStep({
    email,
    onSuccess,
@@ -92,6 +94,29 @@ function OtpStep({
    const [otp, setOtp] = useState("")
    const [otpError, setOtpError] = useState<string | null>(null)
    const [formError, setFormError] = useState<string | null>(null)
+   const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN)
+   const [resendSuccess, setResendSuccess] = useState(false)
+   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+   const startCooldown = () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      setResendCooldown(RESEND_COOLDOWN)
+      intervalRef.current = setInterval(() => {
+         setResendCooldown((prev) => {
+            if (prev <= 1) {
+               clearInterval(intervalRef.current!)
+               intervalRef.current = null
+               return 0
+            }
+            return prev - 1
+         })
+      }, 1000)
+   }
+
+   useEffect(() => {
+      startCooldown()
+      return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+   }, [])
 
    const mutation = useMutation({
       mutationFn: async ({ otp }: { otp: string }) => {
@@ -108,7 +133,26 @@ function OtpStep({
       onError: (err: any) => setFormError(err.message || "Something went wrong"),
    })
 
-   const handleSubmit = (e: React.FormEvent) => {
+   const resendMutation = useMutation({
+      mutationFn: async () => {
+         const res = await fetch("/api/auth/forgot-password/send-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+         })
+         const json = await res.json()
+         if (!res.ok) throw json
+         return json
+      },
+      onSuccess: () => {
+         setResendSuccess(true)
+         setFormError(null)
+         startCooldown()
+      },
+      onError: (err: any) => setFormError(err.message || "Failed to resend OTP"),
+   })
+
+   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault()
       if (otp.length < 6) {
          setOtpError("Enter all 6 digits")
@@ -135,6 +179,11 @@ function OtpStep({
          </div>
 
          {formError && <AlertDestructive className="mb-5" title={formError} />}
+         {resendSuccess && !formError && (
+            <p className="mb-5 text-center text-sm text-green-600 dark:text-green-400">
+               A new code has been sent to your email.
+            </p>
+         )}
 
          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div className="space-y-2">
@@ -165,10 +214,26 @@ function OtpStep({
             </Button>
          </form>
 
+         <div className="mt-4 text-center text-sm text-muted-foreground">
+            Didn&apos;t receive the code?{" "}
+            {resendCooldown > 0 ? (
+               <span className="text-muted-foreground">Resend in {resendCooldown}s</span>
+            ) : (
+               <button
+                  type="button"
+                  onClick={() => { setResendSuccess(false); resendMutation.mutate() }}
+                  disabled={resendMutation.isPending}
+                  className="font-semibold text-primary hover:underline disabled:opacity-50"
+               >
+                  {resendMutation.isPending ? "Sending…" : "Resend OTP"}
+               </button>
+            )}
+         </div>
+
          <button
             type="button"
             onClick={onBack}
-            className="mt-5 flex w-full items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+            className="mt-3 flex w-full items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
          >
             <ArrowLeftIcon className="size-3.5" />
             Use a different email

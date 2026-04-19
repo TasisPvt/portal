@@ -6,7 +6,7 @@ import { db } from "@/src/db/client"
 import { user, verification } from "@/src/db/schema"
 import { generateOtp, sendOtpEmail } from "@/src/lib/mailer"
 
-const OTP_TTL_MS = 10 * 60 * 1000 // 10 minutes
+const OTP_TTL_MS = 60 * 1000 // 60 seconds
 
 export async function POST(req: Request) {
    const { email } = await req.json()
