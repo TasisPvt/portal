@@ -11,6 +11,7 @@ import { Input } from "@/src/components/ui/input"
 import { Label } from "@/src/components/ui/label"
 import { AlertDestructive } from "@/src/components/alerts/alertDestructive"
 import { Spinner } from "@/src/components/ui/spinner"
+import { changePasswordAndVerify } from "../_actions"
 
 type FormValues = {
    currentPassword: string
@@ -29,19 +30,8 @@ export function ChangePasswordForm() {
    const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>()
 
    const mutation = useMutation({
-      mutationFn: async (data: FormValues) => {
-         const res = await fetch("/api/auth/change-password", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-               currentPassword: data.currentPassword,
-               newPassword: data.newPassword,
-            }),
-         })
-         const json = await res.json()
-         if (!res.ok) throw json
-         return json
-      },
+      mutationFn: (data: FormValues) =>
+         changePasswordAndVerify(data.currentPassword, data.newPassword),
       onSuccess: () => router.push("/"),
       onError: (err: any) => setFormError(err.message || "Something went wrong"),
    })
