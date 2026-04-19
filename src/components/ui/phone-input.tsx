@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Check, ChevronsUpDown } from "lucide-react"
-import { parsePhoneNumber, isValidPhoneNumber } from "libphonenumber-js"
+import { parsePhoneNumber, isPossiblePhoneNumber } from "libphonenumber-js/max"
 import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
 import {
@@ -43,7 +43,7 @@ function parseFullPhone(phone: string | undefined): { country: CountryDialEntry;
 export function validatePhone(value: string): true | string {
   if (!value) return "Phone number is required"
   try {
-    return isValidPhoneNumber(value) || "Enter a valid phone number"
+    return isPossiblePhoneNumber(value) || "Enter a valid phone number"
   } catch {
     return "Enter a valid phone number"
   }
