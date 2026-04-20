@@ -1,5 +1,5 @@
 {
-  "id": "24b86cbf-f2a3-4c95-9cbb-9b4c17bc8a53",
+  "id": "b42328ca-5620-4d39-9547-87536ca68441",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -512,6 +512,239 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.company_master": {
+      "name": "company_master",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "prowess_id": {
+          "name": "prowess_id",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "company_name": {
+          "name": "company_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "isin_code": {
+          "name": "isin_code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bse_scrip_code": {
+          "name": "bse_scrip_code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bse_scrip_id": {
+          "name": "bse_scrip_id",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bse_group": {
+          "name": "bse_group",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nse_symbol": {
+          "name": "nse_symbol",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "service_group": {
+          "name": "service_group",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nse_listing_date": {
+          "name": "nse_listing_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nse_delisting_date": {
+          "name": "nse_delisting_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bse_listing_date": {
+          "name": "bse_listing_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bse_delisting_date": {
+          "name": "bse_delisting_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "industry_group_id": {
+          "name": "industry_group_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "company_master_industry_group_idx": {
+          "name": "company_master_industry_group_idx",
+          "columns": [
+            {
+              "expression": "industry_group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "company_master_prowess_id_idx": {
+          "name": "company_master_prowess_id_idx",
+          "columns": [
+            {
+              "expression": "prowess_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "company_master_isin_idx": {
+          "name": "company_master_isin_idx",
+          "columns": [
+            {
+              "expression": "isin_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "company_master_industry_group_id_industry_group_id_fk": {
+          "name": "company_master_industry_group_id_industry_group_id_fk",
+          "tableFrom": "company_master",
+          "tableTo": "industry_group",
+          "columnsFrom": [
+            "industry_group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "company_master_prowess_id_unique": {
+          "name": "company_master_prowess_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "prowess_id"
+          ]
+        },
+        "company_master_isin_code_unique": {
+          "name": "company_master_isin_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "isin_code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.industry_group": {
+      "name": "industry_group",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "industry_group_name_unique": {
+          "name": "industry_group_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
