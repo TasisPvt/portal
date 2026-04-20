@@ -81,12 +81,12 @@ const adminNav = {
    navMaster: [
       {
          title: "Company",
-         url: "/admin/CompanyMaster",
+         url: "/admin/company",
          icon: Building2Icon,
       },
       {
-         title: "Index",
-         url: "/admin/IndexMaster",
+         title: "Industry Group",
+         url: "/admin/industry-group",
          icon: GanttChartIcon,
       },
    ],
