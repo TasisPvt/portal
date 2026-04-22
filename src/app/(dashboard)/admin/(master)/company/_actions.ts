@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
 import { db } from "@/src/db/client"
-import { companyMaster, industryGroup } from "@/src/db/schema"
+import { companyMaster, companyNameHistory, industryGroup } from "@/src/db/schema"
 
 export type CompanyForBulkValidation = {
    id: string
@@ -23,6 +23,43 @@ export type CompanyForBulkValidation = {
    bseDelistingDate: string | null
    industryGroupId: string | null
    industryGroupName: string | null
+}
+
+export async function getCompanyDetail(id: string) {
+   const [company] = await db
+      .select({
+         id: companyMaster.id,
+         prowessId: companyMaster.prowessId,
+         companyName: companyMaster.companyName,
+         isinCode: companyMaster.isinCode,
+         bseScripCode: companyMaster.bseScripCode,
+         bseScripId: companyMaster.bseScripId,
+         bseGroup: companyMaster.bseGroup,
+         nseSymbol: companyMaster.nseSymbol,
+         serviceGroup: companyMaster.serviceGroup,
+         nseListingDate: companyMaster.nseListingDate,
+         nseDelistingDate: companyMaster.nseDelistingDate,
+         bseListingDate: companyMaster.bseListingDate,
+         bseDelistingDate: companyMaster.bseDelistingDate,
+         industryGroupId: companyMaster.industryGroupId,
+         industryGroupName: industryGroup.name,
+         createdAt: companyMaster.createdAt,
+         updatedAt: companyMaster.updatedAt,
+      })
+      .from(companyMaster)
+      .leftJoin(industryGroup, eq(companyMaster.industryGroupId, industryGroup.id))
+      .where(eq(companyMaster.id, id))
+      .limit(1)
+
+   if (!company) return null
+
+   const history = await db
+      .select({ id: companyNameHistory.id, name: companyNameHistory.name, changedAt: companyNameHistory.changedAt })
+      .from(companyNameHistory)
+      .where(eq(companyNameHistory.companyId, id))
+      .orderBy(companyNameHistory.changedAt)
+
+   return { ...company, nameHistory: history }
 }
 
 export async function getCompaniesForBulkValidation(): Promise<CompanyForBulkValidation[]> {
@@ -90,8 +127,10 @@ export async function createCompany(input: CompanyInput): Promise<ActionResult> 
    }
 
    try {
+      const id = randomUUID()
+      const now = new Date()
       await db.insert(companyMaster).values({
-         id: randomUUID(),
+         id,
          prowessId: input.prowessId,
          companyName: input.companyName,
          isinCode: input.isinCode,
@@ -105,8 +144,8 @@ export async function createCompany(input: CompanyInput): Promise<ActionResult> 
          bseListingDate: input.bseListingDate || null,
          bseDelistingDate: input.bseDelistingDate || null,
          industryGroupId: input.industryGroupId || null,
-         createdAt: new Date(),
-         updatedAt: new Date(),
+         createdAt: now,
+         updatedAt: now,
       })
       revalidatePath("/admin/company")
       return { success: true }
@@ -140,6 +179,12 @@ export async function updateCompany(id: string, input: CompanyInput): Promise<Ac
    }
 
    try {
+      const current = await db
+         .select({ companyName: companyMaster.companyName })
+         .from(companyMaster)
+         .where(eq(companyMaster.id, id))
+         .limit(1)
+
       await db
          .update(companyMaster)
          .set({
@@ -159,6 +204,16 @@ export async function updateCompany(id: string, input: CompanyInput): Promise<Ac
             updatedAt: new Date(),
          })
          .where(eq(companyMaster.id, id))
+
+      if (current[0] && current[0].companyName !== input.companyName) {
+         await db.insert(companyNameHistory).values({
+            id: randomUUID(),
+            companyId: id,
+            name: current[0].companyName,
+            changedAt: new Date(),
+         })
+      }
+
       revalidatePath("/admin/company")
       return { success: true }
    } catch (err: any) {
@@ -209,8 +264,10 @@ export async function bulkUpsertCompanies(
          continue
       }
       try {
+         const newId = randomUUID()
+         const now = new Date()
          await db.insert(companyMaster).values({
-            id: randomUUID(),
+            id: newId,
             prowessId: row.prowessId,
             companyName: row.companyName,
             isinCode: row.isinCode || null,
@@ -224,8 +281,8 @@ export async function bulkUpsertCompanies(
             bseListingDate: row.bseListingDate || null,
             bseDelistingDate: row.bseDelistingDate || null,
             industryGroupId: row.industryGroupId || null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: now,
+            updatedAt: now,
          })
          existingProwessIds.add(row.prowessId)
          if (row.isinCode) existingIsinCodes.add(row.isinCode)
@@ -235,6 +292,15 @@ export async function bulkUpsertCompanies(
          skipped.push({ prowessId: row.prowessId, reason: "Insert failed" })
       }
    }
+
+   // Fetch current names for companies being updated to detect name changes
+   const updateIdList = updates.map((u) => u.id)
+   const currentNames = updateIdList.length > 0
+      ? await db
+         .select({ id: companyMaster.id, companyName: companyMaster.companyName })
+         .from(companyMaster)
+         .then((rows) => new Map(rows.filter((r) => updateIdList.includes(r.id)).map((r) => [r.id, r.companyName])))
+      : new Map<string, string>()
 
    for (const { id, input } of updates) {
       if (input.isinCode && existingIsinCodes.has(input.isinCode)) {
@@ -261,6 +327,17 @@ export async function bulkUpsertCompanies(
                updatedAt: new Date(),
             })
             .where(eq(companyMaster.id, id))
+
+         const oldName = currentNames.get(id)
+         if (oldName && oldName !== input.companyName) {
+            await db.insert(companyNameHistory).values({
+               id: randomUUID(),
+               companyId: id,
+               name: oldName,
+               changedAt: new Date(),
+            })
+         }
+
          if (input.isinCode) existingIsinCodes.add(input.isinCode)
          updated++
       } catch (err: any) {
