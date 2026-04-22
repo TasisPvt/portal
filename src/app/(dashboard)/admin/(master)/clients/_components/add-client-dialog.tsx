@@ -14,6 +14,7 @@ import { cn } from "@/src/lib/utils"
 import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
 import { Label } from "@/src/components/ui/label"
+import { PhoneInput, validatePhone } from "@/src/components/ui/phone-input"
 import {
    Dialog,
    DialogContent,
@@ -149,14 +150,17 @@ export function AddClientDialog() {
                      </FormField>
 
                      <FormField label="Phone Number" error={errors.phone?.message}>
-                        <Input
-                           type="tel"
-                           placeholder="9876543210"
-                           {...register("phone", {
-                              required: "Phone number is required",
-                              pattern: { value: /^[6-9]\d{9}$/, message: "Enter a valid 10-digit mobile number" },
-                           })}
-                           className={errors.phone ? "border-destructive" : ""}
+                        <Controller
+                           name="phone"
+                           control={control}
+                           rules={{ validate: validatePhone }}
+                           render={({ field }) => (
+                              <PhoneInput
+                                 value={field.value}
+                                 onChange={field.onChange}
+                                 error={errors.phone?.message}
+                              />
+                           )}
                         />
                      </FormField>
 
@@ -211,7 +215,7 @@ export function AddClientDialog() {
                                        <ChevronsUpDown className="ml-2 shrink-0 opacity-50" />
                                     </Button>
                                  </PopoverTrigger>
-                                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0" onWheel={(e) => e.stopPropagation()}>
                                     <Command>
                                        <CommandInput placeholder="Search state..." className="h-9" />
                                        <CommandList>

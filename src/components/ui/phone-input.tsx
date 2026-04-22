@@ -112,7 +112,7 @@ export function PhoneInput({
             <ChevronsUpDown className="size-3.5 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-72 p-0">
+        <PopoverContent className="w-72 p-0" onWheel={(e) => e.stopPropagation()}>
           <Command>
             <CommandInput placeholder="Search country..." className="h-9" />
             <CommandList>
