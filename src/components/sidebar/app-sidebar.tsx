@@ -14,6 +14,7 @@ import {
    ShieldCheckIcon,
    BarChart3Icon,
    UsersIcon,
+   ListOrderedIcon,
 } from "lucide-react"
 import { NavCollapsible } from "@/src/components/sidebar/nav-collapsible"
 import { NavMain } from "@/src/components/sidebar/nav-main"
@@ -88,6 +89,11 @@ const adminNav = {
          title: "Industry Group",
          url: "/admin/industry-group",
          icon: GanttChartIcon,
+      },
+      {
+         title: "Index",
+         url: "/admin/index",
+         icon: ListOrderedIcon,
       },
    ],
    navSecondary: [

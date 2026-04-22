@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
 import { db } from "@/src/db/client"
-import { companyMaster, companyNameHistory, industryGroup } from "@/src/db/schema"
+import { companyMaster, companyNameHistory, industryGroup, indexCompany, indexMaster } from "@/src/db/schema"
 
 export type CompanyForBulkValidation = {
    id: string
@@ -53,13 +53,21 @@ export async function getCompanyDetail(id: string) {
 
    if (!company) return null
 
-   const history = await db
-      .select({ id: companyNameHistory.id, name: companyNameHistory.name, changedAt: companyNameHistory.changedAt })
-      .from(companyNameHistory)
-      .where(eq(companyNameHistory.companyId, id))
-      .orderBy(companyNameHistory.changedAt)
+   const [history, indexes] = await Promise.all([
+      db
+         .select({ id: companyNameHistory.id, name: companyNameHistory.name, changedAt: companyNameHistory.changedAt })
+         .from(companyNameHistory)
+         .where(eq(companyNameHistory.companyId, id))
+         .orderBy(companyNameHistory.changedAt),
+      db
+         .select({ id: indexMaster.id, name: indexMaster.name })
+         .from(indexCompany)
+         .innerJoin(indexMaster, eq(indexCompany.indexId, indexMaster.id))
+         .where(eq(indexCompany.companyId, id))
+         .orderBy(indexMaster.name),
+   ])
 
-   return { ...company, nameHistory: history }
+   return { ...company, nameHistory: history, indexes }
 }
 
 export async function getCompaniesForBulkValidation(): Promise<CompanyForBulkValidation[]> {
