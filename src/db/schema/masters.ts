@@ -50,16 +50,40 @@ export const companyMaster = pgTable(
    ],
 )
 
+export const companyNameHistory = pgTable(
+   "company_name_history",
+   {
+      id: varchar("id", { length: 36 }).primaryKey(),
+      companyId: varchar("company_id", { length: 36 })
+         .notNull()
+         .references(() => companyMaster.id, { onDelete: "cascade" }),
+      name: varchar("name", { length: 255 }).notNull(),
+      changedAt: timestamp("changed_at", { precision: 3 }).defaultNow().notNull(),
+   },
+   (table) => [
+      index("company_name_history_company_idx").on(table.companyId),
+   ],
+)
+
 export const industryGroupRelations = relations(industryGroup, ({ many }) => ({
    companies: many(companyMaster),
 }))
 
-export const companyMasterRelations = relations(companyMaster, ({ one }) => ({
+export const companyMasterRelations = relations(companyMaster, ({ one, many }) => ({
    industryGroup: one(industryGroup, {
       fields: [companyMaster.industryGroupId],
       references: [industryGroup.id],
+   }),
+   nameHistory: many(companyNameHistory),
+}))
+
+export const companyNameHistoryRelations = relations(companyNameHistory, ({ one }) => ({
+   company: one(companyMaster, {
+      fields: [companyNameHistory.companyId],
+      references: [companyMaster.id],
    }),
 }))
 
 export type IndustryGroup = typeof industryGroup.$inferSelect
 export type CompanyMaster = typeof companyMaster.$inferSelect
+export type CompanyNameHistory = typeof companyNameHistory.$inferSelect

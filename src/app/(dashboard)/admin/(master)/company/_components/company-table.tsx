@@ -43,6 +43,7 @@ import {
    DownloadIcon,
    XIcon,
 } from "lucide-react"
+import Link from "next/link"
 import { cn } from "@/src/lib/utils"
 import { EditCompanyDialog, DeleteCompanyButton } from "./company-dialogs"
 import { BulkUploadCompanyDialog } from "./bulk-upload-company-dialog"
@@ -124,7 +125,12 @@ export function CompanyTable({
          header: ({ column }) => <SortableHeader column={column} label="Company" />,
          cell: ({ row }) => (
             <div className="flex flex-col">
-               <span className="font-medium text-sm leading-tight">{row.original.companyName}</span>
+               <Link
+                  href={`/admin/company/${row.original.id}`}
+                  className="font-medium text-sm leading-tight hover:underline hover:text-primary"
+               >
+                  {row.original.companyName}
+               </Link>
                <span className="font-mono text-xs text-muted-foreground">{row.original.isinCode}</span>
             </div>
          ),
