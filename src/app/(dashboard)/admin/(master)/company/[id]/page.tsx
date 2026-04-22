@@ -6,6 +6,7 @@ import {
    ClockIcon,
    HashIcon,
    LayersIcon,
+   ListOrderedIcon,
    TrendingUpIcon,
 } from "lucide-react"
 
@@ -34,16 +35,23 @@ function formatDate(d: string | null | undefined) {
 
 export default async function CompanyDetailPage({
    params,
+   searchParams,
 }: {
    params: Promise<{ id: string }>
+   searchParams: Promise<{ from?: string }>
 }) {
-   const { id } = await params
+   const [{ id }, { from }] = await Promise.all([params, searchParams])
+
    const [company, industryGroups] = await Promise.all([
       getCompanyDetail(id),
       db.select({ id: industryGroup.id, name: industryGroup.name }).from(industryGroup).orderBy(industryGroup.name),
    ])
 
    if (!company) notFound()
+
+   // Determine back link: use ?from= if provided and starts with /admin/, else default to company list
+   const backHref = from?.startsWith("/admin/") ? from : "/admin/company"
+   const backLabel = from?.startsWith("/admin/index/") ? "Index" : "Companies"
 
    // nameHistory stores old names in ascending order; show newest-first
    const oldNames = [...company.nameHistory].reverse()
@@ -52,14 +60,14 @@ export default async function CompanyDetailPage({
       <>
          <SiteHeader title={company.companyName} breadcrumb="Companies" />
          <div className="flex flex-1 flex-col">
-            <div className="flex flex-col gap-6 py-6 px-4 lg:px-6 max-w-5xl">
+            <div className="@container/main flex flex-1 flex-col gap-2 py-4 md:py-6 px-4 lg:px-6">
 
                {/* Back + Actions */}
                <div className="flex items-center justify-between gap-4">
                   <Button variant="ghost" size="sm" className="gap-1.5 -ml-2 text-muted-foreground" asChild>
-                     <Link href="/admin/company">
+                     <Link href={backHref}>
                         <ChevronLeftIcon className="size-4" />
-                        Companies
+                        {backLabel}
                      </Link>
                   </Button>
                   <EditCompanyDialog company={company} industryGroups={industryGroups} />
@@ -164,7 +172,7 @@ export default async function CompanyDetailPage({
                   </Card>
 
                   {/* Name History */}
-                  <Card className="lg:col-span-3">
+                  <Card className="">
                      <CardHeader className="pb-2">
                         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                            <LayersIcon className="size-4 text-muted-foreground" />
@@ -210,6 +218,33 @@ export default async function CompanyDetailPage({
                               </li>
                            ))}
                         </ol>
+                     </CardContent>
+                  </Card>
+
+                  {/* Indexes */}
+                  <Card>
+                     <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                           <ListOrderedIcon className="size-4 text-muted-foreground" />
+                           Indexes
+                           <span className="ml-auto text-xs font-normal text-muted-foreground">{company.indexes.length}</span>
+                        </CardTitle>
+                     </CardHeader>
+                     <CardContent className="px-4 pb-4">
+                        {company.indexes.length === 0 ? (
+                           <p className="text-sm text-muted-foreground py-1">Not part of any index.</p>
+                        ) : (
+                           <div className="flex flex-wrap gap-2">
+                              {company.indexes.map((idx) => (
+                                 <Link key={idx.id} href={`/admin/index/${idx.id}`}>
+                                    <Badge variant="outline" className="cursor-pointer hover:bg-muted text-xs font-normal gap-1 transition-colors">
+                                       <ListOrderedIcon className="size-3" />
+                                       {idx.name}
+                                    </Badge>
+                                 </Link>
+                              ))}
+                           </div>
+                        )}
                      </CardContent>
                   </Card>
 

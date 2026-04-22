@@ -84,6 +84,50 @@ export const companyNameHistoryRelations = relations(companyNameHistory, ({ one 
    }),
 }))
 
+export const indexMaster = pgTable("index_master", {
+   id: varchar("id", { length: 36 }).primaryKey(),
+   name: varchar("name", { length: 255 }).notNull().unique(),
+   description: varchar("description", { length: 1000 }),
+   createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
+   updatedAt: timestamp("updated_at", { precision: 3 })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+})
+
+export const indexCompany = pgTable(
+   "index_company",
+   {
+      id: varchar("id", { length: 36 }).primaryKey(),
+      indexId: varchar("index_id", { length: 36 })
+         .notNull()
+         .references(() => indexMaster.id, { onDelete: "cascade" }),
+      companyId: varchar("company_id", { length: 36 })
+         .notNull()
+         .references(() => companyMaster.id, { onDelete: "cascade" }),
+      addedAt: timestamp("added_at", { precision: 3 }).defaultNow().notNull(),
+   },
+   (table) => [
+      index("index_company_index_idx").on(table.indexId),
+      index("index_company_company_idx").on(table.companyId),
+   ],
+)
+
+export const indexMasterRelations = relations(indexMaster, ({ many }) => ({
+   companies: many(indexCompany),
+}))
+
+export const indexCompanyRelations = relations(indexCompany, ({ one }) => ({
+   index: one(indexMaster, { fields: [indexCompany.indexId], references: [indexMaster.id] }),
+   company: one(companyMaster, { fields: [indexCompany.companyId], references: [companyMaster.id] }),
+}))
+
+export const companyIndexRelations = relations(companyMaster, ({ many }) => ({
+   indexes: many(indexCompany),
+}))
+
 export type IndustryGroup = typeof industryGroup.$inferSelect
 export type CompanyMaster = typeof companyMaster.$inferSelect
 export type CompanyNameHistory = typeof companyNameHistory.$inferSelect
+export type IndexMaster = typeof indexMaster.$inferSelect
+export type IndexCompany = typeof indexCompany.$inferSelect
