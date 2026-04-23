@@ -43,6 +43,7 @@ export async function getCompanyDetail(id: string) {
          bseDelistingDate: companyMaster.bseDelistingDate,
          industryGroupId: companyMaster.industryGroupId,
          industryGroupName: industryGroup.name,
+         isActive: companyMaster.isActive,
          createdAt: companyMaster.createdAt,
          updatedAt: companyMaster.updatedAt,
       })
@@ -230,13 +231,39 @@ export async function updateCompany(id: string, input: CompanyInput): Promise<Ac
    }
 }
 
-export async function deleteCompany(id: string): Promise<ActionResult> {
+export async function getCompanyIndexes(id: string): Promise<{ id: string; name: string }[]> {
+   return db
+      .select({ id: indexMaster.id, name: indexMaster.name })
+      .from(indexCompany)
+      .innerJoin(indexMaster, eq(indexCompany.indexId, indexMaster.id))
+      .where(eq(indexCompany.companyId, id))
+      .orderBy(indexMaster.name)
+}
+
+export async function toggleCompanyStatus(id: string, isActive: boolean): Promise<ActionResult> {
    try {
-      await db.delete(companyMaster).where(eq(companyMaster.id, id))
+      await db.update(companyMaster).set({ isActive, updatedAt: new Date() }).where(eq(companyMaster.id, id))
+
+      if (!isActive) {
+         // Remove from all indexes and revalidate each index detail page
+         const memberships = await db
+            .select({ id: indexCompany.id, indexId: indexCompany.indexId })
+            .from(indexCompany)
+            .where(eq(indexCompany.companyId, id))
+
+         if (memberships.length > 0) {
+            await db.delete(indexCompany).where(eq(indexCompany.companyId, id))
+            for (const { indexId } of memberships) {
+               revalidatePath(`/admin/index/${indexId}`)
+            }
+         }
+      }
+
       revalidatePath("/admin/company")
+      revalidatePath(`/admin/company/${id}`)
       return { success: true }
    } catch (err: any) {
-      console.error("[deleteCompany]", err)
+      console.error("[toggleCompanyStatus]", err)
       return { success: false, message: err?.message ?? "Something went wrong" }
    }
 }

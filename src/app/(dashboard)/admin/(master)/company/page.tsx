@@ -27,6 +27,7 @@ export default async function CompanyPage() {
             bseDelistingDate: companyMaster.bseDelistingDate,
             industryGroupId: companyMaster.industryGroupId,
             industryGroupName: industryGroup.name,
+            isActive: companyMaster.isActive,
             createdAt: companyMaster.createdAt,
          })
          .from(companyMaster)

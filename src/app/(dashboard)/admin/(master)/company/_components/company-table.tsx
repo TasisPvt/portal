@@ -45,7 +45,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/src/lib/utils"
-import { EditCompanyDialog, DeleteCompanyButton } from "./company-dialogs"
+import { EditCompanyDialog, ToggleCompanyStatusButton } from "./company-dialogs"
 import { BulkUploadCompanyDialog } from "./bulk-upload-company-dialog"
 
 export type CompanyRow = {
@@ -64,6 +64,7 @@ export type CompanyRow = {
    bseDelistingDate: string | null
    industryGroupId: string | null
    industryGroupName: string | null
+   isActive: boolean
    createdAt: Date
 }
 
@@ -100,15 +101,20 @@ export function CompanyTable({
    const [sorting, setSorting] = React.useState<SortingState>([])
    const [globalFilter, setGlobalFilter] = React.useState("")
    const [igFilter, setIgFilter] = React.useState("all")
+   const [statusFilter, setStatusFilter] = React.useState("all")
    const [activeFilters, setActiveFilters] = React.useState<{ key: string; label: string }[]>([])
 
    const preFiltered = React.useMemo(() => {
       return data.filter((c) => {
-         if (igFilter === "all") return true
-         if (igFilter === "__none__") return !c.industryGroupId
-         return c.industryGroupId === igFilter
+         if (igFilter !== "all") {
+            if (igFilter === "__none__" && c.industryGroupId) return false
+            if (igFilter !== "__none__" && c.industryGroupId !== igFilter) return false
+         }
+         if (statusFilter === "active" && !c.isActive) return false
+         if (statusFilter === "inactive" && c.isActive) return false
+         return true
       })
-   }, [data, igFilter])
+   }, [data, igFilter, statusFilter])
 
    const columns: ColumnDef<CompanyRow>[] = React.useMemo(() => [
       {
@@ -209,13 +215,33 @@ export function CompanyTable({
             ),
       },
       {
+         id: "status",
+         enableSorting: false,
+         accessorFn: (row) => row.isActive,
+         header: () => <span className="text-muted-foreground text-xs">Status</span>,
+         cell: ({ row }) =>
+            row.original.isActive ? (
+               <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950 dark:border-emerald-800">
+                  Active
+               </Badge>
+            ) : (
+               <Badge variant="outline" className="text-xs text-muted-foreground">
+                  Inactive
+               </Badge>
+            ),
+      },
+      {
          id: "actions",
          enableSorting: false,
          header: () => null,
          cell: ({ row }) => (
             <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                <EditCompanyDialog company={row.original} industryGroups={industryGroups} />
-               <DeleteCompanyButton id={row.original.id} name={row.original.companyName} />
+               <ToggleCompanyStatusButton
+                  id={row.original.id}
+                  name={row.original.companyName}
+                  isActive={row.original.isActive}
+               />
             </div>
          ),
       },
@@ -244,12 +270,16 @@ export function CompanyTable({
             if (name) filters.push({ key: "ig", label: `Industry: ${name}` })
          }
       }
+      if (statusFilter !== "all") {
+         filters.push({ key: "status", label: `Status: ${statusFilter === "active" ? "Active" : "Inactive"}` })
+      }
       setActiveFilters(filters)
       table.setPageIndex(0)
-   }, [igFilter])
+   }, [igFilter, statusFilter])
 
    function removeFilter(key: string) {
       if (key === "ig") setIgFilter("all")
+      if (key === "status") setStatusFilter("all")
    }
 
    function exportCSV() {
@@ -306,6 +336,18 @@ export function CompanyTable({
                />
             </div>
             <div className="flex items-center gap-2 self-end sm:self-auto">
+               <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-32" size="sm">
+                     <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                     <SelectGroup>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                     </SelectGroup>
+                  </SelectContent>
+               </Select>
                <Select value={igFilter} onValueChange={setIgFilter}>
                   <SelectTrigger className="w-48" size="sm">
                      <SelectValue placeholder="Industry Group" />
