@@ -156,6 +156,14 @@ export async function removeCompanyFromIndex(indexCompanyId: string, indexId: st
    }
 }
 
+export async function getAllCompanyNames(): Promise<string[]> {
+   const rows = await db
+      .select({ companyName: companyMaster.companyName })
+      .from(companyMaster)
+      .orderBy(companyMaster.companyName)
+   return rows.map((r) => r.companyName)
+}
+
 // Sync: given a list of company names, add new ones and remove missing ones.
 // Returns counts of added, removed, unchanged, and notFound (names not in company master).
 export async function syncIndexCompanies(

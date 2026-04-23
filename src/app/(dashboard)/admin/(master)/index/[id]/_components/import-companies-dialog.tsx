@@ -7,12 +7,13 @@ import {
    UploadIcon,
    FileTextIcon,
    DownloadIcon,
+   AlertCircleIcon,
    PlusCircleIcon,
    MinusCircleIcon,
    MinusIcon,
 } from "lucide-react"
 
-import { syncIndexCompanies } from "../../_actions"
+import { syncIndexCompanies, getAllCompanyNames } from "../../_actions"
 import { Button } from "@/src/components/ui/button"
 import { Spinner } from "@/src/components/ui/spinner"
 import { Badge } from "@/src/components/ui/badge"
@@ -45,7 +46,7 @@ import { cn } from "@/src/lib/utils"
 // Types
 // ---------------------------------------------------------------------------
 
-type RowStatus = "add" | "no_change" | "remove"
+type RowStatus = "add" | "no_change" | "remove" | "not_found"
 
 type PreviewRow = {
    index: number
@@ -90,9 +91,20 @@ export function ImportCompaniesDialog({
    const [fileName, setFileName] = React.useState<string | null>(null)
    const [preview, setPreview] = React.useState<PreviewRow[] | null>(null)
    const [activeTab, setActiveTab] = React.useState("add")
+   const [allCompanyNames, setAllCompanyNames] = React.useState<Set<string>>(new Set())
+   const [isFetching, setIsFetching] = React.useState(false)
    const [isPending, startTransition] = React.useTransition()
    const fileInputRef = React.useRef<HTMLInputElement>(null)
    const router = useRouter()
+
+   // Fetch all company names from DB when dialog opens
+   React.useEffect(() => {
+      if (!open) return
+      setIsFetching(true)
+      getAllCompanyNames()
+         .then((names) => setAllCompanyNames(new Set(names.map((n) => n.toLowerCase()))))
+         .finally(() => setIsFetching(false))
+   }, [open])
 
    function handleOpenChange(val: boolean) {
       if (!val) {
@@ -115,21 +127,26 @@ export function ImportCompaniesDialog({
          // Skip header row if it looks like a header
          const csvNames = lines[0]?.toLowerCase() === "company_name" ? lines.slice(1) : lines
 
-         const existingNameSet = new Map(
+         const existingInIndex = new Map(
             existingCompanies.map((c) => [c.companyName.toLowerCase(), c.companyName])
          )
-         const csvNameSet = new Map<string, string>()
          const seenInFile = new Set<string>()
          const rows: PreviewRow[] = []
 
          csvNames.forEach((name, i) => {
             const key = name.toLowerCase()
-            // Skip file-level duplicates silently (first wins)
+            // Skip file-level duplicates (first occurrence wins)
             if (seenInFile.has(key)) return
             seenInFile.add(key)
-            csvNameSet.set(key, name)
 
-            const status: RowStatus = existingNameSet.has(key) ? "no_change" : "add"
+            let status: RowStatus
+            if (existingInIndex.has(key)) {
+               status = "no_change"
+            } else if (allCompanyNames.has(key)) {
+               status = "add"
+            } else {
+               status = "not_found"
+            }
             rows.push({ index: i + 1, name, status })
          })
 
@@ -150,6 +167,7 @@ export function ImportCompaniesDialog({
    const addRows = preview?.filter((r) => r.status === "add") ?? []
    const noChangeRows = preview?.filter((r) => r.status === "no_change") ?? []
    const removeRows = preview?.filter((r) => r.status === "remove") ?? []
+   const notFoundRows = preview?.filter((r) => r.status === "not_found") ?? []
 
    const canSync = preview !== null && (addRows.length > 0 || removeRows.length > 0)
 
@@ -163,7 +181,7 @@ export function ImportCompaniesDialog({
 
    function handleSync() {
       if (!canSync) return
-      // Send only the CSV names that are valid (add + no_change); server will remove the rest
+      // Send only valid CSV names (add + no_change); server removes the rest
       const namesToSync = [...addRows, ...noChangeRows].map((r) => r.name)
       startTransition(async () => {
          const result = await syncIndexCompanies(indexId, namesToSync)
@@ -196,7 +214,6 @@ export function ImportCompaniesDialog({
             </DialogHeader>
 
             <div className="flex min-h-0 flex-1 flex-col gap-4">
-               {/* Description */}
                <p className="text-xs text-muted-foreground">
                   Upload a CSV of company names. Companies in the file will be added; companies currently in the index but missing from the file will be removed.
                </p>
@@ -205,17 +222,24 @@ export function ImportCompaniesDialog({
                <div className="flex flex-col gap-2">
                   <Empty
                      className={cn(
-                        "gap-1 border p-4 cursor-pointer transition-colors hover:bg-muted/40",
+                        "gap-1 border p-4 transition-colors",
+                        isFetching
+                           ? "cursor-wait opacity-60"
+                           : "cursor-pointer hover:bg-muted/40",
                         fileName ? "border-primary/40 bg-muted/20" : "",
                      )}
-                     onClick={() => fileInputRef.current?.click()}
+                     onClick={() => !isFetching && fileInputRef.current?.click()}
                   >
                      <EmptyMedia variant="icon">
                         {fileName ? <FileTextIcon className="text-primary" /> : <UploadIcon />}
                      </EmptyMedia>
                      <EmptyTitle className="text-sm">{fileName ?? "Click to upload CSV"}</EmptyTitle>
                      <EmptyDescription>
-                        {fileName ? "Click to change file" : "One company name per row"}
+                        {isFetching
+                           ? "Loading company data…"
+                           : fileName
+                           ? "Click to change file"
+                           : "One company name per row"}
                      </EmptyDescription>
                      <input
                         ref={fileInputRef}
@@ -259,6 +283,12 @@ export function ImportCompaniesDialog({
                               {removeRows.length} will be removed
                            </span>
                         )}
+                        {notFoundRows.length > 0 && (
+                           <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                              <AlertCircleIcon className="size-3.5" />
+                              {notFoundRows.length} not found in DB
+                           </span>
+                        )}
                      </div>
 
                      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col">
@@ -274,6 +304,10 @@ export function ImportCompaniesDialog({
                            <TabsTrigger value="remove" className="gap-1.5">
                               Will Remove
                               <span className="rounded-full bg-muted px-1.5 text-xs tabular-nums">{removeRows.length}</span>
+                           </TabsTrigger>
+                           <TabsTrigger value="not-found" className="gap-1.5">
+                              Not Found
+                              <span className="rounded-full bg-muted px-1.5 text-xs tabular-nums">{notFoundRows.length}</span>
                            </TabsTrigger>
                         </TabsList>
 
@@ -343,6 +377,34 @@ export function ImportCompaniesDialog({
                            </Table>
                         </TabsContent>
 
+                        {/* Not Found in DB */}
+                        <TabsContent value="not-found" className="min-h-0 flex-1 overflow-auto rounded-xl border">
+                           <Table>
+                              <TableHeader className="bg-muted/60 sticky top-0 z-10">
+                                 <TableRow className="hover:bg-transparent">
+                                    <TableHead className="w-10 pl-4 text-muted-foreground">#</TableHead>
+                                    <TableHead className="pl-4 text-muted-foreground">Company Name</TableHead>
+                                    <TableHead className="pl-4 text-muted-foreground">Status</TableHead>
+                                 </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                 {notFoundRows.length === 0 ? (
+                                    <TableRow><TableCell colSpan={3} className="h-24 text-center text-sm text-muted-foreground">All names matched.</TableCell></TableRow>
+                                 ) : notFoundRows.map((row) => (
+                                    <TableRow key={row.index} className="opacity-70">
+                                       <TableCell className="pl-4 text-xs text-muted-foreground tabular-nums">{row.index}</TableCell>
+                                       <TableCell className="pl-4 text-sm text-amber-700 dark:text-amber-400">{row.name}</TableCell>
+                                       <TableCell className="pl-4">
+                                          <Badge variant="outline" className="gap-1 text-xs border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400">
+                                             <AlertCircleIcon className="size-3" />
+                                             Not in company master
+                                          </Badge>
+                                       </TableCell>
+                                    </TableRow>
+                                 ))}
+                              </TableBody>
+                           </Table>
+                        </TabsContent>
                      </Tabs>
                   </div>
                )}
