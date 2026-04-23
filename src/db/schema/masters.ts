@@ -5,6 +5,7 @@ import {
    timestamp,
    date,
    index,
+   boolean,
 } from "drizzle-orm/pg-core"
 
 export const industryGroup = pgTable("industry_group", {
@@ -37,6 +38,7 @@ export const companyMaster = pgTable(
          () => industryGroup.id,
          { onDelete: "set null" },
       ),
+      isActive: boolean("is_active").notNull().default(true),
       createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
       updatedAt: timestamp("updated_at", { precision: 3 })
          .defaultNow()

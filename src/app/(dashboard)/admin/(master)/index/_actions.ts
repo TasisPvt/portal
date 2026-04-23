@@ -156,12 +156,12 @@ export async function removeCompanyFromIndex(indexCompanyId: string, indexId: st
    }
 }
 
-export async function getAllCompanyNames(): Promise<string[]> {
+export async function getAllCompanyNames(): Promise<{ name: string; isActive: boolean }[]> {
    const rows = await db
-      .select({ companyName: companyMaster.companyName })
+      .select({ companyName: companyMaster.companyName, isActive: companyMaster.isActive })
       .from(companyMaster)
       .orderBy(companyMaster.companyName)
-   return rows.map((r) => r.companyName)
+   return rows.map((r) => ({ name: r.companyName, isActive: r.isActive }))
 }
 
 // Sync: given a list of company names, add new ones and remove missing ones.

@@ -47,11 +47,13 @@ import { cn } from "@/src/lib/utils"
 // ---------------------------------------------------------------------------
 
 type RowStatus = "add" | "no_change" | "remove" | "not_found"
+type NotFoundReason = "not_in_master" | "inactive"
 
 type PreviewRow = {
    index: number
    name: string
    status: RowStatus
+   notFoundReason?: NotFoundReason
 }
 
 // ---------------------------------------------------------------------------
@@ -91,7 +93,8 @@ export function ImportCompaniesDialog({
    const [fileName, setFileName] = React.useState<string | null>(null)
    const [preview, setPreview] = React.useState<PreviewRow[] | null>(null)
    const [activeTab, setActiveTab] = React.useState("add")
-   const [allCompanyNames, setAllCompanyNames] = React.useState<Set<string>>(new Set())
+   // Map of lowercase name → isActive
+   const [allCompanyNames, setAllCompanyNames] = React.useState<Map<string, boolean>>(new Map())
    const [isFetching, setIsFetching] = React.useState(false)
    const [isPending, startTransition] = React.useTransition()
    const fileInputRef = React.useRef<HTMLInputElement>(null)
@@ -102,7 +105,7 @@ export function ImportCompaniesDialog({
       if (!open) return
       setIsFetching(true)
       getAllCompanyNames()
-         .then((names) => setAllCompanyNames(new Set(names.map((n) => n.toLowerCase()))))
+         .then((entries) => setAllCompanyNames(new Map(entries.map((e) => [e.name.toLowerCase(), e.isActive]))))
          .finally(() => setIsFetching(false))
    }, [open])
 
@@ -140,14 +143,21 @@ export function ImportCompaniesDialog({
             seenInFile.add(key)
 
             let status: RowStatus
+            let notFoundReason: NotFoundReason | undefined
             if (existingInIndex.has(key)) {
                status = "no_change"
             } else if (allCompanyNames.has(key)) {
-               status = "add"
+               if (allCompanyNames.get(key) === true) {
+                  status = "add"
+               } else {
+                  status = "not_found"
+                  notFoundReason = "inactive"
+               }
             } else {
                status = "not_found"
+               notFoundReason = "not_in_master"
             }
-            rows.push({ index: i + 1, name, status })
+            rows.push({ index: i + 1, name, status, notFoundReason })
          })
 
          // Companies currently in index but absent from CSV → will be removed
@@ -395,10 +405,17 @@ export function ImportCompaniesDialog({
                                        <TableCell className="pl-4 text-xs text-muted-foreground tabular-nums">{row.index}</TableCell>
                                        <TableCell className="pl-4 text-sm text-amber-700 dark:text-amber-400">{row.name}</TableCell>
                                        <TableCell className="pl-4">
-                                          <Badge variant="outline" className="gap-1 text-xs border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400">
-                                             <AlertCircleIcon className="size-3" />
-                                             Not in company master
-                                          </Badge>
+                                          {row.notFoundReason === "inactive" ? (
+                                             <Badge variant="outline" className="gap-1 text-xs border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+                                                <AlertCircleIcon className="size-3" />
+                                                Company inactive
+                                             </Badge>
+                                          ) : (
+                                             <Badge variant="outline" className="gap-1 text-xs border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400">
+                                                <AlertCircleIcon className="size-3" />
+                                                Not in company master
+                                             </Badge>
+                                          )}
                                        </TableCell>
                                     </TableRow>
                                  ))}

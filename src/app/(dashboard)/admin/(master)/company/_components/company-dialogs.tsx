@@ -4,9 +4,9 @@ import * as React from "react"
 import { useForm, Controller } from "react-hook-form"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { PlusIcon, Pencil, Trash2, ChevronsUpDown, Check } from "lucide-react"
+import { PlusIcon, Pencil, CircleOff, CircleCheck, ChevronsUpDown, Check, ListOrderedIcon } from "lucide-react"
 
-import { createCompany, updateCompany, deleteCompany, type CompanyInput } from "../_actions"
+import { createCompany, updateCompany, toggleCompanyStatus, getCompanyIndexes, type CompanyInput } from "../_actions"
 import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
 import { Label } from "@/src/components/ui/label"
@@ -360,16 +360,39 @@ export function EditCompanyDialog({
    )
 }
 
-export function DeleteCompanyButton({ id, name }: { id: string; name: string }) {
+export function ToggleCompanyStatusButton({
+   id,
+   name,
+   isActive,
+}: {
+   id: string
+   name: string
+   isActive: boolean
+}) {
    const [open, setOpen] = React.useState(false)
+   const [indexes, setIndexes] = React.useState<{ id: string; name: string }[]>([])
+   const [isFetching, setIsFetching] = React.useState(false)
    const [isPending, startTransition] = React.useTransition()
    const router = useRouter()
 
-   function handleDelete() {
+   async function handleClick() {
+      if (isActive) {
+         setIsFetching(true)
+         try {
+            const result = await getCompanyIndexes(id)
+            setIndexes(result)
+         } finally {
+            setIsFetching(false)
+         }
+      }
+      setOpen(true)
+   }
+
+   function handleConfirm() {
       startTransition(async () => {
-         const result = await deleteCompany(id)
+         const result = await toggleCompanyStatus(id, !isActive)
          if (result.success) {
-            toast.success(`"${name}" deleted.`)
+            toast.success(`"${name}" ${isActive ? "deactivated" : "activated"}.`)
             setOpen(false)
             router.refresh()
          } else {
@@ -379,28 +402,72 @@ export function DeleteCompanyButton({ id, name }: { id: string; name: string }) 
    }
 
    return (
-      <Dialog open={open} onOpenChange={setOpen}>
-         <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive">
-               <Trash2 className="size-3.5" />
-            </Button>
-         </DialogTrigger>
-         <DialogContent className="sm:max-w-sm">
-            <DialogHeader>
-               <DialogTitle>Delete Company</DialogTitle>
-            </DialogHeader>
-            <p className="text-sm text-muted-foreground">
-               Are you sure you want to delete <span className="font-medium text-foreground">&quot;{name}&quot;</span>?
-               This action cannot be undone.
-            </p>
-            <DialogFooter>
-               <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>Cancel</Button>
-               <Button variant="destructive" onClick={handleDelete} disabled={isPending}>
-                  {isPending ? "Deleting…" : "Delete"}
-                  {isPending && <Spinner className="ml-2" />}
-               </Button>
-            </DialogFooter>
-         </DialogContent>
-      </Dialog>
+      <>
+         <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+               "size-7",
+               isActive
+                  ? "text-muted-foreground hover:text-destructive"
+                  : "text-emerald-600 hover:text-emerald-700 dark:text-emerald-400",
+            )}
+            onClick={handleClick}
+            disabled={isFetching}
+            title={isActive ? "Deactivate" : "Activate"}
+         >
+            {isFetching
+               ? <Spinner className="size-3.5" />
+               : isActive
+                  ? <CircleOff className="size-3.5" />
+                  : <CircleCheck className="size-3.5" />}
+         </Button>
+
+         <Dialog open={open} onOpenChange={setOpen}>
+            <DialogContent className="sm:max-w-sm">
+               <DialogHeader>
+                  <DialogTitle>{isActive ? "Deactivate Company" : "Activate Company"}</DialogTitle>
+               </DialogHeader>
+
+               <div className="flex flex-col gap-3">
+                  <p className="text-sm text-muted-foreground">
+                     {isActive
+                        ? <>Are you sure you want to deactivate <span className="font-medium text-foreground">&quot;{name}&quot;</span>?</>
+                        : <>Are you sure you want to activate <span className="font-medium text-foreground">&quot;{name}&quot;</span>?</>}
+                  </p>
+
+                  {isActive && indexes.length > 0 && (
+                     <div className="rounded-lg border bg-muted/40 p-3 flex flex-col gap-2">
+                        <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                           This company will be removed from {indexes.length} index{indexes.length !== 1 ? "es" : ""}:
+                        </p>
+                        <ul className="flex flex-col gap-1">
+                           {indexes.map((idx) => (
+                              <li key={idx.id} className="flex items-center gap-2 text-sm text-muted-foreground">
+                                 <ListOrderedIcon className="size-3.5 shrink-0" />
+                                 {idx.name}
+                              </li>
+                           ))}
+                        </ul>
+                     </div>
+                  )}
+               </div>
+
+               <DialogFooter>
+                  <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
+                     Cancel
+                  </Button>
+                  <Button
+                     variant={isActive ? "destructive" : "default"}
+                     onClick={handleConfirm}
+                     disabled={isPending}
+                  >
+                     {isPending ? (isActive ? "Deactivating…" : "Activating…") : (isActive ? "Deactivate" : "Activate")}
+                     {isPending && <Spinner className="ml-2" />}
+                  </Button>
+               </DialogFooter>
+            </DialogContent>
+         </Dialog>
+      </>
    )
 }
