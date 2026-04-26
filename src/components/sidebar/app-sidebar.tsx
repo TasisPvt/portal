@@ -15,6 +15,7 @@ import {
    BarChart3Icon,
    UsersIcon,
    ListOrderedIcon,
+   MoonStarIcon,
 } from "lucide-react"
 import { NavCollapsible } from "@/src/components/sidebar/nav-collapsible"
 import { NavMain } from "@/src/components/sidebar/nav-main"
@@ -94,6 +95,11 @@ const adminNav = {
          title: "Index",
          url: "/admin/index",
          icon: ListOrderedIcon,
+      },
+      {
+         title: "Shariah Status",
+         url: "/admin/company-shariah-status",
+         icon: MoonStarIcon,
       },
    ],
    navSecondary: [
