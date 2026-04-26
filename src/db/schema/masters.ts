@@ -6,6 +6,9 @@ import {
    date,
    index,
    boolean,
+   numeric,
+   smallint,
+   unique,
 } from "drizzle-orm/pg-core"
 
 export const industryGroup = pgTable("industry_group", {
@@ -128,8 +131,50 @@ export const companyIndexRelations = relations(companyMaster, ({ many }) => ({
    indexes: many(indexCompany),
 }))
 
+export const companyShariah = pgTable(
+   "company_shariah",
+   {
+      id: varchar("id", { length: 36 }).primaryKey(),
+      companyId: varchar("company_id", { length: 36 })
+         .notNull()
+         .references(() => companyMaster.id, { onDelete: "cascade" }),
+      month: varchar("month", { length: 7 }).notNull(), // "YYYY-MM"
+      marketCap: numeric("market_cap", { precision: 20, scale: 2 }),
+      companyStatus: varchar("company_status", { length: 20 }), // "Consolidated" | "Standalone"
+      shariahStatus: smallint("shariah_status"), // 1-9
+      lastFinancialData: boolean("last_financial_data"),
+      primaryBusiness: boolean("primary_business"),
+      secondaryBusiness: boolean("secondary_business"),
+      compliantOnInvestment: boolean("compliant_on_investment"),
+      sufficientFinancialInfo: boolean("sufficient_financial_info"),
+      totalDebtTotalAssetValue: numeric("total_debt_total_asset_value", { precision: 20, scale: 4 }),
+      totalDebtTotalAssetStatus: boolean("total_debt_total_asset_status"),
+      totalInterestIncomeTotalIncomeValue: numeric("total_interest_income_total_income_value", { precision: 20, scale: 4 }),
+      totalInterestIncomeTotalIncomeStatus: boolean("total_interest_income_total_income_status"),
+      cashBankReceivablesTotalAssetValue: numeric("cash_bank_receivables_total_asset_value", { precision: 20, scale: 4 }),
+      cashBankReceivablesTotalAssetStatus: boolean("cash_bank_receivables_total_asset_status"),
+      remark: varchar("remark", { length: 1000 }),
+      lastUpdatedAt: timestamp("last_updated_at", { precision: 3 }),
+      createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
+      updatedAt: timestamp("updated_at", { precision: 3 })
+         .defaultNow()
+         .$onUpdate(() => new Date())
+         .notNull(),
+   },
+   (table) => [
+      unique("company_shariah_company_month_unique").on(table.companyId, table.month),
+      index("company_shariah_company_idx").on(table.companyId),
+      index("company_shariah_month_idx").on(table.month),
+   ],
+)
+
+export const companyShariahRelations = relations(companyShariah, ({ one }) => ({
+   company: one(companyMaster, { fields: [companyShariah.companyId], references: [companyMaster.id] }),
+}))
+
 export type IndustryGroup = typeof industryGroup.$inferSelect
 export type CompanyMaster = typeof companyMaster.$inferSelect
 export type CompanyNameHistory = typeof companyNameHistory.$inferSelect
 export type IndexMaster = typeof indexMaster.$inferSelect
 export type IndexCompany = typeof indexCompany.$inferSelect
+export type CompanyShariah = typeof companyShariah.$inferSelect
