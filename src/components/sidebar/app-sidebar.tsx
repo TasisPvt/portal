@@ -17,6 +17,9 @@ import {
    ListOrderedIcon,
    MoonStarIcon,
    TagIcon,
+   PackageIcon,
+   CreditCardIcon,
+   ReceiptIcon,
 } from "lucide-react"
 import { NavCollapsible } from "@/src/components/sidebar/nav-collapsible"
 import { NavMain } from "@/src/components/sidebar/nav-main"
@@ -38,6 +41,8 @@ import { NavUser } from "@/src/components/sidebar/nav-user"
 const clientNav = {
    navMain: [
       { title: "Dashboard", url: "/dashboard", icon: <LayoutDashboardIcon /> },
+      { title: "Plans", url: "/plans", icon: <PackageIcon /> },
+      { title: "My Subscriptions", url: "/subscriptions", icon: <CreditCardIcon /> },
    ],
    navScreening: [
       {
@@ -80,6 +85,7 @@ const adminNav = {
       { title: "Dashboard", url: "/admin/dashboard", icon: <LayoutDashboardIcon /> },
       { title: "Clients", url: "/admin/clients", icon: <UsersIcon /> },
       { title: "Users", url: "/admin/users", icon: <BarChart3Icon /> },
+      { title: "Subscriptions", url: "/admin/subscriptions", icon: <ReceiptIcon /> },
    ],
    navMaster: [
       {
