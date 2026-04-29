@@ -16,6 +16,7 @@ import {
    UsersIcon,
    ListOrderedIcon,
    MoonStarIcon,
+   TagIcon,
 } from "lucide-react"
 import { NavCollapsible } from "@/src/components/sidebar/nav-collapsible"
 import { NavMain } from "@/src/components/sidebar/nav-main"
@@ -100,6 +101,11 @@ const adminNav = {
          title: "Shariah Status",
          url: "/admin/company-shariah-status",
          icon: MoonStarIcon,
+      },
+      {
+         title: "Pricing Plans",
+         url: "/admin/pricing-plans",
+         icon: TagIcon,
       },
    ],
    navSecondary: [
