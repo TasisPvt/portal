@@ -36,16 +36,18 @@ function snapshotFromPlan(
    }
 }
 
-function computeEndDate(durationType: DurationType, startDate: Date): Date | null {
-   const days: Record<DurationType, number | null> = {
-      one_time: null,
+function computeEndDate(durationType: DurationType, startDate: Date): Date {
+   if (durationType === "one_time") {
+      const end = new Date(startDate)
+      end.setHours(23, 59, 59, 999)
+      return end
+   }
+   const days: Record<Exclude<DurationType, "one_time">, number> = {
       monthly: 30,
       quarterly: 90,
       annual: 365,
    }
-   const d = days[durationType]
-   if (d === null) return null
-   return new Date(startDate.getTime() + d * 24 * 60 * 60 * 1000)
+   return new Date(startDate.getTime() + days[durationType] * 24 * 60 * 60 * 1000)
 }
 
 export async function getActivePlans() {

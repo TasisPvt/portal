@@ -139,6 +139,7 @@ export const companyShariah = pgTable(
          .notNull()
          .references(() => companyMaster.id, { onDelete: "cascade" }),
       month: varchar("month", { length: 7 }).notNull(), // "YYYY-MM"
+      assessmentYear: date("assessment_year"),
       marketCap: numeric("market_cap", { precision: 20, scale: 2 }),
       companyStatus: varchar("company_status", { length: 20 }), // "Consolidated" | "Standalone"
       shariahStatus: smallint("shariah_status"), // 1-9
@@ -172,9 +173,21 @@ export const companyShariahRelations = relations(companyShariah, ({ one }) => ({
    company: one(companyMaster, { fields: [companyShariah.companyId], references: [companyMaster.id] }),
 }))
 
+export const tasisScreeningStandard = pgTable("tasis_screening_standard", {
+   id: varchar("id", { length: 36 }).primaryKey(),
+   shariahStatus: smallint("shariah_status").notNull().unique(), // 1-9
+   remark: varchar("remark", { length: 2000 }),
+   createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
+   updatedAt: timestamp("updated_at", { precision: 3 })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+})
+
 export type IndustryGroup = typeof industryGroup.$inferSelect
 export type CompanyMaster = typeof companyMaster.$inferSelect
 export type CompanyNameHistory = typeof companyNameHistory.$inferSelect
 export type IndexMaster = typeof indexMaster.$inferSelect
 export type IndexCompany = typeof indexCompany.$inferSelect
 export type CompanyShariah = typeof companyShariah.$inferSelect
+export type TasisScreeningStandard = typeof tasisScreeningStandard.$inferSelect

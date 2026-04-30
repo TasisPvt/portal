@@ -16,7 +16,7 @@ export const subscription = pgTable(
       durationType: varchar("duration_type", { length: 20 }).notNull(), // "one_time" | "monthly" | "quarterly" | "annual"
       status: varchar("status", { length: 20 }).notNull().default("active"), // "active" | "expired" | "cancelled"
       startDate: timestamp("start_date", { precision: 3 }).notNull(),
-      endDate: timestamp("end_date", { precision: 3 }),
+      endDate: timestamp("end_date", { precision: 3 }).notNull(),
       // Snapshots taken at the time of subscription
       priceSnapshot: numeric("price_snapshot", { precision: 12, scale: 2 }).notNull(),
       stocksPerDaySnapshot: integer("stocks_per_day_snapshot"),

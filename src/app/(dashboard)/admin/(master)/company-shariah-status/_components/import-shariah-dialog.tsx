@@ -189,6 +189,7 @@ function parseCSV(text: string): ShariahImportRow[] {
       const row = parseCSVLine(line)
       return {
          prowessId: col(row, "prowess_id")?.trim() ?? "",
+         assessmentYear: col(row, "assessment_year")?.trim() || null,
          marketCap: parseNum(col(row, "market_cap")),
          companyStatus: col(row, "company_status")?.trim() || null,
          shariahStatus: parseShariahStatus(col(row, "shariah_status")),
@@ -211,7 +212,7 @@ function parseCSV(text: string): ShariahImportRow[] {
 
 function downloadTemplate() {
    const headers = [
-      "prowess_id", "market_cap", "company_status", "shariah_status",
+      "prowess_id", "assessment_year", "market_cap", "company_status", "shariah_status",
       "last_financial_data", "primary_business", "secondary_business",
       "compliant_on_investment", "sufficient_financial_info",
       "total_debt_total_asset_value", "total_debt_total_asset_status",
@@ -220,7 +221,7 @@ function downloadTemplate() {
       "remark", "last_updated_at",
    ]
    const sample = [
-      "10001", "2608204.55", "Consolidated", "1",
+      "10001", "2022-03-31", "2608204.55", "Consolidated", "1",
       "true", "true", "false",
       "true", "true",
       "5.35", "true",
@@ -607,6 +608,7 @@ function PreviewTable({
                      <TableHead className="pl-4 text-muted-foreground">Company Name</TableHead>
                      <TableHead className="pl-4 text-muted-foreground">Shariah Status</TableHead>
                      <TableHead className="pl-4 text-muted-foreground">Company Status</TableHead>
+                     <TableHead className="pl-4 text-muted-foreground">Assmt. Year</TableHead>
                      <TableHead className="pl-4 text-muted-foreground">Market Cap</TableHead>
                      <TableHead className="pl-4 text-muted-foreground">Last Updated</TableHead>
                   </TableRow>
@@ -614,7 +616,7 @@ function PreviewTable({
                <TableBody>
                   {rows.length === 0 ? (
                      <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center text-sm text-muted-foreground">
+                        <TableCell colSpan={8} className="h-24 text-center text-sm text-muted-foreground">
                            {emptyText}
                         </TableCell>
                      </TableRow>
@@ -633,6 +635,7 @@ function PreviewTable({
                               : <span className="text-muted-foreground opacity-40">—</span>}
                         </TableCell>
                         <TableCell className="pl-4 text-xs">{row.companyStatus ?? <span className="text-muted-foreground opacity-40">—</span>}</TableCell>
+                        <TableCell className="pl-4 text-xs text-muted-foreground whitespace-nowrap">{row.assessmentYear ?? <span className="opacity-40">—</span>}</TableCell>
                         <TableCell className="pl-4 text-xs tabular-nums">
                            {row.marketCap ? parseFloat(row.marketCap).toLocaleString("en-IN") : <span className="text-muted-foreground opacity-40">—</span>}
                         </TableCell>

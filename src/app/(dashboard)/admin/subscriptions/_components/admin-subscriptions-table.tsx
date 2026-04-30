@@ -28,7 +28,7 @@ type SubscriptionRow = {
    durationType: string
    status: string
    startDate: Date
-   endDate: Date | null
+   endDate: Date
    priceSnapshot: string
    stocksPerDaySnapshot: number | null
    stocksInDurationSnapshot: number | null
@@ -48,8 +48,7 @@ function fmtPrice(price: string) {
    return "₹" + new Intl.NumberFormat("en-IN").format(parseFloat(price))
 }
 
-function fmtDate(d: Date | null | undefined) {
-   if (!d) return "—"
+function fmtDate(d: Date) {
    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
 }
 

@@ -20,6 +20,7 @@ import {
    PackageIcon,
    CreditCardIcon,
    ReceiptIcon,
+   BookTextIcon,
 } from "lucide-react"
 import { NavCollapsible } from "@/src/components/sidebar/nav-collapsible"
 import { NavMain } from "@/src/components/sidebar/nav-main"
@@ -50,7 +51,7 @@ const clientNav = {
          url: "#",
          icon: TrendingUpIcon,
          isActive: false,
-         items: [{ title: "Snapshot", url: "#" }, { title: "List", url: "#" }],
+         items: [{ title: "Snapshot", url: "/stock/snapshot" }, { title: "List", url: "/stock/list" }],
       },
       {
          title: "IPO",
@@ -112,6 +113,11 @@ const adminNav = {
          title: "Pricing Plans",
          url: "/admin/pricing-plans",
          icon: TagIcon,
+      },
+      {
+         title: "TASIS Standards",
+         url: "/admin/tasis-screening-standards",
+         icon: BookTextIcon,
       },
    ],
    navSecondary: [

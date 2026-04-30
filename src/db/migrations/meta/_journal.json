@@ -64,6 +64,20 @@
       "when": 1746000000000,
       "tag": "0008_subscriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1746086400000,
+      "tag": "0009_subscription_end_date_not_null",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1746172800000,
+      "tag": "0010_assessment_year_screening_views",
+      "breakpoints": true
     }
   ]
 }
