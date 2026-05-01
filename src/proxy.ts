@@ -33,7 +33,7 @@ const HOME: Record<UserType, string> = {
 /** Route prefixes each user type is permitted to visit. */
 const ALLOWED: Record<UserType, string[]> = {
    admin: ["/admin", "/profile"],
-   client: ["/dashboard", "/profile"],
+   client: ["/dashboard", "/plans", "/subscriptions", "/profile", "/stock"],
 }
 
 // ─── Proxy ────────────────────────────────────────────────────────────────────

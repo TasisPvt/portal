@@ -109,6 +109,13 @@ function NumCell({ value, decimals = 2 }: { value: string | null | undefined; de
    )
 }
 
+function fmtDateStr(dateStr: string | null | undefined): string {
+   if (!dateStr) return "—"
+   const [y, m, d] = dateStr.split("-")
+   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+   return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`
+}
+
 function boolToCSV(v: boolean | null | undefined): string {
    if (v === null || v === undefined) return "NA"
    return v ? "true" : "false"
@@ -117,7 +124,7 @@ function boolToCSV(v: boolean | null | undefined): string {
 function exportRowsToCSV(rows: ShariahRow[], month: string) {
    const headers = [
       "prowess_id", "company_name", "company_status", "shariah_status",
-      "market_cap", "last_financial_data", "primary_business", "secondary_business",
+      "assessment_year", "market_cap", "last_financial_data", "primary_business", "secondary_business",
       "compliant_on_investment", "sufficient_financial_info",
       "total_debt_total_asset_value", "total_debt_total_asset_status",
       "total_interest_income_total_income_value", "total_interest_income_total_income_status",
@@ -136,6 +143,7 @@ function exportRowsToCSV(rows: ShariahRow[], month: string) {
       escape(r.companyName),
       escape(r.companyStatus),
       escape(r.shariahStatus),
+      escape(r.assessmentYear),
       escape(r.marketCap),
       boolToCSV(r.lastFinancialData),
       boolToCSV(r.primaryBusiness),
@@ -191,6 +199,7 @@ export type ShariahRow = {
    prowessId: string
    companyName: string
    shariahId: string | null
+   assessmentYear: string | null
    marketCap: string | null
    companyStatus: string | null
    shariahStatus: number | null
@@ -257,6 +266,16 @@ export function ShariahTable({
          accessorFn: (r) => r.shariahStatus ?? -1,
          header: ({ column }) => <SortableHeader column={column} label="Shariah Status" />,
          cell: ({ row }) => <ShariahBadge status={row.original.shariahStatus} />,
+      },
+      {
+         id: "assessmentYear",
+         accessorFn: (r) => r.assessmentYear ?? "",
+         header: ({ column }) => <SortableHeader column={column} label="Assmt. Year" />,
+         cell: ({ row }) => row.original.assessmentYear
+            ? <span className="text-xs text-muted-foreground whitespace-nowrap">
+               {fmtDateStr(row.original.assessmentYear)}
+            </span>
+            : <span className="text-muted-foreground opacity-40 text-xs">—</span>,
       },
       {
          id: "marketCap",

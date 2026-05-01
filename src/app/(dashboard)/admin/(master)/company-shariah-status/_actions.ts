@@ -19,6 +19,7 @@ export async function getShariahDataForMonth(month: string) {
          prowessId: companyMaster.prowessId,
          companyName: companyMaster.companyName,
          shariahId: companyShariah.id,
+         assessmentYear: companyShariah.assessmentYear,
          marketCap: companyShariah.marketCap,
          companyStatus: companyShariah.companyStatus,
          shariahStatus: companyShariah.shariahStatus,
@@ -87,6 +88,7 @@ export async function getImportContext(): Promise<{
 
 export type ShariahImportRow = {
    prowessId: string
+   assessmentYear?: string | null
    marketCap?: string | null
    companyStatus?: string | null
    shariahStatus?: number | null
@@ -146,6 +148,7 @@ export async function importShariahData(records: ShariahImportRow[]): Promise<{
       const values = {
          companyId,
          month,
+         assessmentYear: record.assessmentYear || null,
          marketCap: record.marketCap || null,
          companyStatus: record.companyStatus || null,
          shariahStatus: record.shariahStatus ?? null,

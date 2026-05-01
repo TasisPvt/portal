@@ -17,6 +17,10 @@ import {
    ListOrderedIcon,
    MoonStarIcon,
    TagIcon,
+   PackageIcon,
+   CreditCardIcon,
+   ReceiptIcon,
+   BookTextIcon,
 } from "lucide-react"
 import { NavCollapsible } from "@/src/components/sidebar/nav-collapsible"
 import { NavMain } from "@/src/components/sidebar/nav-main"
@@ -38,6 +42,8 @@ import { NavUser } from "@/src/components/sidebar/nav-user"
 const clientNav = {
    navMain: [
       { title: "Dashboard", url: "/dashboard", icon: <LayoutDashboardIcon /> },
+      { title: "Plans", url: "/plans", icon: <PackageIcon /> },
+      { title: "My Subscriptions", url: "/subscriptions", icon: <CreditCardIcon /> },
    ],
    navScreening: [
       {
@@ -45,7 +51,7 @@ const clientNav = {
          url: "#",
          icon: TrendingUpIcon,
          isActive: false,
-         items: [{ title: "Snapshot", url: "#" }, { title: "List", url: "#" }],
+         items: [{ title: "Snapshot", url: "/stock/snapshot" }, { title: "List", url: "/stock/list" }],
       },
       {
          title: "IPO",
@@ -80,6 +86,7 @@ const adminNav = {
       { title: "Dashboard", url: "/admin/dashboard", icon: <LayoutDashboardIcon /> },
       { title: "Clients", url: "/admin/clients", icon: <UsersIcon /> },
       { title: "Users", url: "/admin/users", icon: <BarChart3Icon /> },
+      { title: "Subscriptions", url: "/admin/subscriptions", icon: <ReceiptIcon /> },
    ],
    navMaster: [
       {
@@ -106,6 +113,11 @@ const adminNav = {
          title: "Pricing Plans",
          url: "/admin/pricing-plans",
          icon: TagIcon,
+      },
+      {
+         title: "TASIS Standards",
+         url: "/admin/tasis-screening-standards",
+         icon: BookTextIcon,
       },
    ],
    navSecondary: [
