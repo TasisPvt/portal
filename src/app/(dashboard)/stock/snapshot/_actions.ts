@@ -7,6 +7,7 @@ import { headers } from "next/headers"
 import { auth } from "@/src/lib/auth"
 import { db } from "@/src/db/client"
 import {
+   appSettings,
    companyMaster,
    companyShariah,
    pricingPlan,
@@ -446,4 +447,13 @@ export async function getRecentlyViewed(): Promise<RecentlyViewedCompany[]> {
       .limit(10)
 
    return rows.filter((r) => r.lastViewed !== null) as RecentlyViewedCompany[]
+}
+
+export async function getCommonRemark(): Promise<string | null> {
+   const rows = await db
+      .select()
+      .from(appSettings)
+      .where(eq(appSettings.key, "snapshot_common_remark"))
+      .limit(1)
+   return rows[0]?.value ?? null
 }

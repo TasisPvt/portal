@@ -12,9 +12,18 @@ import {
    BarChart3Icon,
    ClockIcon,
    HelpCircleIcon,
+   InfoIcon,
+   BookOpenIcon,
 } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
 import { Spinner } from "@/src/components/ui/spinner"
+import {
+   Dialog,
+   DialogContent,
+   DialogHeader,
+   DialogTitle,
+   DialogTrigger,
+} from "@/src/components/ui/dialog"
 import { cn } from "@/src/lib/utils"
 import {
    searchCompanies,
@@ -154,9 +163,10 @@ function BoolRow({
                      <HelpCircleIcon className="size-4" />
                   </button>
                   {open && (
-                     <div className="absolute bottom-full right-0 z-20 mb-2 w-64 rounded-lg border bg-popover px-3 py-2.5 text-xs leading-relaxed text-popover-foreground shadow-lg z-120">
-                        {remark}
-                     </div>
+                     <div
+                        className="prose prose-xs absolute bottom-full right-0 z-20 mb-2 w-72 max-w-[calc(100vw-2rem)] rounded-lg border bg-popover px-3 py-2.5 text-xs leading-relaxed text-popover-foreground shadow-lg [&_ul]:ml-4 [&_ul]:list-disc [&_ol]:ml-4 [&_ol]:list-decimal"
+                        dangerouslySetInnerHTML={{ __html: remark }}
+                     />
                   )}
                </div>
             )}
@@ -344,17 +354,39 @@ function SnapshotCard({ data }: { data: SnapshotSuccess }) {
 
                {/* Compliance History */}
                <div className="rounded-xl border p-5">
-                  <h3 className="mb-3 flex items-center gap-2 text-sm font-medium">
-                     <ClockIcon className="size-4 text-muted-foreground" />
-                     Compliance History
-                  </h3>
-                  <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-                     {Object.entries(STATUS_COLORS).map(([s, c]) => (
-                        <div key={s} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                           <div className="size-3 rounded-sm border border-black/10" style={{ backgroundColor: c }} />
-                           {s}. {STATUS_LABELS[Number(s)]}
-                        </div>
-                     ))}
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                     <h3 className="flex items-center gap-2 text-sm font-medium">
+                        <ClockIcon className="size-4 text-muted-foreground" />
+                        Compliance History
+                     </h3>
+                     <Dialog>
+                        <DialogTrigger asChild>
+                           <button
+                              type="button"
+                              className="text-muted-foreground/50 transition-colors hover:text-muted-foreground"
+                           >
+                              <InfoIcon className="size-4" />
+                           </button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-sm">
+                           <DialogHeader>
+                              <DialogTitle>Color Code Legend</DialogTitle>
+                           </DialogHeader>
+                           <div className="flex flex-col gap-2 pt-1">
+                              {Object.entries(STATUS_COLORS).map(([s, c]) => (
+                                 <div key={s} className="flex items-center gap-3">
+                                    <div
+                                       className="size-4 shrink-0 rounded border border-black/10"
+                                       style={{ backgroundColor: c }}
+                                    />
+                                    <span className="text-sm text-muted-foreground">
+                                       {STATUS_LABELS[Number(s)]}
+                                    </span>
+                                 </div>
+                              ))}
+                           </div>
+                        </DialogContent>
+                     </Dialog>
                   </div>
                   <ComplianceHistory history={complianceHistory} />
                </div>
@@ -375,6 +407,7 @@ function SnapshotCard({ data }: { data: SnapshotSuccess }) {
                      It is important to note that <b>Shariah scholars globally allow investment in companies with a small amount of interest income</b>.
                   </p>
                </div>
+
             </>
          ) : (
             <div className="rounded-xl border border-dashed py-12 text-center text-sm text-muted-foreground">
@@ -476,7 +509,6 @@ function ParametersRatiosTabs({
                      value={shariah.cashBankReceivablesTotalAssetValue}
                      status={shariah.cashBankReceivablesTotalAssetStatus}
                   />
-                  {remarkMap.get("last_financial_data")}
                </div>
             )}
          </div>
@@ -553,7 +585,7 @@ function SearchDropdown({
 
 // ─── Main component ────────────────────────────────────────────────────────────
 
-export function SnapshotClient({ access }: { access: SnapshotAccess }) {
+export function SnapshotClient({ access, commonRemark }: { access: SnapshotAccess; commonRemark: string | null }) {
    const [query, setQuery] = React.useState("")
    const [searchResults, setSearchResults] = React.useState<CompanySearchResult[]>([])
    const [isSearching, setIsSearching] = React.useState(false)
@@ -646,10 +678,36 @@ export function SnapshotClient({ access }: { access: SnapshotAccess }) {
 
    return (
       <div className="flex flex-col gap-5 p-6">
-         <p className="text-sm text-muted-foreground">
-            Search for a company to view its TASIS shariah screening snapshot.
-            Plan: <span className="font-medium text-foreground">{access.planName}</span>
-         </p>
+         <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+               Search for a company to view its TASIS shariah screening snapshot.
+               Plan: <span className="font-medium text-foreground">{access.planName}</span>
+            </p>
+            {commonRemark && (
+               <Dialog>
+                  <DialogTrigger asChild>
+                     <button
+                        type="button"
+                        className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                     >
+                        <BookOpenIcon className="size-3.5" />
+                        TASIS Note
+                     </button>
+                  </DialogTrigger>
+                  <DialogContent className="flex max-h-[85vh] max-w-5xl flex-col">
+                     <DialogHeader className="shrink-0">
+                        <DialogTitle>TASIS Methodology Note</DialogTitle>
+                     </DialogHeader>
+                     <div className="min-h-0 flex-1 overflow-y-auto">
+                        <div
+                           className="prose prose-sm max-w-none text-sm text-muted-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
+                           dangerouslySetInnerHTML={{ __html: commonRemark }}
+                        />
+                     </div>
+                  </DialogContent>
+               </Dialog>
+            )}
+         </div>
 
          {/* Search */}
          <div ref={containerRef} className="relative max-w-xl">

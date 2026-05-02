@@ -9,6 +9,7 @@ import {
    numeric,
    smallint,
    unique,
+   text,
 } from "drizzle-orm/pg-core"
 
 export const industryGroup = pgTable("industry_group", {
@@ -179,6 +180,15 @@ export const screeningStandardRemark = pgTable("screening_standard_remark", {
    passRemark: varchar("pass_remark", { length: 2000 }),
    failRemark: varchar("fail_remark", { length: 2000 }),
    createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
+   updatedAt: timestamp("updated_at", { precision: 3 })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+})
+
+export const appSettings = pgTable("app_settings", {
+   key: varchar("key", { length: 100 }).primaryKey(),
+   value: text("value"),
    updatedAt: timestamp("updated_at", { precision: 3 })
       .defaultNow()
       .$onUpdate(() => new Date())

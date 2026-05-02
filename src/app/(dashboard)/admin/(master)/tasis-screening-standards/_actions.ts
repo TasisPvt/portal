@@ -5,7 +5,9 @@ import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
 import { db } from "@/src/db/client"
-import { screeningStandardRemark } from "@/src/db/schema"
+import { appSettings, screeningStandardRemark } from "@/src/db/schema"
+
+const COMMON_REMARK_KEY = "snapshot_common_remark"
 
 const SCREENING_PARAMETERS = [
    { key: "last_financial_data", label: "Latest Financial Data" },
@@ -72,6 +74,34 @@ export async function upsertScreeningStandard(
       return { success: true }
    } catch (err) {
       console.error("[upsertScreeningStandard]", err)
+      return { success: false, message: err instanceof Error ? err.message : "Failed to save." }
+   }
+}
+
+export async function getCommonRemark(): Promise<string | null> {
+   const rows = await db
+      .select()
+      .from(appSettings)
+      .where(eq(appSettings.key, COMMON_REMARK_KEY))
+      .limit(1)
+   return rows[0]?.value ?? null
+}
+
+export async function upsertCommonRemark(
+   value: string,
+): Promise<{ success: boolean; message?: string }> {
+   try {
+      await db
+         .insert(appSettings)
+         .values({ key: COMMON_REMARK_KEY, value: value.trim() || null })
+         .onConflictDoUpdate({
+            target: appSettings.key,
+            set: { value: value.trim() || null, updatedAt: new Date() },
+         })
+      revalidatePath("/admin/tasis-screening-standards")
+      return { success: true }
+   } catch (err) {
+      console.error("[upsertCommonRemark]", err)
       return { success: false, message: err instanceof Error ? err.message : "Failed to save." }
    }
 }
