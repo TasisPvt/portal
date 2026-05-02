@@ -10,8 +10,8 @@ import {
    companyMaster,
    companyShariah,
    pricingPlan,
+   screeningStandardRemark,
    subscription,
-   tasisScreeningStandard,
 } from "@/src/db/schema"
 import { stockViewLog } from "@/src/db/schema/stock-views"
 
@@ -68,7 +68,7 @@ export type CompanySnapshotResult =
            remark: string | null
            lastUpdatedAt: Date | null
         } | null
-        screeningStandard: string | null
+        screeningRemarks: { parameter: string; label: string; value: boolean | null; remark: string | null }[]
         complianceHistory: { month: string; shariahStatus: number | null }[]
         quota: QuotaInfo
      }
@@ -354,16 +354,23 @@ export async function getCompanySnapshot(companyId: string): Promise<CompanySnap
       .orderBy(desc(companyShariah.month))
       .limit(12)
 
-   // Screening standard for this status
-   let screeningStandard: string | null = null
-   if (shariah?.shariahStatus) {
-      const standards = await db
-         .select({ remark: tasisScreeningStandard.remark })
-         .from(tasisScreeningStandard)
-         .where(eq(tasisScreeningStandard.shariahStatus, shariah.shariahStatus))
-         .limit(1)
-      screeningStandard = standards[0]?.remark ?? null
-   }
+   // Per-parameter screening remarks
+   const remarkRows = await db.select().from(screeningStandardRemark)
+   const remarkMap = new Map(remarkRows.map((r) => [r.parameter, r]))
+
+   const PARAM_MAP = [
+      { parameter: "last_financial_data", label: "Latest Financial Data", value: shariah?.lastFinancialData ?? null },
+      { parameter: "primary_business", label: "Primary Business", value: shariah?.primaryBusiness ?? null },
+      { parameter: "secondary_business", label: "Secondary Business", value: shariah?.secondaryBusiness ?? null },
+      { parameter: "compliant_on_investment", label: "Compliant on Investment", value: shariah?.compliantOnInvestment ?? null },
+      { parameter: "financial_information", label: "Financial Information", value: shariah?.sufficientFinancialInfo ?? null },
+   ]
+
+   const screeningRemarks = PARAM_MAP.map(({ parameter, label, value }) => {
+      const entry = remarkMap.get(parameter)
+      const remark = value === true ? (entry?.passRemark ?? null) : value === false ? (entry?.failRemark ?? null) : null
+      return { parameter, label, value, remark }
+   })
 
    // Updated quota
    const [{ cnt: dailyUsed }] = await db
@@ -385,7 +392,7 @@ export async function getCompanySnapshot(companyId: string): Promise<CompanySnap
       company,
       shariah,
       complianceHistory: historyRows,
-      screeningStandard,
+      screeningRemarks,
       quota: {
          dailyUsed,
          dailyLimit: sub.stocksPerDay,

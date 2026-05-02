@@ -9,7 +9,7 @@ export default async function TasisScreeningStandardsPage() {
          <div>
             <h1 className="text-xl font-semibold">TASIS Screening Standards</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-               Set the standard screening text for each shariah status. This text is shown on the stock snapshot page when no company-specific remark is available.
+               Set the PASS and FAIL remark for each screening parameter. These remarks are shown on the stock snapshot page based on the company's actual compliance value.
             </p>
          </div>
          <StandardsForm data={standards} />

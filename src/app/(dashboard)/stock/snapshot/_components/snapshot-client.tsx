@@ -8,14 +8,12 @@ import {
    CheckCircle2Icon,
    XCircleIcon,
    MinusCircleIcon,
-   CalendarIcon,
-   TrendingUpIcon,
    ShieldCheckIcon,
    BarChart3Icon,
    ClockIcon,
+   HelpCircleIcon,
 } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
-import { Badge } from "@/src/components/ui/badge"
 import { Spinner } from "@/src/components/ui/spinner"
 import { cn } from "@/src/lib/utils"
 import {
@@ -59,13 +57,13 @@ const STATUS_COLORS: Record<number, string> = {
 function fmtDateStr(dateStr: string | null | undefined): string {
    if (!dateStr) return "—"
    const [y, m, d] = dateStr.split("-")
-   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
    return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`
 }
 
 function fmtMonthStr(month: string): string {
    const [y, m] = month.split("-")
-   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
    return `${months[parseInt(m) - 1]} '${y.slice(2)}`
 }
 
@@ -114,18 +112,62 @@ function QuotaBar({
    )
 }
 
-function BoolRow({ label, value }: { label: string; value: boolean | null | undefined }) {
+function BoolRow({
+   label,
+   value,
+   remark,
+}: {
+   label: string
+   value: boolean | null | undefined
+   remark?: string | null
+}) {
    const isNull = value === null || value === undefined
+   const [open, setOpen] = React.useState(false)
+   const wrapRef = React.useRef<HTMLDivElement>(null)
+
+   React.useEffect(() => {
+      if (!open) return
+      function handleOutside(e: MouseEvent | TouchEvent) {
+         if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+            setOpen(false)
+         }
+      }
+      document.addEventListener("mousedown", handleOutside)
+      document.addEventListener("touchstart", handleOutside)
+      return () => {
+         document.removeEventListener("mousedown", handleOutside)
+         document.removeEventListener("touchstart", handleOutside)
+      }
+   }, [open])
+
    return (
-      <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/30 px-3 py-2.5">
+      <div className="relative flex items-center justify-between gap-3 rounded-lg bg-muted/30 px-3 py-2.5">
          <span className="text-sm text-muted-foreground">{label}</span>
-         {isNull ? (
-            <MinusCircleIcon className="size-4 shrink-0 text-muted-foreground/30" />
-         ) : value ? (
-            <CheckCircle2Icon className="size-4 shrink-0 text-emerald-500" />
-         ) : (
-            <XCircleIcon className="size-4 shrink-0 text-red-500" />
-         )}
+         <div className="flex shrink-0 items-center gap-1.5">
+            {remark && (
+               <div ref={wrapRef} className="relative">
+                  <button
+                     type="button"
+                     onClick={() => setOpen((v) => !v)}
+                     className="flex size-4 items-center justify-center text-muted-foreground/40 transition-colors hover:text-muted-foreground"
+                  >
+                     <HelpCircleIcon className="size-4" />
+                  </button>
+                  {open && (
+                     <div className="absolute bottom-full right-0 z-20 mb-2 w-64 rounded-lg border bg-popover px-3 py-2.5 text-xs leading-relaxed text-popover-foreground shadow-lg z-120">
+                        {remark}
+                     </div>
+                  )}
+               </div>
+            )}
+            {isNull ? (
+               <MinusCircleIcon className="size-4 text-muted-foreground/30" />
+            ) : value ? (
+               <CheckCircle2Icon className="size-4 text-emerald-500" />
+            ) : (
+               <XCircleIcon className="size-4 text-red-500" />
+            )}
+         </div>
       </div>
    )
 }
@@ -217,7 +259,7 @@ function ComplianceHistory({
 type SnapshotSuccess = Extract<CompanySnapshotResult, { company: unknown }>
 
 function SnapshotCard({ data }: { data: SnapshotSuccess }) {
-   const { company, shariah, complianceHistory, screeningStandard, quota } = data
+   const { company, shariah, complianceHistory, screeningRemarks, quota } = data
 
    return (
       <div className="flex flex-col gap-5">
@@ -238,7 +280,7 @@ function SnapshotCard({ data }: { data: SnapshotSuccess }) {
                      {/* <Badge variant="outline" className="text-xs font-normal">
                         Prowess: {company.prowessId}
                      </Badge> */}
-                     
+
                   </div>
                </div>
                <TasisStamp status={shariah?.shariahStatus} />
@@ -275,10 +317,10 @@ function SnapshotCard({ data }: { data: SnapshotSuccess }) {
                         <dd className="text-sm font-medium">
                            {shariah.lastUpdatedAt
                               ? shariah.lastUpdatedAt.toLocaleDateString("en-IN", {
-                                   day: "2-digit",
-                                   month: "short",
-                                   year: "numeric",
-                                })
+                                 day: "2-digit",
+                                 month: "short",
+                                 year: "numeric",
+                              })
                               : "—"}
                         </dd>
                      </div>
@@ -297,64 +339,8 @@ function SnapshotCard({ data }: { data: SnapshotSuccess }) {
                   </dl>
                </div>
 
-               {/* Shariah Parameters */}
-               <div className="rounded-xl border p-5">
-                  <h3 className="mb-3 flex items-center gap-2 text-sm font-medium">
-                     <ShieldCheckIcon className="size-4 text-muted-foreground" />
-                     Shariah Parameters
-                  </h3>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                     <BoolRow label="Last Financial Data Available" value={shariah.lastFinancialData} />
-                     <BoolRow label="Primary Business Compliant" value={shariah.primaryBusiness} />
-                     <BoolRow label="Secondary Business Compliant" value={shariah.secondaryBusiness} />
-                     <BoolRow label="Compliant on Investment" value={shariah.compliantOnInvestment} />
-                     <BoolRow label="Sufficient Financial Information" value={shariah.sufficientFinancialInfo} />
-                  </div>
-               </div>
-
-               {/* Financial Ratios */}
-               <div className="rounded-xl border p-5">
-                  <h3 className="mb-3 flex items-center gap-2 text-sm font-medium">
-                     <BarChart3Icon className="size-4 text-muted-foreground" />
-                     Financial Ratios
-                  </h3>
-                  <div>
-                     <RatioRow
-                        label="Total Debt / Total Asset"
-                        value={shariah.totalDebtTotalAssetValue}
-                        status={shariah.totalDebtTotalAssetStatus}
-                     />
-                     <RatioRow
-                        label="Total Interest Income / Total Income"
-                        value={shariah.totalInterestIncomeTotalIncomeValue}
-                        status={shariah.totalInterestIncomeTotalIncomeStatus}
-                     />
-                     <RatioRow
-                        label="Cash + Bank + Receivables / Total Asset"
-                        value={shariah.cashBankReceivablesTotalAssetValue}
-                        status={shariah.cashBankReceivablesTotalAssetStatus}
-                     />
-                  </div>
-               </div>
-
-               {/* TASIS Screening Standards */}
-               <div className="rounded-xl border p-5">
-                  <h3 className="mb-3 flex items-center gap-2 text-sm font-medium">
-                     <TrendingUpIcon className="size-4 text-muted-foreground" />
-                     TASIS Screening Standards
-                  </h3>
-                  {screeningStandard ? (
-                     <p className="text-sm leading-relaxed text-foreground">{screeningStandard}</p>
-                  ) : (
-                     <p className="text-sm italic text-muted-foreground">No standard text configured for this status.</p>
-                  )}
-                  {shariah.remark && (
-                     <div className="mt-3 rounded-lg bg-muted/40 p-3">
-                        <p className="mb-1 text-xs font-medium text-muted-foreground">Company Note</p>
-                        <p className="text-sm leading-relaxed">{shariah.remark}</p>
-                     </div>
-                  )}
-               </div>
+               {/* Shariah Parameters + Financial Ratios (tabbed) */}
+               <ParametersRatiosTabs shariah={shariah} screeningRemarks={screeningRemarks} />
 
                {/* Compliance History */}
                <div className="rounded-xl border p-5">
@@ -377,11 +363,16 @@ function SnapshotCard({ data }: { data: SnapshotSuccess }) {
                <div className="rounded-xl border bg-muted/20 p-5">
                   <h3 className="mb-2 text-sm font-medium text-muted-foreground">Note</h3>
                   <p className="text-xs leading-relaxed text-muted-foreground">
-                     The TASIS Shariah screening methodology is based on financial data sourced from CMIE Prowess and
-                     other public disclosures. Compliance status is assessed monthly and reflects data available at the
-                     time of the last update. Historical statuses may be revised when updated financials are available.
-                     This report is for informational purposes only. Investors should consult their financial advisors
-                     before making investment decisions.
+                     It is important to note that <b>Shariah scholars globally allow investment in companies with a small amount of interest income</b>.
+                  </p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                     However, investors must <b>identify this portion and donate it to charity (purification)</b>.
+                  </p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                     If this is not done, the <b>investment and its returns shall be considered non-compliant for the investor concerned</b>.
+                  </p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                     It is important to note that <b>Shariah scholars globally allow investment in companies with a small amount of interest income</b>.
                   </p>
                </div>
             </>
@@ -390,6 +381,105 @@ function SnapshotCard({ data }: { data: SnapshotSuccess }) {
                No shariah data available for this company.
             </div>
          )}
+      </div>
+   )
+}
+
+// ─── Parameters + Ratios tabbed section ──────────────────────────────────────
+
+type ShariahDetail = NonNullable<SnapshotSuccess["shariah"]>
+
+function ParametersRatiosTabs({
+   shariah,
+   screeningRemarks,
+}: {
+   shariah: ShariahDetail
+   screeningRemarks: SnapshotSuccess["screeningRemarks"]
+}) {
+   const remarkMap = new Map(screeningRemarks.map((r) => [r.parameter, r.remark]))
+   const [active, setActive] = React.useState<"parameters" | "ratios">("parameters")
+
+   const paramsPass = [
+      shariah.lastFinancialData,
+      shariah.primaryBusiness,
+      shariah.secondaryBusiness,
+      shariah.compliantOnInvestment,
+      shariah.sufficientFinancialInfo,
+   ].every((v) => v === true)
+
+   const ratiosPass = [
+      shariah.totalDebtTotalAssetStatus,
+      shariah.totalInterestIncomeTotalIncomeStatus,
+      shariah.cashBankReceivablesTotalAssetStatus,
+   ].every((v) => v === true)
+
+   function tabCls(tab: "parameters" | "ratios", passes: boolean) {
+      const isActive = active === tab
+      const passColor = "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
+      const failColor = "bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-400"
+      return cn(
+         "flex flex-1 items-center gap-2 px-5 py-3.5 text-sm font-medium transition-colors",
+         isActive ? (passes ? passColor : failColor) : "text-muted-foreground hover:bg-muted/30",
+      )
+   }
+
+   return (
+      <div className="rounded-xl border">
+         {/* Tab bar */}
+         <div className="flex overflow-hidden rounded-t-xl border-b">
+            <button className={cn(tabCls("parameters", paramsPass), "border-r")} onClick={() => setActive("parameters")}>
+               <ShieldCheckIcon className="size-4 shrink-0" />
+               <span>Shariah Parameters</span>
+               <div
+                  className={cn(
+                     "ml-auto size-2 shrink-0 rounded-full",
+                     paramsPass ? "bg-emerald-500" : "bg-red-500",
+                  )}
+               />
+            </button>
+            <button className={tabCls("ratios", ratiosPass)} onClick={() => setActive("ratios")}>
+               <BarChart3Icon className="size-4 shrink-0" />
+               <span>Financial Ratios</span>
+               <div
+                  className={cn(
+                     "ml-auto size-2 shrink-0 rounded-full",
+                     ratiosPass ? "bg-emerald-500" : "bg-red-500",
+                  )}
+               />
+            </button>
+         </div>
+
+         {/* Content */}
+         <div className="p-5">
+            {active === "parameters" ? (
+               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <BoolRow label="Last Financial Data Available" value={shariah.lastFinancialData} remark={remarkMap.get("last_financial_data")} />
+                  <BoolRow label="Primary Business Compliant" value={shariah.primaryBusiness} remark={remarkMap.get("primary_business")} />
+                  <BoolRow label="Secondary Business Compliant" value={shariah.secondaryBusiness} remark={remarkMap.get("secondary_business")} />
+                  <BoolRow label="Compliant on Investment" value={shariah.compliantOnInvestment} remark={remarkMap.get("compliant_on_investment")} />
+                  <BoolRow label="Sufficient Financial Information" value={shariah.sufficientFinancialInfo} remark={remarkMap.get("financial_information")} />
+               </div>
+            ) : (
+               <div>
+                  <RatioRow
+                     label="Total Debt / Total Asset"
+                     value={shariah.totalDebtTotalAssetValue}
+                     status={shariah.totalDebtTotalAssetStatus}
+                  />
+                  <RatioRow
+                     label="Total Interest Income / Total Income"
+                     value={shariah.totalInterestIncomeTotalIncomeValue}
+                     status={shariah.totalInterestIncomeTotalIncomeStatus}
+                  />
+                  <RatioRow
+                     label="Cash + Bank + Receivables / Total Asset"
+                     value={shariah.cashBankReceivablesTotalAssetValue}
+                     status={shariah.cashBankReceivablesTotalAssetStatus}
+                  />
+                  {remarkMap.get("last_financial_data")}
+               </div>
+            )}
+         </div>
       </div>
    )
 }

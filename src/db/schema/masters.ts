@@ -173,10 +173,11 @@ export const companyShariahRelations = relations(companyShariah, ({ one }) => ({
    company: one(companyMaster, { fields: [companyShariah.companyId], references: [companyMaster.id] }),
 }))
 
-export const tasisScreeningStandard = pgTable("tasis_screening_standard", {
+export const screeningStandardRemark = pgTable("screening_standard_remark", {
    id: varchar("id", { length: 36 }).primaryKey(),
-   shariahStatus: smallint("shariah_status").notNull().unique(), // 1-9
-   remark: varchar("remark", { length: 2000 }),
+   parameter: varchar("parameter", { length: 50 }).notNull().unique(),
+   passRemark: varchar("pass_remark", { length: 2000 }),
+   failRemark: varchar("fail_remark", { length: 2000 }),
    createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
    updatedAt: timestamp("updated_at", { precision: 3 })
       .defaultNow()
@@ -190,4 +191,4 @@ export type CompanyNameHistory = typeof companyNameHistory.$inferSelect
 export type IndexMaster = typeof indexMaster.$inferSelect
 export type IndexCompany = typeof indexCompany.$inferSelect
 export type CompanyShariah = typeof companyShariah.$inferSelect
-export type TasisScreeningStandard = typeof tasisScreeningStandard.$inferSelect
+export type ScreeningStandardRemark = typeof screeningStandardRemark.$inferSelect
