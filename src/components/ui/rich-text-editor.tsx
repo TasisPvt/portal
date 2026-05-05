@@ -58,7 +58,7 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
    React.useEffect(() => {
       if (!editor) return
       if (prevValue.current !== value && editor.getHTML() !== value) {
-         editor.commands.setContent(value || "", false)
+         editor.commands.setContent(value || "")
       }
       prevValue.current = value
    }, [value, editor])
