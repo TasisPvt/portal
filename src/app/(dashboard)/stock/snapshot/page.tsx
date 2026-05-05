@@ -2,11 +2,11 @@ import Link from "next/link"
 import { PackageIcon } from "lucide-react"
 import { Button } from "@/src/components/ui/button"
 import { SiteHeader } from "@/src/components/site-header"
-import { getSnapshotAccess } from "./_actions"
+import { getSnapshotAccess, getCommonRemark } from "./_actions"
 import { SnapshotClient } from "./_components/snapshot-client"
 
 export default async function SnapshotPage() {
-   const access = await getSnapshotAccess()
+   const [access, commonRemark] = await Promise.all([getSnapshotAccess(), getCommonRemark()])
 
    if (!access) {
       return (
@@ -33,7 +33,7 @@ export default async function SnapshotPage() {
    return (
       <>
          <SiteHeader breadcrumb="Stocks" title="Snapshot" />
-         <SnapshotClient access={access} />
+         <SnapshotClient access={access} commonRemark={commonRemark} />
       </>
    )
 }
