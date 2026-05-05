@@ -10,6 +10,7 @@ import {
    appSettings,
    companyMaster,
    companyShariah,
+   industryGroup,
    pricingPlan,
    screeningStandardRemark,
    subscription,
@@ -47,7 +48,9 @@ export type CompanySnapshotResult =
            prowessId: string
            isinCode: string | null
            bseScripCode: string | null
+           bseScripId: string | null
            nseSymbol: string | null
+           industryGroup: string | null
         }
         shariah: {
            month: string
@@ -306,9 +309,12 @@ export async function getCompanySnapshot(companyId: string): Promise<CompanySnap
          prowessId: companyMaster.prowessId,
          isinCode: companyMaster.isinCode,
          bseScripCode: companyMaster.bseScripCode,
+         bseScripId: companyMaster.bseScripId,
          nseSymbol: companyMaster.nseSymbol,
+         industryGroup: industryGroup.name,
       })
       .from(companyMaster)
+      .leftJoin(industryGroup, eq(companyMaster.industryGroupId, industryGroup.id))
       .where(eq(companyMaster.id, companyId))
       .limit(1)
 
@@ -365,6 +371,9 @@ export async function getCompanySnapshot(companyId: string): Promise<CompanySnap
       { parameter: "secondary_business", label: "Secondary Business", value: shariah?.secondaryBusiness ?? null },
       { parameter: "compliant_on_investment", label: "Compliant on Investment", value: shariah?.compliantOnInvestment ?? null },
       { parameter: "financial_information", label: "Financial Information", value: shariah?.sufficientFinancialInfo ?? null },
+      { parameter: "total_debt_total_asset", label: "Total Debt / Total Asset", value: shariah?.totalDebtTotalAssetStatus ?? null },
+      { parameter: "total_interest_income_total_income", label: "Total Interest Income / Total Income", value: shariah?.totalInterestIncomeTotalIncomeStatus ?? null },
+      { parameter: "cash_bank_receivables_total_asset", label: "Cash + Bank + Receivables / Total Asset", value: shariah?.cashBankReceivablesTotalAssetStatus ?? null },
    ]
 
    const screeningRemarks = PARAM_MAP.map(({ parameter, label, value }) => {
