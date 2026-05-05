@@ -24,6 +24,7 @@ import {
    DialogTitle,
    DialogTrigger,
 } from "@/src/components/ui/dialog"
+import Image from "next/image"
 import { cn } from "@/src/lib/utils"
 import {
    searchCompanies,
@@ -91,6 +92,14 @@ function fmtRatio(val: string | null | undefined): string {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+function SectionHeader({ children }: { children: React.ReactNode }) {
+   return (
+      <div className="px-5 py-2.5" style={{ background: "linear-gradient(to right, #0f2044, #1e3a6e)" }}>
+         <h3 className="text-sm font-bold tracking-wide text-white">{children}</h3>
+      </div>
+   )
+}
+
 function QuotaBar({
    dailyUsed,
    dailyLimit,
@@ -108,7 +117,7 @@ function QuotaBar({
       pct >= 0.9 ? "bg-red-500" : pct >= 0.7 ? "bg-amber-500" : "bg-emerald-500"
 
    return (
-      <div className="flex flex-wrap items-center gap-6 rounded-xl border bg-muted/20 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-6 rounded-xl border bg-muted/20 px-4 py-2">
          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Usage</span>
          <div className="flex flex-wrap gap-5">
             <div className="flex min-w-24 flex-col gap-1">
@@ -181,8 +190,8 @@ function BoolRow({
             isNull
                ? "border-l-border bg-muted/20"
                : value
-               ? "border-l-emerald-400 bg-emerald-50/70 dark:bg-emerald-950/20"
-               : "border-l-red-400 bg-red-50/70 dark:bg-red-950/20",
+                  ? "border-l-emerald-400 bg-emerald-50/70 dark:bg-emerald-950/20"
+                  : "border-l-red-400 bg-red-50/70 dark:bg-red-950/20",
          )}
       >
          <span
@@ -191,8 +200,8 @@ function BoolRow({
                isNull
                   ? "text-muted-foreground"
                   : value
-                  ? "text-emerald-800 dark:text-emerald-200"
-                  : "text-red-800 dark:text-red-200",
+                     ? "text-emerald-800 dark:text-emerald-200"
+                     : "text-red-800 dark:text-red-200",
             )}
          >
             {label}
@@ -262,8 +271,8 @@ function RatioRow({
             isNull
                ? "border-l-border bg-muted/10"
                : status
-               ? "border-l-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/15"
-               : "border-l-red-400 bg-red-50/50 dark:bg-red-950/15",
+                  ? "border-l-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/15"
+                  : "border-l-red-400 bg-red-50/50 dark:bg-red-950/15",
          )}
       >
          <span className="flex-1 text-sm text-muted-foreground">{label}</span>
@@ -273,8 +282,8 @@ function RatioRow({
                isNull
                   ? "text-foreground"
                   : status
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-red-600 dark:text-red-400",
+                     ? "text-emerald-600 dark:text-emerald-400"
+                     : "text-red-600 dark:text-red-400",
             )}
          >
             {fmtRatio(value)}
@@ -309,35 +318,6 @@ function RatioRow({
    )
 }
 
-function TasisStamp({ status }: { status: number | null | undefined }) {
-   if (!status) {
-      return (
-         <div className="flex size-28 shrink-0 flex-col items-center justify-center rounded-full border-2 border-dashed text-muted-foreground">
-            <MinusCircleIcon className="size-5 opacity-30" />
-            <span className="mt-1 text-[10px]">No Status</span>
-         </div>
-      )
-   }
-   const color = STATUS_COLORS[status]
-   const label = STATUS_LABELS[status]
-   const isDark = [1, 2, 5, 6, 8, 9].includes(status)
-   const textColor = isDark ? "text-white" : "text-gray-900"
-
-   return (
-      <div
-         className={cn("flex size-28 shrink-0 flex-col items-center justify-center rounded-full border-[3px]", textColor)}
-         style={{
-            backgroundColor: color,
-            borderColor: color,
-            boxShadow: `0 0 0 5px ${color}28, 0 4px 16px ${color}50`,
-         }}
-      >
-         <span className={cn("max-w-[88px] text-center text-[10px] font-bold leading-tight", textColor)}>
-            {label}
-         </span>
-      </div>
-   )
-}
 
 function ComplianceHistory({
    history,
@@ -391,80 +371,110 @@ function SnapshotCard({ data }: { data: SnapshotSuccess }) {
             totalLimit={quota.totalLimit}
          />
 
-         {/* Company header */}
-         <div className="rounded-xl border bg-card p-5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-               <div className="flex flex-col gap-2">
-                  <h2 className="text-xl font-semibold leading-tight">{company.companyName}</h2>
-               </div>
-               <TasisStamp status={shariah?.shariahStatus} />
-            </div>
+         <div className="flex flex-col justify-between mt-5 lg:flex-row">
+            <h2 className="font-serif text-3xl italic font-semibold text-[#1e3358] dark:text-[#93b4d4]">
+               {company.companyName}
+            </h2>
+            {shariah && <div className="flex flex-row items-end gap-1">
+               <dt className="text-[11px] text-muted-foreground">Last Updated</dt>
+               <dd className="text-sm font-semibold">
+                  {shariah.lastUpdatedAt
+                     ? shariah.lastUpdatedAt.toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                     })
+                     : "—"}
+               </dd>
+            </div>}
          </div>
 
          {shariah ? (
             <>
+               {/* Verdict */}
+               <div className="flex flex-wrap items-center gap-6 rounded-xl border bg-muted/30 p-3">
+                  <Image
+                     src={
+                        shariah.shariahStatus === 1
+                           ? "/assets/images/compliantStamp.png"
+                           : "/assets/images/nonCompliantStamp.png"
+                     }
+                     height={110}
+                     width={110}
+                     alt="compliance stamp"
+                     className="shrink-0"
+                  />
+                  <div className="flex flex-col gap-1.5">
+                     <p
+                        className="text-2xl font-bold leading-tight sm:text-3xl"
+                        style={{ color: shariah.shariahStatus && shariah.shariahStatus == 1 ? "#33cc33" : "#ff0000" }}
+                     >
+                        {shariah.shariahStatus ? (shariah.shariahStatus == 1 ? "Compliant" : "Non-Compliant") : "No Status"}
+                     </p>
+                     {shariah.shariahStatus && shariah.shariahStatus != 1 &&
+                        <p
+                           className=""
+                           style={{ color: shariah.shariahStatus ? STATUS_COLORS[shariah.shariahStatus] : "#999" }}
+                        >
+                           {shariah.shariahStatus ? STATUS_LABELS[shariah.shariahStatus] : "No Status"}
+                        </p>
+                     }
+                     <p className="text-sm text-muted-foreground">
+                        Based on financial screening for the assessment period.
+                     </p>
+                  </div>
+               </div>
+
                {/* Overview */}
                <div className="rounded-xl border p-5">
-                  <h3 className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground border-b pb-2">
                      <BuildingIcon className="size-3.5" />
                      Overview
                   </h3>
                   <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
                      {company.industryGroup && (
-                        <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-3 py-2">
+                        <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
                            <dt className="text-[11px] text-muted-foreground">Industry Group</dt>
                            <dd className="text-sm font-semibold">{company.industryGroup}</dd>
                         </div>
                      )}
-                     {company.nseSymbol &&<div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-3 py-2">
+                     {company.nseSymbol && <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-3 py-2">
                         <dt className="text-[11px] text-muted-foreground">NSE Symbol</dt>
                         <dd className="text-sm font-semibold tabular-nums">{company.nseSymbol}</dd>
                      </div>}
                      {company.isinCode && (
-                        <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-3 py-2">
+                        <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
                            <dt className="text-[11px] text-muted-foreground">ISIN Code</dt>
                            <dd className="text-sm font-semibold tabular-nums">{company.isinCode}</dd>
                         </div>
                      )}
                      {company.bseScripCode && (
-                        <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-3 py-2">
+                        <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
                            <dt className="text-[11px] text-muted-foreground">BSE Scrip Code</dt>
                            <dd className="text-sm font-semibold tabular-nums">{company.bseScripCode}</dd>
                         </div>
                      )}
                      {company.bseScripId && (
-                        <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-3 py-2">
+                        <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
                            <dt className="text-[11px] text-muted-foreground">BSE Script Id</dt>
                            <dd className="text-sm font-semibold tabular-nums">{company.bseScripId}</dd>
                         </div>
                      )}
-                     <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-3 py-2">
+                     <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
                         <dt className="text-[11px] text-muted-foreground">Market Cap</dt>
                         <dd className="text-sm font-semibold tabular-nums">{fmtMarketCap(shariah.marketCap)}</dd>
                      </div>
-                     <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-3 py-2">
+                     <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
                         <dt className="text-[11px] text-muted-foreground">Company Status</dt>
                         <dd className="text-sm font-semibold">{shariah.companyStatus ?? "—"}</dd>
                      </div>
-                     <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-3 py-2">
+                     <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
                         <dt className="text-[11px] text-muted-foreground">Assessment Year</dt>
                         <dd className="text-sm font-semibold">{fmtDateStr(shariah.assessmentYear)}</dd>
                      </div>
-                     <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-3 py-2">
+                     <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
                         <dt className="text-[11px] text-muted-foreground">Data Month</dt>
                         <dd className="text-sm font-semibold">{fmtMonthStr(shariah.month)}</dd>
-                     </div>
-                     <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-3 py-2">
-                        <dt className="text-[11px] text-muted-foreground">Last Updated</dt>
-                        <dd className="text-sm font-semibold">
-                           {shariah.lastUpdatedAt
-                              ? shariah.lastUpdatedAt.toLocaleDateString("en-IN", {
-                                   day: "2-digit",
-                                   month: "short",
-                                   year: "numeric",
-                                })
-                              : "—"}
-                        </dd>
                      </div>
                   </dl>
                </div>
@@ -474,7 +484,7 @@ function SnapshotCard({ data }: { data: SnapshotSuccess }) {
                {/* Compliance History */}
                <div className="rounded-xl border p-5">
                   <div className="mb-4 flex items-center justify-between gap-2">
-                     <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                     <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground border-b pb-2">
                         <ClockIcon className="size-3.5" />
                         Compliance History
                      </h3>
@@ -517,7 +527,7 @@ function SnapshotCard({ data }: { data: SnapshotSuccess }) {
                   </h3>
                   <div className="flex flex-col gap-1.5">
                      <p className="text-xs leading-relaxed text-muted-foreground">
-                       It is important to note that <strong>Shariah scholars globally allow investment in companies with a small amount of interest income</strong>.
+                        It is important to note that <strong>Shariah scholars globally allow investment in companies with a small amount of interest income</strong>.
                      </p>
                      <p className="text-xs leading-relaxed text-muted-foreground">
                         However, investors must <strong>identify this portion and donate it to charity (purification)</strong>.
@@ -683,7 +693,7 @@ function RecentlyViewedSection({
 }) {
    if (items.length === 0) return null
    return (
-      <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-2.5 mt-3">
          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Recently Viewed</p>
          <div className="flex flex-wrap gap-2">
             {items.map((c) => (
@@ -823,7 +833,7 @@ export function SnapshotClient({ access, commonRemark }: { access: SnapshotAcces
    }
 
    return (
-      <div className="flex flex-col gap-5 p-6">
+      <div className="flex flex-col gap-2 p-6">
          {/* Header row */}
          <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
@@ -877,7 +887,15 @@ export function SnapshotClient({ access, commonRemark }: { access: SnapshotAcces
          </div>
 
          {!isLoading && !snapshotData && (
-            <RecentlyViewedSection items={recentlyViewed} onSelect={handleSelectCompany} />
+            <>
+               <QuotaBar
+                  dailyUsed={quota.dailyUsed}
+                  dailyLimit={quota.dailyLimit}
+                  totalUsed={quota.totalUsed}
+                  totalLimit={quota.totalLimit}
+               />
+               <RecentlyViewedSection items={recentlyViewed} onSelect={handleSelectCompany} />
+            </>
          )}
 
          {isLoading && (
@@ -895,14 +913,14 @@ export function SnapshotClient({ access, commonRemark }: { access: SnapshotAcces
                <p className="mt-1 text-xs text-muted-foreground/70">
                   Enter a company name, ISIN, or exchange symbol
                </p>
-               <div className="mt-5">
+               {/* <div className="mt-5">
                   <QuotaBar
                      dailyUsed={quota.dailyUsed}
                      dailyLimit={quota.dailyLimit}
                      totalUsed={quota.totalUsed}
                      totalLimit={quota.totalLimit}
                   />
-               </div>
+               </div> */}
             </div>
          )}
       </div>
