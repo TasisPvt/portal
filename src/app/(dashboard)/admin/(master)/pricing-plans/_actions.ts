@@ -115,6 +115,10 @@ export async function createPricingPlan(input: PlanInput): Promise<ActionResult>
    const session = await auth.api.getSession({ headers: await headers() })
    if (!session?.user?.id) return { success: false, message: "Unauthorized" }
 
+   if (input.type === "list" && !input.indexId) {
+      return { success: false, message: "An index must be selected for list plans" }
+   }
+
    const existing = await db
       .select({ id: pricingPlan.id })
       .from(pricingPlan)
@@ -147,6 +151,10 @@ export async function createPricingPlan(input: PlanInput): Promise<ActionResult>
 // ---------------------------------------------------------------------------
 
 export async function updatePricingPlan(id: string, input: PlanInput): Promise<ActionResult> {
+   if (input.type === "list" && !input.indexId) {
+      return { success: false, message: "An index must be selected for list plans" }
+   }
+
    const duplicate = await db
       .select({ id: pricingPlan.id })
       .from(pricingPlan)

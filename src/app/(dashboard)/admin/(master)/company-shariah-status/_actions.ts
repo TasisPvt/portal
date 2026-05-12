@@ -1,11 +1,18 @@
 "use server"
 
 import { randomUUID } from "crypto"
-import { and, desc, eq } from "drizzle-orm"
+import { and, desc, eq, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
 import { db } from "@/src/db/client"
-import { companyMaster, companyShariah } from "@/src/db/schema"
+import {
+   companyMaster,
+   companyShariah,
+   indexCompany,
+   pricingPlan,
+   subscription,
+   subscriptionListSnapshot,
+} from "@/src/db/schema"
 import { getCurrentMonth } from "./_utils"
 
 // ---------------------------------------------------------------------------
@@ -202,6 +209,61 @@ export async function importShariahData(records: ShariahImportRow[]): Promise<{
       }
    }
 
+   // After import: snapshot the current index state for the uploaded month
+   // for every active quarterly/annual list subscription. This freezes each
+   // subscriber's company list to what existed when the admin published this
+   // month's data, so later index edits don't affect their view.
+   await snapshotMonthForActiveListSubscriptions(month)
+
    revalidatePath("/admin/company-shariah-status")
    return { inserted, updated, skipped }
+}
+
+async function snapshotMonthForActiveListSubscriptions(month: string) {
+   // Find all active quarterly/annual list subscriptions
+   const activeSubs = await db
+      .select({
+         subscriptionId: subscription.id,
+         indexId: pricingPlan.indexId,
+      })
+      .from(subscription)
+      .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
+      .where(
+         and(
+            eq(subscription.status, "active"),
+            eq(pricingPlan.type, "list"),
+            inArray(subscription.durationType, ["quarterly", "annual"]),
+         ),
+      )
+
+   if (!activeSubs.length) return
+
+   // Group subscriptions by indexId so we fetch each index's companies once
+   const byIndex = new Map<string, string[]>()
+   for (const sub of activeSubs) {
+      if (!sub.indexId) continue
+      const existing = byIndex.get(sub.indexId) ?? []
+      existing.push(sub.subscriptionId)
+      byIndex.set(sub.indexId, existing)
+   }
+
+   for (const [indexId, subscriptionIds] of byIndex) {
+      const members = await db
+         .select({ companyId: indexCompany.companyId })
+         .from(indexCompany)
+         .where(eq(indexCompany.indexId, indexId))
+
+      if (!members.length) continue
+
+      const rows = subscriptionIds.flatMap((subscriptionId) =>
+         members.map((m) => ({
+            id: randomUUID(),
+            subscriptionId,
+            companyId: m.companyId,
+            month,
+         })),
+      )
+
+      await db.insert(subscriptionListSnapshot).values(rows).onConflictDoNothing()
+   }
 }
