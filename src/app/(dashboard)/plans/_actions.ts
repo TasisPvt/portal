@@ -1,12 +1,19 @@
 "use server"
 
 import { randomUUID } from "crypto"
-import { and, eq } from "drizzle-orm"
+import { and, eq, inArray, max } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
 
 import { db } from "@/src/db/client"
-import { subscription, pricingPlan, indexMaster } from "@/src/db/schema"
+import {
+   subscription,
+   pricingPlan,
+   indexMaster,
+   indexCompany,
+   companyShariah,
+   subscriptionListSnapshot,
+} from "@/src/db/schema"
 import { auth } from "@/src/lib/auth"
 
 export type DurationType = "one_time" | "monthly" | "quarterly" | "annual"
@@ -117,26 +124,85 @@ export async function subscribeToPlan(
    const startDate = new Date()
    const endDate = computeEndDate(durationType, startDate)
 
+   const subscriptionId = randomUUID()
+
    try {
-      await db.insert(subscription).values({
-         id: randomUUID(),
-         clientId: session.user.id,
-         planId,
-         durationType,
-         status: "active",
-         startDate,
-         endDate,
-         priceSnapshot: price,
-         stocksPerDaySnapshot: stocksPerDay,
-         stocksInDurationSnapshot: stocksInDuration,
-         createdAt: startDate,
-         updatedAt: startDate,
+      await db.transaction(async (tx) => {
+         await tx.insert(subscription).values({
+            id: subscriptionId,
+            clientId: session.user.id,
+            planId,
+            durationType,
+            status: "active",
+            startDate,
+            endDate,
+            priceSnapshot: price,
+            stocksPerDaySnapshot: stocksPerDay,
+            stocksInDurationSnapshot: stocksInDuration,
+            createdAt: startDate,
+            updatedAt: startDate,
+         })
+
+         // For list plans: snapshot the current index companies so the client's
+         // company list is frozen at subscription time and never affected by
+         // later index changes.
+         if (plan.type === "list" && plan.indexId) {
+            await createListSnapshot(tx, subscriptionId, plan.indexId, durationType, startDate)
+         }
       })
+
       revalidatePath("/plans")
       revalidatePath("/subscriptions")
+      revalidatePath("/stock/list")
       return { success: true }
    } catch (err: any) {
       console.error("[subscribeToPlan]", err)
       return { success: false, message: err?.message ?? "Something went wrong" }
    }
+}
+
+// ─── Snapshot helpers ─────────────────────────────────────────────────────────
+
+async function createListSnapshot(
+   tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+   subscriptionId: string,
+   indexId: string,
+   durationType: DurationType,
+   startDate: Date,
+) {
+   const members = await tx
+      .select({ companyId: indexCompany.companyId })
+      .from(indexCompany)
+      .where(eq(indexCompany.indexId, indexId))
+
+   if (!members.length) return
+
+   const companyIds = members.map((m) => m.companyId)
+
+   // one_time: pin to the latest month that was already uploaded as of now.
+   // quarterly/annual: use the current month (snapshot is for the start month;
+   //   subsequent months are added when the admin uploads monthly data).
+   let snapshotMonth: string | null
+
+   if (durationType === "one_time") {
+      const [row] = await tx
+         .select({ month: max(companyShariah.month) })
+         .from(companyShariah)
+         .where(inArray(companyShariah.companyId, companyIds))
+      snapshotMonth = row?.month ?? null
+   } else {
+      snapshotMonth = startDate.toISOString().slice(0, 7)
+   }
+
+   if (!snapshotMonth) return
+
+   await tx
+      .insert(subscriptionListSnapshot)
+      .values(members.map((m) => ({
+         id: randomUUID(),
+         subscriptionId,
+         companyId: m.companyId,
+         month: snapshotMonth!,
+      })))
+      .onConflictDoNothing()
 }

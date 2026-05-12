@@ -1,7 +1,8 @@
 import { relations } from "drizzle-orm"
-import { pgTable, varchar, timestamp, numeric, integer, index } from "drizzle-orm/pg-core"
+import { pgTable, varchar, timestamp, numeric, integer, index, unique } from "drizzle-orm/pg-core"
 import { user } from "./auth"
 import { pricingPlan } from "./pricing"
+import { companyMaster } from "./masters"
 
 export const subscription = pgTable(
    "subscription",
@@ -40,3 +41,30 @@ export const subscriptionRelations = relations(subscription, ({ one }) => ({
 }))
 
 export type Subscription = typeof subscription.$inferSelect
+
+// One row per (subscription, company, month).
+// Written once at subscription creation (startMonth) and once per monthly
+// shariah import for active quarterly/annual subscriptions.
+// The client list page reads from here instead of the live indexCompany table,
+// so each subscriber's company list is frozen to what existed when they joined
+// and updated only when new monthly data is officially published.
+export const subscriptionListSnapshot = pgTable(
+   "subscription_list_snapshot",
+   {
+      id: varchar("id", { length: 36 }).primaryKey(),
+      subscriptionId: varchar("subscription_id", { length: 36 })
+         .notNull()
+         .references(() => subscription.id, { onDelete: "cascade" }),
+      companyId: varchar("company_id", { length: 36 })
+         .notNull()
+         .references(() => companyMaster.id, { onDelete: "restrict" }),
+      month: varchar("month", { length: 7 }).notNull(), // YYYY-MM
+      createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
+   },
+   (table) => [
+      index("scs_sub_month_idx").on(table.subscriptionId, table.month),
+      unique("scs_sub_company_month_uq").on(table.subscriptionId, table.companyId, table.month),
+   ],
+)
+
+export type SubscriptionListSnapshot = typeof subscriptionListSnapshot.$inferSelect
