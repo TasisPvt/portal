@@ -57,6 +57,16 @@ function computeEndDate(durationType: DurationType, startDate: Date): Date {
    return new Date(startDate.getTime() + days[durationType] * 24 * 60 * 60 * 1000)
 }
 
+export async function getSubscribedPlanIds(): Promise<string[]> {
+   const session = await auth.api.getSession({ headers: await headers() })
+   if (!session?.user?.id) return []
+   const rows = await db
+      .select({ planId: subscription.planId })
+      .from(subscription)
+      .where(and(eq(subscription.clientId, session.user.id), eq(subscription.status, "active")))
+   return [...new Set(rows.map((r) => r.planId))]
+}
+
 export async function getActivePlans() {
    return db
       .select({

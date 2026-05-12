@@ -92,7 +92,7 @@ function TypeBadge({ type }: { type: string }) {
    )
 }
 
-function PlanCard({ plan }: { plan: PlanRow }) {
+function PlanCard({ plan, isSubscribed }: { plan: PlanRow; isSubscribed: boolean }) {
    const isSnapshot = plan.type === "snapshot"
    const availableDurations = isSnapshot ? SNAPSHOT_DURATIONS : LIST_DURATIONS
    const [selectedDuration, setSelectedDuration] = React.useState<DurationType>(availableDurations[0].key)
@@ -115,11 +115,23 @@ function PlanCard({ plan }: { plan: PlanRow }) {
    }
 
    return (
-      <div className="flex flex-col rounded-2xl border bg-card p-6 shadow-sm">
+      <div className="relative flex flex-col rounded-2xl border bg-card p-6 shadow-sm">
+         {/* Already Subscribed banner */}
+         {isSubscribed && (
+            <div className="absolute -top-px left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+               <span className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1 text-xs font-medium text-background whitespace-nowrap">
+                  <CheckCircle2Icon className="size-3.5 shrink-0" />
+                  Already Subscribed
+               </span>
+            </div>
+         )}
+
          {/* Header */}
-         <div className="flex items-start justify-between gap-2">
+         <div className={cn("flex items-start justify-between gap-2", isSubscribed && "mt-2")}>
             <h3 className="text-base font-bold leading-tight text-foreground">{plan.name}</h3>
-            <TypeBadge type={plan.type} />
+            <div className="flex items-center gap-1.5 shrink-0">
+               <TypeBadge type={plan.type} />
+            </div>
          </div>
 
          {/* Duration selector */}
@@ -127,6 +139,7 @@ function PlanCard({ plan }: { plan: PlanRow }) {
             <Select
                value={selectedDuration}
                onValueChange={(v) => setSelectedDuration(v as DurationType)}
+               disabled={isSubscribed}
             >
                <SelectTrigger className="w-full">
                   <SelectValue />
@@ -153,7 +166,15 @@ function PlanCard({ plan }: { plan: PlanRow }) {
 
          {/* CTA */}
          <div className="mt-5">
-            {price ? (
+            {isSubscribed ? (
+               <button
+                  disabled
+                  className="inline-flex w-full h-11 items-center justify-center gap-2 rounded-lg border border-input bg-muted text-muted-foreground text-sm font-semibold cursor-not-allowed"
+               >
+                  <CheckCircle2Icon className="size-4 shrink-0" />
+                  Subscribed
+               </button>
+            ) : price ? (
                <SubscribeButton
                   planId={plan.id}
                   planName={plan.name}
@@ -192,7 +213,7 @@ function PlanCard({ plan }: { plan: PlanRow }) {
    )
 }
 
-export function PlansClientView({ plans }: { plans: PlanRow[] }) {
+export function PlansClientView({ plans, subscribedPlanIds }: { plans: PlanRow[]; subscribedPlanIds: string[] }) {
    const [filter, setFilter] = React.useState<FilterType>("all")
 
    const filtered = filter === "all" ? plans : plans.filter((p) => p.type === filter)
@@ -228,7 +249,7 @@ export function PlansClientView({ plans }: { plans: PlanRow[] }) {
          ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                {filtered.map((plan) => (
-                  <PlanCard key={plan.id} plan={plan} />
+                  <PlanCard key={plan.id} plan={plan} isSubscribed={subscribedPlanIds.includes(plan.id)} />
                ))}
             </div>
          )}

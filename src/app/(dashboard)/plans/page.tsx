@@ -1,9 +1,9 @@
 import { SiteHeader } from "@/src/components/site-header"
-import { getActivePlans } from "./_actions"
+import { getActivePlans, getSubscribedPlanIds } from "./_actions"
 import { PlansClientView } from "./_components/plans-client-view"
 
 export default async function PlansPage() {
-   const plans = await getActivePlans()
+   const [plans, subscribedPlanIds] = await Promise.all([getActivePlans(), getSubscribedPlanIds()])
 
    return (
       <>
@@ -18,7 +18,7 @@ export default async function PlansPage() {
                      </p>
                   </div>
                   <div className="px-4 lg:px-6">
-                     <PlansClientView plans={plans} />
+                     <PlansClientView plans={plans} subscribedPlanIds={subscribedPlanIds} />
                   </div>
                </div>
             </div>
