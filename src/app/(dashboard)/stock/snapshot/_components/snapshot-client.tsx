@@ -8,10 +8,8 @@ import {
    XCircleIcon,
    MinusCircleIcon,
    InfoIcon,
-   BookOpenIcon,
-   ShieldCheckIcon,
    ChevronRightIcon,
-   ZapIcon,
+   Info,
 } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
 import { Spinner } from "@/src/components/ui/spinner"
@@ -22,6 +20,7 @@ import {
    DialogTitle,
    DialogTrigger,
 } from "@/src/components/ui/dialog"
+import Image from "next/image"
 import { cn } from "@/src/lib/utils"
 import {
    searchCompanies,
@@ -32,6 +31,7 @@ import {
    type CompanySnapshotResult,
    type RecentlyViewedCompany,
 } from "../_actions"
+import { Button } from "@/src/components/ui/button"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -412,7 +412,7 @@ function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRem
 
             {/* Data columns */}
             {shariah && (
-               <div className="grid grid-cols-2 border-t border-white/10 sm:grid-cols-3 lg:grid-cols-5">
+               <div className="grid grid-cols-2 border-t border-white/10 lg:grid-cols-4">
                   {[
                      { label: "Industry", value: company.industryGroup, sub: null },
                      {
@@ -430,25 +430,12 @@ function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRem
                         value: shariah.companyStatus ?? "—",
                         sub: null,
                      },
-                     {
-                        label: "Compliance",
-                        value: isCompliant ? "Pass" : "Fail",
-                        valueColor: isCompliant ? "#4ade80" : "#f87171",
-                        sub: isCompliant
-                           ? "All thresholds met"
-                           : shariah.shariahStatus
-                              ? STATUS_LABELS[shariah.shariahStatus]
-                              : null,
-                     },
-                  ].map(({ label, value, sub, valueColor }) => (
-                     <div key={label} className="flex flex-col gap-0.5 px-5 py-4 border-b border-r border-white/10 [&:nth-child(2n)]:border-r-0 last:border-r-0 sm:[&:nth-child(2n)]:border-r sm:[&:nth-child(3n)]:border-r-0 lg:[&:nth-child(3n)]:border-r lg:border-b-0">
+                  ].map(({ label, value, sub }) => (
+                     <div key={label} className="flex flex-col gap-0.5 px-5 py-4 border-b border-r border-white/10 [&:nth-child(2n)]:border-r-0 last:border-r-0 sm:[&:nth-child(2n)]:border-r  lg:[&:nth-child(3n)]:border-r lg:border-b-0">
                         <span className="text-[9px] font-semibold uppercase tracking-widest text-blue-300/60">
                            {label}
                         </span>
-                        <span
-                           className="mt-1 text-sm font-bold text-white"
-                           style={valueColor ? { color: valueColor } : undefined}
-                        >
+                        <span className="mt-1 text-sm font-bold text-white">
                            {value ?? "—"}
                         </span>
                         {sub && (
@@ -465,26 +452,32 @@ function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRem
             <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 1px 0 0 oklch(1 0 0 / 0.8) inset, 0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
                <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
-                     <div
-                        className={cn(
-                           "flex size-12 shrink-0 items-center justify-center rounded-xl",
-                           isCompliant ? "bg-emerald-600" : "bg-red-600",
-                        )}
-                     >
-                        <ShieldCheckIcon className="size-6 text-white" />
-                     </div>
+                     <Image
+                        src={
+                           shariah.shariahStatus === 1
+                              ? "/assets/images/compliantStamp.png"
+                              : "/assets/images/nonCompliantStamp.png"
+                        }
+                        height={70}
+                        width={70}
+                        alt="compliance stamp"
+                        className="shrink-0"
+                     />
                      <div>
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                            Compliance Verdict
                         </p>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                           <span
+                        <div className="mt-0.5 flex items-center gap-2">
+                           <p
                               className="text-xl font-bold sm:text-2xl"
                               style={{ color: isCompliant ? "#16a34a" : "#dc2626" }}
                            >
                               Shariah {isCompliant ? "Compliant" : "Non-Compliant"}
-                           </span>
+                           </p>
                         </div>
+                        <p className="text-sm text-muted-foreground">
+                           {shariah.shariahStatus && shariah.shariahStatus !== 1 ? STATUS_LABELS[shariah.shariahStatus] : null}
+                        </p>
                      </div>
                   </div>
 
@@ -838,7 +831,7 @@ export function SnapshotClient({ access, commonRemark }: { access: SnapshotAcces
 
          {/* ── Search + Compact Quota (desktop inline) ── */}
          <div className="flex items-center gap-3">
-            <div ref={containerRef} className="relative flex-1 max-w-xl">
+            <div ref={containerRef} className="relative flex-1 max-w-full">
                <div className="relative">
                   <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   {isSearching && (
@@ -869,13 +862,9 @@ export function SnapshotClient({ access, commonRemark }: { access: SnapshotAcces
             {commonRemark && (
                <Dialog>
                   <DialogTrigger asChild>
-                     <button
-                        type="button"
-                        className="hidden md:flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-                     >
-                        <BookOpenIcon className="size-3.5" />
-                        TASIS Note
-                     </button>
+                     <Button variant="outline" size="icon" className="text-muted-foreground">
+                        <Info className="size-3.5" color="black" />
+                     </Button>
                   </DialogTrigger>
                   <DialogContent className="flex max-h-[85vh] w-[90vw] sm:max-w-3xl flex-col">
                      <DialogHeader className="shrink-0">
