@@ -4,16 +4,14 @@ import * as React from "react"
 import { toast } from "sonner"
 import {
    SearchIcon,
-   BuildingIcon,
    CheckCircle2Icon,
    XCircleIcon,
    MinusCircleIcon,
-   ShieldCheckIcon,
-   BarChart3Icon,
-   ClockIcon,
-   HelpCircleIcon,
    InfoIcon,
    BookOpenIcon,
+   ShieldCheckIcon,
+   ChevronRightIcon,
+   ZapIcon,
 } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
 import { Spinner } from "@/src/components/ui/spinner"
@@ -24,7 +22,6 @@ import {
    DialogTitle,
    DialogTrigger,
 } from "@/src/components/ui/dialog"
-import Image from "next/image"
 import { cn } from "@/src/lib/utils"
 import {
    searchCompanies,
@@ -36,13 +33,13 @@ import {
    type RecentlyViewedCompany,
 } from "../_actions"
 
-// ─── Status config ─────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<number, string> = {
    1: "Shariah Compliant",
    2: "Primary Bus. Non-compliant",
    3: "Secondary Bus. Non-compliant",
-   4: "Financial Non-comp",
+   4: "Financial Non-compliant",
    5: "Fail on Investment",
    6: "Incomplete / Old Data",
    7: "Incomplete Bus. Info",
@@ -62,6 +59,27 @@ const STATUS_COLORS: Record<number, string> = {
    9: "#806000",
 }
 
+const BUSINESS_PARAMS = [
+   "last_financial_data",
+   "incomplete_business_information",
+   "primary_business",
+   "secondary_business",
+   "compliant_on_investment",
+]
+const FINANCIAL_PARAMS = [
+   "total_debt_total_asset",
+   "total_interest_income_total_income",
+   "cash_bank_receivables_total_asset",
+]
+
+type TabKey = "business" | "financials" | "historical" | "legends"
+const TABS: { key: TabKey; label: string }[] = [
+   { key: "business", label: "Business & Data" },
+   { key: "financials", label: "Financials" },
+   { key: "historical", label: "Historical" },
+   { key: "legends", label: "Legends" },
+]
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtDateStr(dateStr: string | null | undefined): string {
@@ -77,30 +95,21 @@ function fmtMonthStr(month: string): string {
    return `${months[parseInt(m) - 1]} '${y.slice(2)}`
 }
 
-function fmtMarketCap(val: string | null | undefined): string {
-   if (!val) return "—"
-   const n = parseFloat(val)
-   if (isNaN(n)) return "—"
-   if (n >= 1e7) return `₹${(n / 1e7).toFixed(2)} Cr`
-   return `₹${n.toLocaleString("en-IN")}`
-}
-
 function fmtRatio(val: string | null | undefined): string {
    if (!val) return "—"
    return `${parseFloat(val).toFixed(2)}%`
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function SectionHeader({ children }: { children: React.ReactNode }) {
-   return (
-      <div className="px-5 py-2.5" style={{ background: "linear-gradient(to right, #0f2044, #1e3a6e)" }}>
-         <h3 className="text-sm font-bold tracking-wide text-white">{children}</h3>
-      </div>
-   )
+function fmtMarketCapRaw(val: string | null | undefined): string {
+   if (!val) return "—"
+   const n = parseFloat(val)
+   if (isNaN(n)) return "—"
+   return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`
 }
 
-function QuotaBar({
+// ─── CompactQuotaBar (inline with search bar) ─────────────────────────────────
+
+function CompactQuotaBar({
    dailyUsed,
    dailyLimit,
    totalUsed,
@@ -117,237 +126,98 @@ function QuotaBar({
       pct >= 0.9 ? "bg-red-500" : pct >= 0.7 ? "bg-amber-500" : "bg-emerald-500"
 
    return (
-      <div className="flex flex-wrap items-center gap-6 rounded-xl border bg-muted/20 px-4 py-2">
+      <div className="hidden md:flex items-center gap-2 shrink-0">
+         {[
+            { label: "Today", used: dailyUsed, limit: dailyLimit, pct: dailyPct },
+            { label: "Total", used: totalUsed, limit: totalLimit, pct: totalPct },
+         ].map(({ label, used, limit, pct }) => (
+            <div key={label} className="flex min-w-20 flex-col gap-1 rounded-xl border bg-card px-3 py-2">
+               <div className="flex items-center justify-between gap-2 text-[10px]">
+                  <span className="font-semibold uppercase tracking-widest text-muted-foreground">{label}</span>
+                  <span className="font-bold tabular-nums text-foreground">
+                     {used}{limit !== null ? `/${limit}` : ""}
+                  </span>
+               </div>
+               {pct !== null ? (
+                  <div className="h-0.5 overflow-hidden rounded-full bg-muted">
+                     <div
+                        className={cn("h-full rounded-full transition-all", barColor(pct))}
+                        style={{ width: `${pct * 100}%` }}
+                     />
+                  </div>
+               ) : (
+                  <div className="h-0.5 rounded-full bg-muted" />
+               )}
+            </div>
+         ))}
+      </div>
+   )
+}
+
+// ─── FullQuotaBar (mobile fallback) ───────────────────────────────────────────
+
+function FullQuotaBar({
+   dailyUsed,
+   dailyLimit,
+   totalUsed,
+   totalLimit,
+}: {
+   dailyUsed: number
+   dailyLimit: number | null
+   totalUsed: number
+   totalLimit: number | null
+}) {
+   const dailyPct = dailyLimit ? Math.min(dailyUsed / dailyLimit, 1) : null
+   const totalPct = totalLimit ? Math.min(totalUsed / totalLimit, 1) : null
+   const barColor = (pct: number) =>
+      pct >= 0.9 ? "bg-red-500" : pct >= 0.7 ? "bg-amber-500" : "bg-emerald-500"
+
+   return (
+      <div className="flex md:hidden flex-wrap items-center gap-6 rounded-xl border bg-muted/20 px-4 py-2">
          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Usage</span>
          <div className="flex flex-wrap gap-5">
-            <div className="flex min-w-24 flex-col gap-1">
-               <div className="flex items-center justify-between gap-3 text-xs">
-                  <span className="text-muted-foreground">Today</span>
-                  <span className="font-semibold tabular-nums text-foreground">
-                     {dailyUsed}{dailyLimit !== null ? `/${dailyLimit}` : ""}
-                  </span>
-               </div>
-               {dailyPct !== null && (
-                  <div className="h-1 overflow-hidden rounded-full bg-muted">
-                     <div
-                        className={cn("h-full rounded-full transition-all duration-300", barColor(dailyPct))}
-                        style={{ width: `${dailyPct * 100}%` }}
-                     />
+            {[
+               { label: "Today", used: dailyUsed, limit: dailyLimit, pct: dailyPct },
+               { label: "Total", used: totalUsed, limit: totalLimit, pct: totalPct },
+            ].map(({ label, used, limit, pct }) => (
+               <div key={label} className="flex min-w-24 flex-col gap-1">
+                  <div className="flex items-center justify-between gap-3 text-xs">
+                     <span className="text-muted-foreground">{label}</span>
+                     <span className="font-semibold tabular-nums text-foreground">
+                        {used}{limit !== null ? `/${limit}` : ""}
+                     </span>
                   </div>
-               )}
-            </div>
-            <div className="flex min-w-24 flex-col gap-1">
-               <div className="flex items-center justify-between gap-3 text-xs">
-                  <span className="text-muted-foreground">Total</span>
-                  <span className="font-semibold tabular-nums text-foreground">
-                     {totalUsed}{totalLimit !== null ? `/${totalLimit}` : ""}
-                  </span>
-               </div>
-               {totalPct !== null && (
-                  <div className="h-1 overflow-hidden rounded-full bg-muted">
-                     <div
-                        className={cn("h-full rounded-full transition-all duration-300", barColor(totalPct))}
-                        style={{ width: `${totalPct * 100}%` }}
-                     />
-                  </div>
-               )}
-            </div>
-         </div>
-      </div>
-   )
-}
-
-function BoolRow({
-   label,
-   value,
-   remark,
-}: {
-   label: string
-   value: boolean | null | undefined
-   remark?: string | null
-}) {
-   const isNull = value === null || value === undefined
-   const [open, setOpen] = React.useState(false)
-   const wrapRef = React.useRef<HTMLDivElement>(null)
-
-   React.useEffect(() => {
-      if (!open) return
-      function handleOutside(e: MouseEvent | TouchEvent) {
-         if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
-      }
-      document.addEventListener("mousedown", handleOutside)
-      document.addEventListener("touchstart", handleOutside)
-      return () => {
-         document.removeEventListener("mousedown", handleOutside)
-         document.removeEventListener("touchstart", handleOutside)
-      }
-   }, [open])
-
-   return (
-      <div
-         className={cn(
-            "relative flex items-center justify-between gap-3 rounded-lg border-l-2 px-3 py-2.5",
-            isNull
-               ? "border-l-border bg-muted/20"
-               : value
-                  ? "border-l-emerald-400 bg-emerald-50/70 dark:bg-emerald-950/20"
-                  : "border-l-red-400 bg-red-50/70 dark:bg-red-950/20",
-         )}
-      >
-         <span
-            className={cn(
-               "text-sm leading-tight",
-               isNull
-                  ? "text-muted-foreground"
-                  : value
-                     ? "text-emerald-800 dark:text-emerald-200"
-                     : "text-red-800 dark:text-red-200",
-            )}
-         >
-            {label}
-         </span>
-         <div className="flex shrink-0 items-center gap-1">
-            {remark && (
-               <div ref={wrapRef} className="relative">
-                  <button
-                     type="button"
-                     onClick={() => setOpen((v) => !v)}
-                     className="flex size-5 items-center justify-center rounded text-muted-foreground/40 transition-colors hover:text-muted-foreground"
-                  >
-                     <HelpCircleIcon className="size-3.5" />
-                  </button>
-                  {open && (
-                     <div
-                        className="prose prose-xs absolute bottom-full right-0 z-20 mb-2 w-72 max-w-[calc(100vw-2rem)] rounded-lg border bg-popover px-3 py-2.5 text-xs leading-relaxed text-popover-foreground shadow-lg [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
-                        dangerouslySetInnerHTML={{ __html: remark }}
-                     />
+                  {pct !== null && (
+                     <div className="h-1 overflow-hidden rounded-full bg-muted">
+                        <div
+                           className={cn("h-full rounded-full transition-all duration-300", barColor(pct))}
+                           style={{ width: `${pct * 100}%` }}
+                        />
+                     </div>
                   )}
                </div>
-            )}
-            {isNull ? (
-               <MinusCircleIcon className="size-4 text-muted-foreground/30" />
-            ) : value ? (
-               <CheckCircle2Icon className="size-4 text-emerald-500" />
-            ) : (
-               <XCircleIcon className="size-4 text-red-500" />
-            )}
+            ))}
          </div>
       </div>
    )
 }
 
-function RatioRow({
-   label,
-   value,
-   status,
-   remark,
-}: {
-   label: string
-   value: string | null | undefined
-   status: boolean | null | undefined
-   remark?: string | null
-}) {
-   const isNull = status === null || status === undefined
-   const [open, setOpen] = React.useState(false)
-   const wrapRef = React.useRef<HTMLDivElement>(null)
+// ─── Compliance History ────────────────────────────────────────────────────────
 
-   React.useEffect(() => {
-      if (!open) return
-      function handleOutside(e: MouseEvent | TouchEvent) {
-         if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
-      }
-      document.addEventListener("mousedown", handleOutside)
-      document.addEventListener("touchstart", handleOutside)
-      return () => {
-         document.removeEventListener("mousedown", handleOutside)
-         document.removeEventListener("touchstart", handleOutside)
-      }
-   }, [open])
-
-   return (
-      <div
-         className={cn(
-            "flex items-center gap-3 rounded-lg border-l-2 px-3 py-2.5",
-            isNull
-               ? "border-l-border bg-muted/10"
-               : status
-                  ? "border-l-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/15"
-                  : "border-l-red-400 bg-red-50/50 dark:bg-red-950/15",
-         )}
-      >
-         <span className="flex-1 text-sm text-muted-foreground">{label}</span>
-         <span
-            className={cn(
-               "w-16 text-right text-sm font-semibold tabular-nums",
-               isNull
-                  ? "text-foreground"
-                  : status
-                     ? "text-emerald-600 dark:text-emerald-400"
-                     : "text-red-600 dark:text-red-400",
-            )}
-         >
-            {fmtRatio(value)}
-         </span>
-         <div className="flex shrink-0 items-center gap-1">
-            {remark && (
-               <div ref={wrapRef} className="relative">
-                  <button
-                     type="button"
-                     onClick={() => setOpen((v) => !v)}
-                     className="flex size-5 items-center justify-center rounded text-muted-foreground/40 transition-colors hover:text-muted-foreground"
-                  >
-                     <HelpCircleIcon className="size-3.5" />
-                  </button>
-                  {open && (
-                     <div
-                        className="prose prose-xs absolute bottom-full right-0 z-20 mb-2 w-72 max-w-[calc(100vw-2rem)] rounded-lg border bg-popover px-3 py-2.5 text-xs leading-relaxed text-popover-foreground shadow-lg [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
-                        dangerouslySetInnerHTML={{ __html: remark }}
-                     />
-                  )}
-               </div>
-            )}
-            {isNull ? (
-               <MinusCircleIcon className="size-4 text-muted-foreground/30" />
-            ) : status ? (
-               <CheckCircle2Icon className="size-4 text-emerald-500" />
-            ) : (
-               <XCircleIcon className="size-4 text-red-500" />
-            )}
-         </div>
-      </div>
-   )
-}
-
-
-function ComplianceHistory({
-   history,
-}: {
-   history: { month: string; shariahStatus: number | null }[]
-}) {
+function ComplianceHistory({ history }: { history: { month: string; shariahStatus: number | null }[] }) {
    if (history.length === 0) {
       return <p className="text-sm italic text-muted-foreground">No historical data available.</p>
    }
-
    const sorted = [...history].sort((a, b) => a.month.localeCompare(b.month))
-
    return (
       <div className="flex flex-wrap gap-2.5">
          {sorted.map(({ month, shariahStatus }) => {
             const color = shariahStatus ? STATUS_COLORS[shariahStatus] : "#e5e7eb"
             const label = shariahStatus ? STATUS_LABELS[shariahStatus] : "No data"
             return (
-               <div
-                  key={month}
-                  className="flex flex-col items-center gap-1"
-                  title={`${fmtMonthStr(month)}: ${label}`}
-               >
-                  <div
-                     className="size-9 rounded-md border border-black/10 shadow-sm"
-                     style={{ backgroundColor: color }}
-                  />
-                  <span className="whitespace-nowrap text-[10px] text-muted-foreground">
-                     {fmtMonthStr(month)}
-                  </span>
+               <div key={month} className="flex flex-col items-center gap-1" title={`${fmtMonthStr(month)}: ${label}`}>
+                  <div className="size-9 rounded-md border border-black/10 shadow-sm" style={{ backgroundColor: color }} />
+                  <span className="whitespace-nowrap text-[10px] text-muted-foreground">{fmtMonthStr(month)}</span>
                </div>
             )
          })}
@@ -355,191 +225,454 @@ function ComplianceHistory({
    )
 }
 
-// ─── Main snapshot card ────────────────────────────────────────────────────────
+// ─── Remark Panel ─────────────────────────────────────────────────────────────
+
+type ScreeningRemark = SnapshotSuccess["screeningRemarks"][number]
+
+function RemarkPanel({ remark }: { remark: ScreeningRemark | null | undefined }) {
+   return (
+      <div className="rounded-2xl border bg-card p-5">
+         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">Remarks</p>
+         {remark ? (
+            <div className="flex flex-col gap-4">
+               <p className="text-sm font-semibold text-foreground">{remark.label}</p>
+               {remark.passRemark && (
+                  <div className="flex items-start gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 p-3">
+                     <CheckCircle2Icon className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+                     <div
+                        className="text-sm leading-relaxed text-muted-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
+                        dangerouslySetInnerHTML={{ __html: remark.passRemark }}
+                     />
+                  </div>
+               )}
+               {remark.failRemark && (
+                  <div className="flex items-start gap-3 rounded-xl bg-red-50 dark:bg-red-950/20 p-3">
+                     <XCircleIcon className="mt-0.5 size-4 shrink-0 text-red-500" />
+                     <div
+                        className="text-sm leading-relaxed text-muted-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
+                        dangerouslySetInnerHTML={{ __html: remark.failRemark }}
+                     />
+                  </div>
+               )}
+               {!remark.passRemark && !remark.failRemark && (
+                  <p className="text-sm text-muted-foreground">No remarks available for this parameter.</p>
+               )}
+            </div>
+         ) : (
+            <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+               <ChevronRightIcon className="mb-2 size-6 opacity-30" />
+               <p className="text-sm">Select a parameter on the left to view its explanation.</p>
+            </div>
+         )}
+      </div>
+   )
+}
+
+// ─── Quantitative Ratios Panel ────────────────────────────────────────────────
+
+type ShariahData = NonNullable<SnapshotSuccess["shariah"]>
+
+function QuantitativeRatiosPanel({
+   shariah,
+   financialRemarks,
+}: {
+   shariah: ShariahData
+   financialRemarks: ScreeningRemark[]
+}) {
+   const ratioData = [
+      {
+         label: "Total Debt / Total Asset",
+         value: shariah.totalDebtTotalAssetValue,
+         status: shariah.totalDebtTotalAssetStatus,
+         remark: financialRemarks.find((r) => r.parameter === "total_debt_total_asset"),
+      },
+      {
+         label: "Total Interest Income / Total Income",
+         value: shariah.totalInterestIncomeTotalIncomeValue,
+         status: shariah.totalInterestIncomeTotalIncomeStatus,
+         remark: financialRemarks.find((r) => r.parameter === "total_interest_income_total_income"),
+      },
+      {
+         label: "Cash + Bank + Receivables / Total Asset",
+         value: shariah.cashBankReceivablesTotalAssetValue,
+         status: shariah.cashBankReceivablesTotalAssetStatus,
+         remark: financialRemarks.find((r) => r.parameter === "cash_bank_receivables_total_asset"),
+      },
+   ]
+
+   return (
+      <div className="rounded-2xl border bg-card p-5">
+         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">
+            Quantitative Ratios
+         </p>
+         <div className="flex flex-col gap-4">
+            {ratioData.map(({ label, value, status }) => {
+               const pct = value ? Math.min(parseFloat(value), 100) : 0
+               const isNull = status === null || status === undefined
+               const barColor = isNull
+                  ? "bg-muted-foreground/30"
+                  : status
+                     ? "bg-emerald-500"
+                     : "bg-red-500"
+               const valColor = isNull
+                  ? "text-foreground"
+                  : status
+                     ? "text-emerald-600 dark:text-emerald-400"
+                     : "text-red-600 dark:text-red-400"
+
+               return (
+                  <div key={label} className="flex flex-col gap-1.5">
+                     <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm text-muted-foreground leading-tight">{label}</span>
+                        <span className={cn("text-sm font-semibold tabular-nums shrink-0", valColor)}>
+                           {fmtRatio(value)}
+                        </span>
+                     </div>
+                     <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                           className={cn("h-full rounded-full transition-all duration-500", barColor)}
+                           style={{ width: `${pct}%` }}
+                        />
+                     </div>
+                  </div>
+               )
+            })}
+         </div>
+
+      </div>
+   )
+}
+
+// ─── Main Snapshot Card ────────────────────────────────────────────────────────
 
 type SnapshotSuccess = Extract<CompanySnapshotResult, { company: unknown }>
 
-function SnapshotCard({ data }: { data: SnapshotSuccess }) {
+function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRemark: string | null }) {
    const { company, shariah, complianceHistory, screeningRemarks, quota } = data
+
+   const [activeTab, setActiveTab] = React.useState<TabKey>("business")
+   const [selectedParam, setSelectedParam] = React.useState<string | null>(null)
+
+   const businessRemarks = screeningRemarks.filter((r) => BUSINESS_PARAMS.includes(r.parameter))
+   const financialRemarks = screeningRemarks.filter((r) => FINANCIAL_PARAMS.includes(r.parameter))
+   const selectedRemark = screeningRemarks.find((r) => r.parameter === selectedParam) ?? null
+
+   const isCompliant = shariah?.shariahStatus === 1
+
+   const snapshotDate = shariah?.lastUpdatedAt
+      ? shariah.lastUpdatedAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+      : "—"
+
+   function handleTabChange(tab: TabKey) {
+      setActiveTab(tab)
+      setSelectedParam(null)
+   }
 
    return (
       <div className="flex flex-col gap-4">
-         <QuotaBar
-            dailyUsed={quota.dailyUsed}
-            dailyLimit={quota.dailyLimit}
-            totalUsed={quota.totalUsed}
-            totalLimit={quota.totalLimit}
-         />
 
-         <div className="flex flex-col justify-between mt-5 lg:flex-row">
-            <h2 className="font-serif text-3xl italic font-semibold text-[#1e3358] dark:text-[#93b4d4]">
-               {company.companyName}
-            </h2>
-            {shariah && <div className="flex flex-row items-end gap-1">
-               <dt className="text-[11px] text-muted-foreground">Last Updated</dt>
-               <dd className="text-sm font-semibold">
-                  {shariah.lastUpdatedAt
-                     ? shariah.lastUpdatedAt.toLocaleDateString("en-IN", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                     })
-                     : "—"}
-               </dd>
-            </div>}
+         {/* ── Dark Navy Header ── */}
+         <div
+            style={{
+               background: "linear-gradient(160deg, #0d1f3c 0%, #1a3a6e 100%)",
+               boxShadow: "0 1px 0 0 oklch(1 0 0 / 0.8) inset, 0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)"
+            }}
+            className="overflow-hidden rounded-2xl"
+         >
+            {/* Company name + codes */}
+            <div className="px-6 py-6">
+               <div className="flex flex-col justify-between md:flex-row md:items-start">
+                  <h2 className="text-2xl font-bold text-white sm:text-3xl">{company.companyName}</h2>
+                  <div className="flex items-center gap-1.5 rounded-full self-start border border-white/20 bg-white/10 px-3 py-1">
+                     <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" />
+                     <span className="text-xs font-medium text-white">Updated • {snapshotDate}</span>
+                  </div>
+               </div>
+               <div className="mt-2 flex flex-wrap items-center gap-4 text-xs">
+                  {company.nseSymbol && (
+                     <span className="text-blue-100">
+                        <span className="text-blue-400/80">NSE</span>{" "}
+                        <span className="font-semibold">{company.nseSymbol}</span>
+                     </span>
+                  )}
+                  {company.bseScripCode && (
+                     <span className="text-blue-100">
+                        <span className="text-blue-400/80">BSE</span>{" "}
+                        <span className="font-semibold">{company.bseScripCode}</span>
+                     </span>
+                  )}
+                  {company.isinCode && (
+                     <span className="text-blue-100">
+                        <span className="text-blue-400/80">ISIN</span>{" "}
+                        <span className="font-semibold">{company.isinCode}</span>
+                     </span>
+                  )}
+               </div>
+            </div>
+
+            {/* Data columns */}
+            {shariah && (
+               <div className="grid grid-cols-2 border-t border-white/10 sm:grid-cols-3 lg:grid-cols-5">
+                  {[
+                     { label: "Industry", value: company.industryGroup, sub: null },
+                     {
+                        label: "Market Cap",
+                        value: fmtMarketCapRaw(shariah.marketCap),
+                        sub: "Rs. Millions",
+                     },
+                     {
+                        label: "Assessment Year",
+                        value: fmtDateStr(shariah.assessmentYear),
+                        sub: null,
+                     },
+                     {
+                        label: "Company Status",
+                        value: shariah.companyStatus ?? "—",
+                        sub: null,
+                     },
+                     {
+                        label: "Compliance",
+                        value: isCompliant ? "Pass" : "Fail",
+                        valueColor: isCompliant ? "#4ade80" : "#f87171",
+                        sub: isCompliant
+                           ? "All thresholds met"
+                           : shariah.shariahStatus
+                              ? STATUS_LABELS[shariah.shariahStatus]
+                              : null,
+                     },
+                  ].map(({ label, value, sub, valueColor }) => (
+                     <div key={label} className="flex flex-col gap-0.5 px-5 py-4 border-b border-r border-white/10 [&:nth-child(2n)]:border-r-0 last:border-r-0 sm:[&:nth-child(2n)]:border-r sm:[&:nth-child(3n)]:border-r-0 lg:[&:nth-child(3n)]:border-r lg:border-b-0">
+                        <span className="text-[9px] font-semibold uppercase tracking-widest text-blue-300/60">
+                           {label}
+                        </span>
+                        <span
+                           className="mt-1 text-sm font-bold text-white"
+                           style={valueColor ? { color: valueColor } : undefined}
+                        >
+                           {value ?? "—"}
+                        </span>
+                        {sub && (
+                           <span className="text-[10px] text-blue-300/50">{sub}</span>
+                        )}
+                     </div>
+                  ))}
+               </div>
+            )}
          </div>
+
+         {/* ── Compliance Verdict ── */}
+         {shariah && (
+            <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 1px 0 0 oklch(1 0 0 / 0.8) inset, 0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
+               <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                     <div
+                        className={cn(
+                           "flex size-12 shrink-0 items-center justify-center rounded-xl",
+                           isCompliant ? "bg-emerald-600" : "bg-red-600",
+                        )}
+                     >
+                        <ShieldCheckIcon className="size-6 text-white" />
+                     </div>
+                     <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                           Compliance Verdict
+                        </p>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                           <span
+                              className="text-xl font-bold sm:text-2xl"
+                              style={{ color: isCompliant ? "#16a34a" : "#dc2626" }}
+                           >
+                              Shariah {isCompliant ? "Compliant" : "Non-Compliant"}
+                           </span>
+                        </div>
+                     </div>
+                  </div>
+
+               </div>
+            </div>
+         )}
 
          {shariah ? (
             <>
-               {/* Verdict */}
-               <div className="flex flex-wrap items-center gap-6 rounded-xl border bg-muted/30 p-3">
-                  <Image
-                     src={
-                        shariah.shariahStatus === 1
-                           ? "/assets/images/compliantStamp.png"
-                           : "/assets/images/nonCompliantStamp.png"
-                     }
-                     height={110}
-                     width={110}
-                     alt="compliance stamp"
-                     className="shrink-0"
-                  />
-                  <div className="flex flex-col gap-1.5">
-                     <p
-                        className="text-2xl font-bold leading-tight sm:text-3xl"
-                        style={{ color: shariah.shariahStatus && shariah.shariahStatus == 1 ? "#33cc33" : "#ff0000" }}
+               {/* ── Tabs ── */}
+               <div className="flex overflow-x-auto border-b">
+                  {TABS.map((tab) => (
+                     <button
+                        key={tab.key}
+                        onClick={() => handleTabChange(tab.key)}
+                        className={cn(
+                           "shrink-0 px-5 py-3 text-xs font-semibold uppercase tracking-wider transition-colors",
+                           activeTab === tab.key
+                              ? "border-b-2 border-foreground text-foreground"
+                              : "border-b-2 border-transparent text-muted-foreground hover:text-foreground",
+                        )}
                      >
-                        {shariah.shariahStatus ? (shariah.shariahStatus == 1 ? "Compliant" : "Non-Compliant") : "No Status"}
-                     </p>
-                     {shariah.shariahStatus && shariah.shariahStatus != 1 &&
-                        <p
-                           className=""
-                           style={{ color: shariah.shariahStatus ? STATUS_COLORS[shariah.shariahStatus] : "#999" }}
-                        >
-                           {shariah.shariahStatus ? STATUS_LABELS[shariah.shariahStatus] : "No Status"}
+                        {tab.label}
+                     </button>
+                  ))}
+               </div>
+
+               {/* ── Tab Content ── */}
+
+               {/* Business & Data */}
+               {activeTab === "business" && (
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                     {/* Left: Qualitative Parameters */}
+                     <div className="rounded-2xl border bg-card p-5">
+                        <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                           Qualitative Parameters
                         </p>
-                     }
-                     <p className="text-sm text-muted-foreground">
-                        Based on financial screening for the assessment period.
-                     </p>
-                  </div>
-               </div>
-
-               {/* Overview */}
-               <div className="rounded-xl border p-5">
-                  <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground border-b pb-2">
-                     <BuildingIcon className="size-3.5" />
-                     Overview
-                  </h3>
-                  <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                     {company.industryGroup && (
-                        <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
-                           <dt className="text-[11px] text-muted-foreground">Industry Group</dt>
-                           <dd className="text-sm font-semibold">{company.industryGroup}</dd>
-                        </div>
-                     )}
-                     {company.nseSymbol && <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-3 py-2">
-                        <dt className="text-[11px] text-muted-foreground">NSE Symbol</dt>
-                        <dd className="text-sm font-semibold tabular-nums">{company.nseSymbol}</dd>
-                     </div>}
-                     {company.isinCode && (
-                        <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
-                           <dt className="text-[11px] text-muted-foreground">ISIN Code</dt>
-                           <dd className="text-sm font-semibold tabular-nums">{company.isinCode}</dd>
-                        </div>
-                     )}
-                     {company.bseScripCode && (
-                        <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
-                           <dt className="text-[11px] text-muted-foreground">BSE Scrip Code</dt>
-                           <dd className="text-sm font-semibold tabular-nums">{company.bseScripCode}</dd>
-                        </div>
-                     )}
-                     {company.bseScripId && (
-                        <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
-                           <dt className="text-[11px] text-muted-foreground">BSE Script Id</dt>
-                           <dd className="text-sm font-semibold tabular-nums">{company.bseScripId}</dd>
-                        </div>
-                     )}
-                     <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
-                        <dt className="text-[11px] text-muted-foreground">Market Cap</dt>
-                        <dd className="text-sm font-semibold tabular-nums">{fmtMarketCap(shariah.marketCap)}</dd>
-                     </div>
-                     <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
-                        <dt className="text-[11px] text-muted-foreground">Company Status</dt>
-                        <dd className="text-sm font-semibold">{shariah.companyStatus ?? "—"}</dd>
-                     </div>
-                     <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
-                        <dt className="text-[11px] text-muted-foreground">Assessment Year</dt>
-                        <dd className="text-sm font-semibold">{fmtDateStr(shariah.assessmentYear)}</dd>
-                     </div>
-                     <div className="flex flex-col gap-0.5 rounded-lg bg-muted/20 px-0 py-2">
-                        <dt className="text-[11px] text-muted-foreground">Data Month</dt>
-                        <dd className="text-sm font-semibold">{fmtMonthStr(shariah.month)}</dd>
-                     </div>
-                  </dl>
-               </div>
-
-               <ParametersRatiosTabs shariah={shariah} screeningRemarks={screeningRemarks} />
-
-               {/* Compliance History */}
-               <div className="rounded-xl border p-5">
-                  <div className="mb-4 flex items-center justify-between gap-2">
-                     <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground border-b pb-2">
-                        <ClockIcon className="size-3.5" />
-                        Compliance History
-                     </h3>
-                     <Dialog>
-                        <DialogTrigger asChild>
-                           <button
-                              type="button"
-                              className="text-muted-foreground/50 transition-colors hover:text-muted-foreground"
-                           >
-                              <InfoIcon className="size-4" />
-                           </button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-sm">
-                           <DialogHeader>
-                              <DialogTitle>Color Code Legend</DialogTitle>
-                           </DialogHeader>
-                           <div className="flex flex-col gap-2.5 pt-1">
-                              {Object.entries(STATUS_COLORS).map(([s, c]) => (
-                                 <div key={s} className="flex items-center gap-3">
-                                    <div
-                                       className="size-4 shrink-0 rounded border border-black/10"
-                                       style={{ backgroundColor: c }}
-                                    />
-                                    <span className="text-sm text-muted-foreground">
-                                       {STATUS_LABELS[Number(s)]}
-                                    </span>
+                        <div className="flex flex-col space-y-2">
+                           {businessRemarks.map((r) => (
+                              <button
+                                 key={r.parameter}
+                                 onClick={() =>
+                                    setSelectedParam(selectedParam === r.parameter ? null : r.parameter)
+                                 }
+                                 className={cn(
+                                    "flex items-center gap-3 rounded-xl px-3 py-3  bg-muted/40 text-left transition-colors hover:bg-muted",
+                                    selectedParam === r.parameter && "bg-muted/60",
+                                 )}
+                              >
+                                 <div
+                                    className={cn(
+                                       "flex size-7 shrink-0 items-center justify-center rounded-full",
+                                       r.value === true
+                                          ? "bg-emerald-600"
+                                          : r.value === false
+                                             ? "bg-red-500"
+                                             : "bg-muted",
+                                    )}
+                                 >
+                                    {r.value === true ? (
+                                       <CheckCircle2Icon className="size-4 text-white" />
+                                    ) : r.value === false ? (
+                                       <XCircleIcon className="size-4 text-white" />
+                                    ) : (
+                                       <MinusCircleIcon className="size-4 text-muted-foreground" />
+                                    )}
                                  </div>
-                              ))}
-                           </div>
-                        </DialogContent>
-                     </Dialog>
-                  </div>
-                  <ComplianceHistory history={complianceHistory} />
-               </div>
+                                 <span className="flex-1 text-sm font-medium leading-tight">{r.label}</span>
+                                 <ChevronRightIcon
+                                    className={cn(
+                                       "size-4 shrink-0 text-muted-foreground/40 transition-transform duration-200",
+                                       selectedParam === r.parameter && "rotate-90",
+                                    )}
+                                 />
+                              </button>
+                           ))}
+                        </div>
+                     </div>
 
-               {/* Note */}
-               <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900/40 dark:bg-amber-950/10">
+                     {/* Right: Remark panel */}
+                     <RemarkPanel remark={selectedRemark} />
+                  </div>
+               )}
+
+               {/* Financials */}
+               {activeTab === "financials" && (
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                     <QuantitativeRatiosPanel shariah={shariah} financialRemarks={financialRemarks} />
+                     <RemarkPanel
+                        remark={
+                           selectedParam && FINANCIAL_PARAMS.includes(selectedParam)
+                              ? selectedRemark
+                              : null
+                        }
+                     />
+                  </div>
+               )}
+
+               {/* Historical */}
+               {activeTab === "historical" && (
+                  <div className="rounded-2xl border bg-card p-5">
+                     <div className="mb-4 flex items-center justify-between">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                           Last 12 Months
+                        </p>
+                        <Dialog>
+                           <DialogTrigger asChild>
+                              <button
+                                 type="button"
+                                 className="text-muted-foreground/50 transition-colors hover:text-muted-foreground"
+                              >
+                                 <InfoIcon className="size-4" />
+                              </button>
+                           </DialogTrigger>
+                           <DialogContent className="max-w-sm">
+                              <DialogHeader>
+                                 <DialogTitle>Color Code Legend</DialogTitle>
+                              </DialogHeader>
+                              <div className="flex flex-col gap-2.5 pt-1">
+                                 {Object.entries(STATUS_COLORS).map(([s, c]) => (
+                                    <div key={s} className="flex items-center gap-3">
+                                       <div
+                                          className="size-4 shrink-0 rounded border border-black/10"
+                                          style={{ backgroundColor: c }}
+                                       />
+                                       <span className="text-sm text-muted-foreground">
+                                          {STATUS_LABELS[Number(s)]}
+                                       </span>
+                                    </div>
+                                 ))}
+                              </div>
+                           </DialogContent>
+                        </Dialog>
+                     </div>
+                     <ComplianceHistory history={complianceHistory} />
+                  </div>
+               )}
+
+               {/* Legends */}
+               {activeTab === "legends" && (
+                  <div className="rounded-2xl border bg-card p-5">
+                     <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                        Status Color Legend
+                     </p>
+                     <div className="flex flex-col gap-3">
+                        {Object.entries(STATUS_COLORS).map(([s, c]) => (
+                           <div key={s} className="flex items-center gap-3">
+                              <div
+                                 className="size-5 shrink-0 rounded border border-black/10"
+                                 style={{ backgroundColor: c }}
+                              />
+                              <span className="text-sm">{STATUS_LABELS[Number(s)]}</span>
+                           </div>
+                        ))}
+                     </div>
+                  </div>
+               )}
+
+               {/* Important Note */}
+               <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900/40 dark:bg-amber-950/10">
                   <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
                      Important Note
                   </h3>
                   <div className="flex flex-col gap-1.5">
                      <p className="text-xs leading-relaxed text-muted-foreground">
-                        It is important to note that <strong>Shariah scholars globally allow investment in companies with a small amount of interest income</strong>.
+                        It is important to note that{" "}
+                        <strong>
+                           Shariah scholars globally allow investment in companies with a small amount of interest
+                           income
+                        </strong>
+                        .
                      </p>
                      <p className="text-xs leading-relaxed text-muted-foreground">
-                        However, investors must <strong>identify this portion and donate it to charity (purification)</strong>.
+                        However, investors must{" "}
+                        <strong>identify this portion and donate it to charity (purification)</strong>.
                      </p>
                      <p className="text-xs leading-relaxed text-muted-foreground">
-                        If this is not done, the <strong>investment and its returns shall be considered non-compliant for the investor concerned</strong>.
+                        If this is not done, the{" "}
+                        <strong>
+                           investment and its returns shall be considered non-compliant for the investor concerned
+                        </strong>
+                        .
                      </p>
                   </div>
                </div>
             </>
          ) : (
-            <div className="rounded-xl border border-dashed py-12 text-center text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-dashed py-12 text-center text-sm text-muted-foreground">
                No shariah data available for this company.
             </div>
          )}
@@ -547,141 +680,16 @@ function SnapshotCard({ data }: { data: SnapshotSuccess }) {
    )
 }
 
-// ─── Parameters + Ratios tabbed section ──────────────────────────────────────
-
-type ShariahDetail = NonNullable<SnapshotSuccess["shariah"]>
-
-function ParametersRatiosTabs({
-   shariah,
-   screeningRemarks,
-}: {
-   shariah: ShariahDetail
-   screeningRemarks: SnapshotSuccess["screeningRemarks"]
-}) {
-   const remarkMap = new Map(screeningRemarks.map((r) => [r.parameter, r.remark]))
-   const [active, setActive] = React.useState<"parameters" | "ratios">("parameters")
-
-   const paramsValues = [
-      shariah.lastFinancialData,
-      shariah.primaryBusiness,
-      shariah.secondaryBusiness,
-      shariah.compliantOnInvestment,
-      shariah.sufficientFinancialInfo,
-   ]
-   const paramsPass = paramsValues.every((v) => v === true)
-   const paramsPassCount = paramsValues.filter((v) => v === true).length
-
-   const ratiosValues = [
-      shariah.totalDebtTotalAssetStatus,
-      shariah.totalInterestIncomeTotalIncomeStatus,
-      shariah.cashBankReceivablesTotalAssetStatus,
-   ]
-   const ratiosPass = ratiosValues.every((v) => v === true)
-   const ratiosPassCount = ratiosValues.filter((v) => v === true).length
-
-   function tabCls(tab: "parameters" | "ratios", passes: boolean) {
-      const isActive = active === tab
-      const passColor = "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
-      const failColor = "bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-400"
-      return cn(
-         "flex flex-1 items-center gap-2 px-4 py-3.5 text-sm font-medium transition-colors",
-         isActive ? (passes ? passColor : failColor) : "text-muted-foreground hover:bg-muted/30",
-      )
-   }
-
-   function badgeCls(passes: boolean) {
-      return cn(
-         "ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
-         passes
-            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300"
-            : "bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300",
-      )
-   }
-
-   return (
-      <div className="rounded-xl border">
-         {/* Tab bar */}
-         <div className="flex overflow-hidden rounded-t-xl border-b">
-            <button
-               className={cn(tabCls("parameters", paramsPass), "border-r")}
-               onClick={() => setActive("parameters")}
-            >
-               <ShieldCheckIcon className="size-4 shrink-0" />
-               <span>Shariah Parameters</span>
-               <span className={badgeCls(paramsPass)}>{paramsPassCount}/5</span>
-            </button>
-            <button className={tabCls("ratios", ratiosPass)} onClick={() => setActive("ratios")}>
-               <BarChart3Icon className="size-4 shrink-0" />
-               <span>Financial Ratios</span>
-               <span className={badgeCls(ratiosPass)}>{ratiosPassCount}/3</span>
-            </button>
-         </div>
-
-         {/* Content */}
-         <div className="p-4">
-            {active === "parameters" ? (
-               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <BoolRow
-                     label="Last Financial Data Available"
-                     value={shariah.lastFinancialData}
-                     remark={remarkMap.get("last_financial_data")}
-                  />
-                  <BoolRow
-                     label="Primary Business Compliant"
-                     value={shariah.primaryBusiness}
-                     remark={remarkMap.get("primary_business")}
-                  />
-                  <BoolRow
-                     label="Secondary Business Compliant"
-                     value={shariah.secondaryBusiness}
-                     remark={remarkMap.get("secondary_business")}
-                  />
-                  <BoolRow
-                     label="Compliant on Investment"
-                     value={shariah.compliantOnInvestment}
-                     remark={remarkMap.get("compliant_on_investment")}
-                  />
-                  <BoolRow
-                     label="Sufficient Financial Information"
-                     value={shariah.sufficientFinancialInfo}
-                     remark={remarkMap.get("financial_information")}
-                  />
-               </div>
-            ) : (
-               <div className="flex flex-col gap-2">
-                  <RatioRow
-                     label="Total Debt / Total Asset"
-                     value={shariah.totalDebtTotalAssetValue}
-                     status={shariah.totalDebtTotalAssetStatus}
-                     remark={remarkMap.get("total_debt_total_asset")}
-                  />
-                  <RatioRow
-                     label="Total Interest Income / Total Income"
-                     value={shariah.totalInterestIncomeTotalIncomeValue}
-                     status={shariah.totalInterestIncomeTotalIncomeStatus}
-                     remark={remarkMap.get("total_interest_income_total_income")}
-                  />
-                  <RatioRow
-                     label="Cash + Bank + Receivables / Total Asset"
-                     value={shariah.cashBankReceivablesTotalAssetValue}
-                     status={shariah.cashBankReceivablesTotalAssetStatus}
-                     remark={remarkMap.get("cash_bank_receivables_total_asset")}
-                  />
-               </div>
-            )}
-         </div>
-      </div>
-   )
-}
-
-// ─── Recently viewed ──────────────────────────────────────────────────────────
+// ─── Recently Viewed ──────────────────────────────────────────────────────────
 
 function fmtLastViewed(dateStr: string): string {
    const today = new Date().toISOString().slice(0, 10)
    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
    if (dateStr === today) return "Today"
    if (dateStr === yesterday) return "Yesterday"
-   return fmtDateStr(dateStr)
+   const [y, m, d] = dateStr.split("-")
+   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+   return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`
 }
 
 function RecentlyViewedSection({
@@ -693,14 +701,16 @@ function RecentlyViewedSection({
 }) {
    if (items.length === 0) return null
    return (
-      <div className="flex flex-col gap-2.5 mt-3">
-         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Recently Viewed</p>
+      <div className="mt-3 flex flex-col gap-2.5">
+         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Recently Viewed
+         </p>
          <div className="flex flex-wrap gap-2">
             {items.map((c) => (
                <button
                   key={c.id}
                   onClick={() => onSelect(c)}
-                  className="flex flex-col items-start gap-0.5 rounded-lg border bg-card px-3 py-2 text-left transition-colors hover:border-border hover:bg-muted/40"
+                  className="flex flex-col items-start gap-0.5 rounded-xl border bg-card px-3 py-2 text-left transition-colors hover:bg-muted/40"
                >
                   <span className="max-w-48 truncate text-sm font-medium leading-tight">{c.companyName}</span>
                   <span className="text-[10px] text-muted-foreground">{fmtLastViewed(c.lastViewed)}</span>
@@ -711,7 +721,7 @@ function RecentlyViewedSection({
    )
 }
 
-// ─── Search dropdown ───────────────────────────────────────────────────────────
+// ─── Search Dropdown ───────────────────────────────────────────────────────────
 
 function SearchDropdown({
    results,
@@ -731,7 +741,6 @@ function SearchDropdown({
             >
                <span className="font-medium">{c.companyName}</span>
                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  {/* <span>{c.prowessId}</span> */}
                   {c.isinCode && <span>{c.isinCode}</span>}
                   {c.nseSymbol && <span>NSE: {c.nseSymbol}</span>}
                </div>
@@ -741,14 +750,13 @@ function SearchDropdown({
    )
 }
 
-// ─── Main component ────────────────────────────────────────────────────────────
+// ─── Main Component ────────────────────────────────────────────────────────────
 
 export function SnapshotClient({ access, commonRemark }: { access: SnapshotAccess; commonRemark: string | null }) {
    const [query, setQuery] = React.useState("")
    const [searchResults, setSearchResults] = React.useState<CompanySearchResult[]>([])
    const [isSearching, setIsSearching] = React.useState(false)
    const [showDropdown, setShowDropdown] = React.useState(false)
-   const [selectedCompany, setSelectedCompany] = React.useState<CompanySearchResult | null>(null)
    const [snapshotData, setSnapshotData] = React.useState<SnapshotSuccess | null>(null)
    const [isLoading, setIsLoading] = React.useState(false)
    const [recentlyViewed, setRecentlyViewed] = React.useState<RecentlyViewedCompany[]>([])
@@ -779,15 +787,12 @@ export function SnapshotClient({ access, commonRemark }: { access: SnapshotAcces
    function handleQueryChange(e: React.ChangeEvent<HTMLInputElement>) {
       const val = e.target.value
       setQuery(val)
-
       if (debounceRef.current) clearTimeout(debounceRef.current)
-
       if (val.trim().length < 2) {
          setSearchResults([])
          setShowDropdown(false)
          return
       }
-
       debounceRef.current = setTimeout(async () => {
          setIsSearching(true)
          try {
@@ -801,16 +806,13 @@ export function SnapshotClient({ access, commonRemark }: { access: SnapshotAcces
    }
 
    async function handleSelectCompany(company: CompanySearchResult) {
-      setSelectedCompany(company)
       setQuery(company.companyName)
       setShowDropdown(false)
       setSearchResults([])
       setSnapshotData(null)
       setIsLoading(true)
-
       try {
          const result = await getCompanySnapshot(company.id)
-
          if ("error" in result) {
             if (result.error === "daily_quota_exceeded") {
                toast.error("Daily quota reached. You've viewed the maximum companies for today.")
@@ -823,7 +825,6 @@ export function SnapshotClient({ access, commonRemark }: { access: SnapshotAcces
             }
             return
          }
-
          setSnapshotData(result)
          setQuota(result.quota)
          getRecentlyViewed().then(setRecentlyViewed)
@@ -833,19 +834,44 @@ export function SnapshotClient({ access, commonRemark }: { access: SnapshotAcces
    }
 
    return (
-      <div className="flex flex-col gap-2 p-6">
-         {/* Header row */}
-         <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-               Search for a company to view its TASIS shariah screening snapshot.{" "}
-               Plan: <span className="font-medium text-foreground">{access.planName}</span>
-            </p>
+      <div className="flex flex-col gap-4 p-6">
+
+         {/* ── Search + Compact Quota (desktop inline) ── */}
+         <div className="flex items-center gap-3">
+            <div ref={containerRef} className="relative flex-1 max-w-xl">
+               <div className="relative">
+                  <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  {isSearching && (
+                     <Spinner className="absolute right-3 top-1/2 size-4 -translate-y-1/2" />
+                  )}
+                  <Input
+                     placeholder="Search by company name, ISIN, Prowess ID, or NSE symbol…"
+                     value={query}
+                     onChange={handleQueryChange}
+                     onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
+                     className="pl-9 pr-9"
+                  />
+               </div>
+               {showDropdown && (
+                  <SearchDropdown results={searchResults} onSelect={handleSelectCompany} />
+               )}
+            </div>
+
+            {/* Compact quota pills — desktop only */}
+            <CompactQuotaBar
+               dailyUsed={quota.dailyUsed}
+               dailyLimit={quota.dailyLimit}
+               totalUsed={quota.totalUsed}
+               totalLimit={quota.totalLimit}
+            />
+
+            {/* TASIS Note button */}
             {commonRemark && (
                <Dialog>
                   <DialogTrigger asChild>
                      <button
                         type="button"
-                        className="flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-border hover:bg-muted/40 hover:text-foreground"
+                        className="hidden md:flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
                      >
                         <BookOpenIcon className="size-3.5" />
                         TASIS Note
@@ -866,35 +892,27 @@ export function SnapshotClient({ access, commonRemark }: { access: SnapshotAcces
             )}
          </div>
 
-         {/* Search */}
-         <div ref={containerRef} className="relative max-w-xl">
-            <div className="relative">
-               <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-               {isSearching && (
-                  <Spinner className="absolute right-3 top-1/2 size-4 -translate-y-1/2" />
-               )}
-               <Input
-                  placeholder="Search by company name, ISIN, Prowess ID, or NSE symbol…"
-                  value={query}
-                  onChange={handleQueryChange}
-                  onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
-                  className="pl-9 pr-9"
-               />
-            </div>
-            {showDropdown && (
-               <SearchDropdown results={searchResults} onSelect={handleSelectCompany} />
-            )}
-         </div>
+         {/* Mobile quota bar */}
+         <FullQuotaBar
+            dailyUsed={quota.dailyUsed}
+            dailyLimit={quota.dailyLimit}
+            totalUsed={quota.totalUsed}
+            totalLimit={quota.totalLimit}
+         />
 
+         {/* Recently viewed / empty state */}
          {!isLoading && !snapshotData && (
             <>
-               <QuotaBar
-                  dailyUsed={quota.dailyUsed}
-                  dailyLimit={quota.dailyLimit}
-                  totalUsed={quota.totalUsed}
-                  totalLimit={quota.totalLimit}
-               />
                <RecentlyViewedSection items={recentlyViewed} onSelect={handleSelectCompany} />
+               {recentlyViewed.length === 0 && (
+                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed py-20 text-center">
+                     <SearchIcon className="mb-3 size-8 text-muted-foreground/30" />
+                     <p className="text-sm font-medium text-muted-foreground">Search for a company above</p>
+                     <p className="mt-1 text-xs text-muted-foreground/70">
+                        Enter a company name, ISIN, or exchange symbol
+                     </p>
+                  </div>
+               )}
             </>
          )}
 
@@ -904,24 +922,8 @@ export function SnapshotClient({ access, commonRemark }: { access: SnapshotAcces
             </div>
          )}
 
-         {!isLoading && snapshotData && <SnapshotCard data={snapshotData} />}
-
-         {!isLoading && !snapshotData && recentlyViewed.length === 0 && (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-20 text-center">
-               <SearchIcon className="mb-3 size-8 text-muted-foreground/30" />
-               <p className="text-sm font-medium text-muted-foreground">Search for a company above</p>
-               <p className="mt-1 text-xs text-muted-foreground/70">
-                  Enter a company name, ISIN, or exchange symbol
-               </p>
-               {/* <div className="mt-5">
-                  <QuotaBar
-                     dailyUsed={quota.dailyUsed}
-                     dailyLimit={quota.dailyLimit}
-                     totalUsed={quota.totalUsed}
-                     totalLimit={quota.totalLimit}
-                  />
-               </div> */}
-            </div>
+         {!isLoading && snapshotData && (
+            <SnapshotCard data={snapshotData} commonRemark={commonRemark} />
          )}
       </div>
    )

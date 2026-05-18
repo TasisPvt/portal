@@ -72,7 +72,7 @@ export type CompanySnapshotResult =
            remark: string | null
            lastUpdatedAt: Date | null
         } | null
-        screeningRemarks: { parameter: string; label: string; value: boolean | null; remark: string | null }[]
+        screeningRemarks: { parameter: string; label: string; value: boolean | null; remark: string | null; passRemark: string | null; failRemark: string | null }[]
         complianceHistory: { month: string; shariahStatus: number | null }[]
         quota: QuotaInfo
      }
@@ -365,21 +365,23 @@ export async function getCompanySnapshot(companyId: string): Promise<CompanySnap
    const remarkRows = await db.select().from(screeningStandardRemark)
    const remarkMap = new Map(remarkRows.map((r) => [r.parameter, r]))
 
+   const isOnHold = shariah?.shariahStatus === 8
+
    const PARAM_MAP = [
-      { parameter: "last_financial_data", label: "Latest Financial Data", value: shariah?.lastFinancialData ?? null },
-      { parameter: "primary_business", label: "Primary Business", value: shariah?.primaryBusiness ?? null },
-      { parameter: "secondary_business", label: "Secondary Business", value: shariah?.secondaryBusiness ?? null },
-      { parameter: "compliant_on_investment", label: "Compliant on Investment", value: shariah?.compliantOnInvestment ?? null },
-      { parameter: "financial_information", label: "Financial Information", value: shariah?.sufficientFinancialInfo ?? null },
-      { parameter: "total_debt_total_asset", label: "Total Debt / Total Asset", value: shariah?.totalDebtTotalAssetStatus ?? null },
-      { parameter: "total_interest_income_total_income", label: "Total Interest Income / Total Income", value: shariah?.totalInterestIncomeTotalIncomeStatus ?? null },
-      { parameter: "cash_bank_receivables_total_asset", label: "Cash + Bank + Receivables / Total Asset", value: shariah?.cashBankReceivablesTotalAssetStatus ?? null },
+      { parameter: "last_financial_data", label: "Financial Data", value: isOnHold ? null : (shariah?.lastFinancialData ?? null) },
+      { parameter: "incomplete_business_information", label: "Incomplete Business Information", value: isOnHold ? null : (shariah?.sufficientFinancialInfo ?? null) },
+      { parameter: "primary_business", label: "Primary Business", value: isOnHold ? null : (shariah?.primaryBusiness ?? null) },
+      { parameter: "secondary_business", label: "Secondary Business", value: isOnHold ? null : (shariah?.secondaryBusiness ?? null) },
+      { parameter: "compliant_on_investment", label: "Compliant on Investment", value: isOnHold ? null : (shariah?.compliantOnInvestment ?? null) },
+      { parameter: "total_debt_total_asset", label: "Total Debt / Total Asset", value: isOnHold ? null : (shariah?.totalDebtTotalAssetStatus ?? null) },
+      { parameter: "total_interest_income_total_income", label: "Total Interest Income / Total Income", value: isOnHold ? null : (shariah?.totalInterestIncomeTotalIncomeStatus ?? null) },
+      { parameter: "cash_bank_receivables_total_asset", label: "Cash + Bank + Receivables / Total Asset", value: isOnHold ? null : (shariah?.cashBankReceivablesTotalAssetStatus ?? null) },
    ]
 
    const screeningRemarks = PARAM_MAP.map(({ parameter, label, value }) => {
       const entry = remarkMap.get(parameter)
       const remark = value === true ? (entry?.passRemark ?? null) : value === false ? (entry?.failRemark ?? null) : null
-      return { parameter, label, value, remark }
+      return { parameter, label, value, remark, passRemark: entry?.passRemark ?? null, failRemark: entry?.failRemark ?? null }
    })
 
    // Updated quota
