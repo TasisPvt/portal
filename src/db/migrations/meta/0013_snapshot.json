@@ -879,8 +879,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "sufficient_financial_info": {
-          "name": "sufficient_financial_info",
+        "incomplete_bus_info": {
+          "name": "incomplete_bus_info",
           "type": "boolean",
           "primaryKey": false,
           "notNull": false

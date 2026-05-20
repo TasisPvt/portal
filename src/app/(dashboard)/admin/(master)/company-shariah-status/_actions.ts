@@ -34,7 +34,7 @@ export async function getShariahDataForMonth(month: string) {
          primaryBusiness: companyShariah.primaryBusiness,
          secondaryBusiness: companyShariah.secondaryBusiness,
          compliantOnInvestment: companyShariah.compliantOnInvestment,
-         sufficientFinancialInfo: companyShariah.sufficientFinancialInfo,
+         incompleteBusInfo: companyShariah.incompleteBusInfo,
          totalDebtTotalAssetValue: companyShariah.totalDebtTotalAssetValue,
          totalDebtTotalAssetStatus: companyShariah.totalDebtTotalAssetStatus,
          totalInterestIncomeTotalIncomeValue: companyShariah.totalInterestIncomeTotalIncomeValue,
@@ -103,7 +103,7 @@ export type ShariahImportRow = {
    primaryBusiness?: boolean | null
    secondaryBusiness?: boolean | null
    compliantOnInvestment?: boolean | null
-   sufficientFinancialInfo?: boolean | null
+   incompleteBusInfo?: boolean | null
    totalDebtTotalAssetValue?: string | null
    totalDebtTotalAssetStatus?: boolean | null
    totalInterestIncomeTotalIncomeValue?: string | null
@@ -163,7 +163,7 @@ export async function importShariahData(records: ShariahImportRow[]): Promise<{
          primaryBusiness: record.primaryBusiness ?? null,
          secondaryBusiness: record.secondaryBusiness ?? null,
          compliantOnInvestment: record.compliantOnInvestment ?? null,
-         sufficientFinancialInfo: record.sufficientFinancialInfo ?? null,
+         incompleteBusInfo: record.incompleteBusInfo ?? null,
          totalDebtTotalAssetValue: record.totalDebtTotalAssetValue || null,
          totalDebtTotalAssetStatus: record.totalDebtTotalAssetStatus ?? null,
          totalInterestIncomeTotalIncomeValue: record.totalInterestIncomeTotalIncomeValue || null,
@@ -176,13 +176,13 @@ export async function importShariahData(records: ShariahImportRow[]): Promise<{
       }
 
       // Compliance cascade: if a step is not `true`, null out all subsequent steps.
-      // Order: lastFinancialData → primaryBusiness → secondaryBusiness → compliantOnInvestment → sufficientFinancialInfo
+      // Order: lastFinancialData → primaryBusiness → secondaryBusiness → compliantOnInvestment → incompleteBusInfo
       const complianceChain = [
          "lastFinancialData",
          "primaryBusiness",
          "secondaryBusiness",
          "compliantOnInvestment",
-         "sufficientFinancialInfo",
+         "incompleteBusInfo",
       ] as const
       let cascadeNull = false
       for (const field of complianceChain) {

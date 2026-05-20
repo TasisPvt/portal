@@ -148,7 +148,7 @@ export const companyShariah = pgTable(
       primaryBusiness: boolean("primary_business"),
       secondaryBusiness: boolean("secondary_business"),
       compliantOnInvestment: boolean("compliant_on_investment"),
-      sufficientFinancialInfo: boolean("sufficient_financial_info"),
+      incompleteBusInfo: boolean("incomplete_bus_info"),
       totalDebtTotalAssetValue: numeric("total_debt_total_asset_value", { precision: 20, scale: 4 }),
       totalDebtTotalAssetStatus: boolean("total_debt_total_asset_status"),
       totalInterestIncomeTotalIncomeValue: numeric("total_interest_income_total_income_value", { precision: 20, scale: 4 }),

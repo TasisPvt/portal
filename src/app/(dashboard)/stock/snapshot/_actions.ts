@@ -62,7 +62,7 @@ export type CompanySnapshotResult =
            primaryBusiness: boolean | null
            secondaryBusiness: boolean | null
            compliantOnInvestment: boolean | null
-           sufficientFinancialInfo: boolean | null
+           incompleteBusInfo: boolean | null
            totalDebtTotalAssetValue: string | null
            totalDebtTotalAssetStatus: boolean | null
            totalInterestIncomeTotalIncomeValue: string | null
@@ -333,7 +333,7 @@ export async function getCompanySnapshot(companyId: string): Promise<CompanySnap
          primaryBusiness: companyShariah.primaryBusiness,
          secondaryBusiness: companyShariah.secondaryBusiness,
          compliantOnInvestment: companyShariah.compliantOnInvestment,
-         sufficientFinancialInfo: companyShariah.sufficientFinancialInfo,
+         incompleteBusInfo: companyShariah.incompleteBusInfo,
          totalDebtTotalAssetValue: companyShariah.totalDebtTotalAssetValue,
          totalDebtTotalAssetStatus: companyShariah.totalDebtTotalAssetStatus,
          totalInterestIncomeTotalIncomeValue: companyShariah.totalInterestIncomeTotalIncomeValue,
@@ -369,7 +369,7 @@ export async function getCompanySnapshot(companyId: string): Promise<CompanySnap
 
    const PARAM_MAP = [
       { parameter: "last_financial_data", label: "Financial Data", value: isOnHold ? null : (shariah?.lastFinancialData ?? null) },
-      { parameter: "incomplete_business_information", label: "Incomplete Business Information", value: isOnHold ? null : (shariah?.sufficientFinancialInfo ?? null) },
+      { parameter: "incomplete_business_information", label: "Incomplete Business Information", value: isOnHold ? null : (shariah?.incompleteBusInfo ?? null) },
       { parameter: "primary_business", label: "Primary Business", value: isOnHold ? null : (shariah?.primaryBusiness ?? null) },
       { parameter: "secondary_business", label: "Secondary Business", value: isOnHold ? null : (shariah?.secondaryBusiness ?? null) },
       { parameter: "compliant_on_investment", label: "Compliant on Investment", value: isOnHold ? null : (shariah?.compliantOnInvestment ?? null) },

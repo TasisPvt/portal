@@ -197,7 +197,7 @@ function parseCSV(text: string): ShariahImportRow[] {
          primaryBusiness: parseBool(col(row, "primary_business")),
          secondaryBusiness: parseBool(col(row, "secondary_business")),
          compliantOnInvestment: parseBool(col(row, "compliant_on_investment")),
-         sufficientFinancialInfo: parseBool(col(row, "sufficient_financial_info")),
+         incompleteBusInfo: parseBool(col(row, "incomplete_bus_info")),
          totalDebtTotalAssetValue: parseNumOrZero(col(row, "total_debt_total_asset_value")),
          totalDebtTotalAssetStatus: parseBool(col(row, "total_debt_total_asset_status")),
          totalInterestIncomeTotalIncomeValue: parseNumOrZero(col(row, "total_interest_income_total_income_value")),
@@ -214,7 +214,7 @@ function downloadTemplate() {
    const headers = [
       "prowess_id", "assessment_year", "market_cap", "company_status", "shariah_status",
       "last_financial_data", "primary_business", "secondary_business",
-      "compliant_on_investment", "sufficient_financial_info",
+      "compliant_on_investment", "incomplete_bus_info",
       "total_debt_total_asset_value", "total_debt_total_asset_status",
       "total_interest_income_total_income_value", "total_interest_income_total_income_status",
       "cash_bank_receivables_total_asset_value", "cash_bank_receivables_total_asset_status",
@@ -248,7 +248,7 @@ const CASCADE_CHAIN = [
    "primaryBusiness",
    "secondaryBusiness",
    "compliantOnInvestment",
-   "sufficientFinancialInfo",
+   "incompleteBusInfo",
 ] as const satisfies readonly (keyof ShariahImportRow)[]
 
 // Mirrors the server-action cascade: once a step is not `true`, all subsequent steps → null.
@@ -276,7 +276,7 @@ const REQUIRED_FIELDS: { key: keyof ShariahImportRow; label: string }[] = [
    { key: "primaryBusiness", label: "Primary Business" },
    { key: "secondaryBusiness", label: "Secondary Business" },
    { key: "compliantOnInvestment", label: "Compliant on Investment" },
-   { key: "sufficientFinancialInfo", label: "Sufficient Financial Info" },
+   { key: "incompleteBusInfo", label: "Incomplete Bus. Info" },
    { key: "totalDebtTotalAssetValue", label: "Total Debt/Asset Value" },
    { key: "totalDebtTotalAssetStatus", label: "Total Debt/Asset Status" },
    { key: "totalInterestIncomeTotalIncomeValue", label: "Interest Income/Total Income Value" },

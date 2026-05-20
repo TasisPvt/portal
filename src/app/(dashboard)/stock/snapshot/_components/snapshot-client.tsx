@@ -231,7 +231,7 @@ type ScreeningRemark = SnapshotSuccess["screeningRemarks"][number]
 
 function RemarkPanel({ remark }: { remark: ScreeningRemark | null | undefined }) {
    return (
-      <div className="rounded-2xl border bg-card p-5">
+      <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">Remarks</p>
          {remark ? (
             <div className="flex flex-col gap-4">
@@ -301,7 +301,7 @@ function QuantitativeRatiosPanel({
    ]
 
    return (
-      <div className="rounded-2xl border bg-card p-5">
+      <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">
             Quantitative Ratios
          </p>
@@ -375,7 +375,7 @@ function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRem
          <div
             style={{
                background: "linear-gradient(160deg, #0d1f3c 0%, #1a3a6e 100%)",
-               boxShadow: "0 1px 0 0 oklch(1 0 0 / 0.8) inset, 0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)"
+               boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)"
             }}
             className="overflow-hidden rounded-2xl"
          >
@@ -449,17 +449,17 @@ function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRem
 
          {/* ── Compliance Verdict ── */}
          {shariah && (
-            <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 1px 0 0 oklch(1 0 0 / 0.8) inset, 0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
+            <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
                <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
                      <Image
                         src={
                            shariah.shariahStatus === 1
-                              ? "/assets/images/compliantStamp.png"
-                              : "/assets/images/nonCompliantStamp.png"
+                              ? "/assets/images/compliantStamp.webp"
+                              : "/assets/images/nonCompliantStamp.webp"
                         }
-                        height={70}
-                        width={70}
+                        height={80}
+                        width={80}
                         alt="compliance stamp"
                         className="shrink-0"
                      />
@@ -511,7 +511,7 @@ function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRem
                {activeTab === "business" && (
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                      {/* Left: Qualitative Parameters */}
-                     <div className="rounded-2xl border bg-card p-5">
+                     <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
                         <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                            Qualitative Parameters
                         </p>
@@ -564,53 +564,18 @@ function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRem
 
                {/* Financials */}
                {activeTab === "financials" && (
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="">
                      <QuantitativeRatiosPanel shariah={shariah} financialRemarks={financialRemarks} />
-                     <RemarkPanel
-                        remark={
-                           selectedParam && FINANCIAL_PARAMS.includes(selectedParam)
-                              ? selectedRemark
-                              : null
-                        }
-                     />
                   </div>
                )}
 
                {/* Historical */}
                {activeTab === "historical" && (
-                  <div className="rounded-2xl border bg-card p-5">
+                  <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
                      <div className="mb-4 flex items-center justify-between">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                            Last 12 Months
                         </p>
-                        <Dialog>
-                           <DialogTrigger asChild>
-                              <button
-                                 type="button"
-                                 className="text-muted-foreground/50 transition-colors hover:text-muted-foreground"
-                              >
-                                 <InfoIcon className="size-4" />
-                              </button>
-                           </DialogTrigger>
-                           <DialogContent className="max-w-sm">
-                              <DialogHeader>
-                                 <DialogTitle>Color Code Legend</DialogTitle>
-                              </DialogHeader>
-                              <div className="flex flex-col gap-2.5 pt-1">
-                                 {Object.entries(STATUS_COLORS).map(([s, c]) => (
-                                    <div key={s} className="flex items-center gap-3">
-                                       <div
-                                          className="size-4 shrink-0 rounded border border-black/10"
-                                          style={{ backgroundColor: c }}
-                                       />
-                                       <span className="text-sm text-muted-foreground">
-                                          {STATUS_LABELS[Number(s)]}
-                                       </span>
-                                    </div>
-                                 ))}
-                              </div>
-                           </DialogContent>
-                        </Dialog>
                      </div>
                      <ComplianceHistory history={complianceHistory} />
                   </div>
@@ -618,7 +583,7 @@ function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRem
 
                {/* Legends */}
                {activeTab === "legends" && (
-                  <div className="rounded-2xl border bg-card p-5">
+                  <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
                      <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                         Status Color Legend
                      </p>
@@ -806,6 +771,7 @@ export function SnapshotClient({ access, commonRemark }: { access: SnapshotAcces
       setIsLoading(true)
       try {
          const result = await getCompanySnapshot(company.id)
+         console.log({result})
          if ("error" in result) {
             if (result.error === "daily_quota_exceeded") {
                toast.error("Daily quota reached. You've viewed the maximum companies for today.")
