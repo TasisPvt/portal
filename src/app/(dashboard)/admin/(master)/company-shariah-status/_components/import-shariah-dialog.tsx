@@ -12,9 +12,10 @@ import {
    RefreshCwIcon,
    XCircleIcon,
    LockIcon,
+   MinusCircleIcon,
 } from "lucide-react"
 
-import { getImportContext, importShariahData, type ShariahImportRow } from "../_actions"
+import { getImportContext, importShariahData, type ShariahImportRow, type ExistingShariahEntry } from "../_actions"
 import { formatMonthLabel } from "../_utils"
 import { Button } from "@/src/components/ui/button"
 import { Spinner } from "@/src/components/ui/spinner"
@@ -148,6 +149,47 @@ function parseNumOrZero(v: string | undefined): string {
    return isNaN(n) ? "0" : s
 }
 
+const MONTH_ABBR: Record<string, string> = {
+   jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
+   jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
+}
+
+// Accepts YYYY-MM-DD (ISO), D-Mon-YY, DD-Mon-YYYY, DD/MM/YYYY. Returns null for invalid/placeholder dates.
+function parseDate(v: string | undefined): string | null {
+   if (!v) return null
+   const s = v.trim()
+   if (!s) return null
+   // Zero or all-zero strings ("0", "00", "0000") → treat as empty
+   if (/^0+$/.test(s)) return null
+   // ISO YYYY-MM-DD
+   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const [, m, d] = s.split("-").map(Number)
+      if (m >= 1 && m <= 12 && d >= 1 && d <= 31) return s
+      return null
+   }
+   // D-Mon-YY or DD-Mon-YYYY (e.g. "25-Jan-23", "0-Jan-00" placeholder → null)
+   const monMatch = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})$/)
+   if (monMatch) {
+      const day = parseInt(monMatch[1], 10)
+      const mon = MONTH_ABBR[monMatch[2].toLowerCase()]
+      if (!mon || day < 1 || day > 31) return null
+      const yr = parseInt(monMatch[3], 10)
+      const year = monMatch[3].length === 2 ? (yr >= 50 ? 1900 + yr : 2000 + yr) : yr
+      return `${String(year).padStart(4, "0")}-${mon}-${String(day).padStart(2, "0")}`
+   }
+   // DD/MM/YYYY
+   const slashMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+   if (slashMatch) {
+      const day = parseInt(slashMatch[1], 10)
+      const mon = parseInt(slashMatch[2], 10)
+      const year = parseInt(slashMatch[3], 10)
+      if (mon >= 1 && mon <= 12 && day >= 1 && day <= 31)
+         return `${year}-${String(mon).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+      return null
+   }
+   return null
+}
+
 function parseShariahStatus(v: string | undefined): number | null {
    if (!v) return null
    const n = parseInt(v.trim(), 10)
@@ -189,7 +231,7 @@ function parseCSV(text: string): ShariahImportRow[] {
       const row = parseCSVLine(line)
       return {
          prowessId: col(row, "prowess_id")?.trim() ?? "",
-         assessmentYear: col(row, "assessment_year")?.trim() || null,
+         assessmentYear: parseDate(col(row, "assessment_year")),
          marketCap: parseNum(col(row, "market_cap")),
          companyStatus: col(row, "company_status")?.trim() || null,
          shariahStatus: parseShariahStatus(col(row, "shariah_status")),
@@ -245,10 +287,10 @@ function downloadTemplate() {
 
 const CASCADE_CHAIN = [
    "lastFinancialData",
+   "incompleteBusInfo",
    "primaryBusiness",
    "secondaryBusiness",
    "compliantOnInvestment",
-   "incompleteBusInfo",
 ] as const satisfies readonly (keyof ShariahImportRow)[]
 
 // Mirrors the server-action cascade: once a step is not `true`, all subsequent steps → null.
@@ -273,10 +315,10 @@ const REQUIRED_FIELDS: { key: keyof ShariahImportRow; label: string }[] = [
    { key: "companyStatus", label: "Company Status" },
    { key: "shariahStatus", label: "Shariah Status" },
    { key: "lastFinancialData", label: "Last Financial Data" },
+   { key: "incompleteBusInfo", label: "Incomplete Bus. Info" },
    { key: "primaryBusiness", label: "Primary Business" },
    { key: "secondaryBusiness", label: "Secondary Business" },
    { key: "compliantOnInvestment", label: "Compliant on Investment" },
-   { key: "incompleteBusInfo", label: "Incomplete Bus. Info" },
    { key: "totalDebtTotalAssetValue", label: "Total Debt/Asset Value" },
    { key: "totalDebtTotalAssetStatus", label: "Total Debt/Asset Status" },
    { key: "totalInterestIncomeTotalIncomeValue", label: "Interest Income/Total Income Value" },
@@ -303,14 +345,51 @@ function getMissingFields(row: ShariahImportRow): string[] {
 }
 
 // ---------------------------------------------------------------------------
+// Field-change detection
+// ---------------------------------------------------------------------------
+
+const COMPARE_FIELDS: { key: keyof ShariahImportRow; dbKey: keyof ExistingShariahEntry; label: string }[] = [
+   { key: "shariahStatus", dbKey: "shariahStatus", label: "Shariah Status" },
+   { key: "companyStatus", dbKey: "companyStatus", label: "Comp. Status" },
+   { key: "lastFinancialData", dbKey: "lastFinancialData", label: "Fin. Data" },
+   { key: "incompleteBusInfo", dbKey: "incompleteBusInfo", label: "Inc. Bus. Info" },
+   { key: "primaryBusiness", dbKey: "primaryBusiness", label: "Primary Bus." },
+   { key: "secondaryBusiness", dbKey: "secondaryBusiness", label: "Secondary Bus." },
+   { key: "compliantOnInvestment", dbKey: "compliantOnInvestment", label: "Inv. Comp." },
+   { key: "totalDebtTotalAssetValue", dbKey: "totalDebtTotalAssetValue", label: "Debt/Asset Val." },
+   { key: "totalDebtTotalAssetStatus", dbKey: "totalDebtTotalAssetStatus", label: "Debt/Asset Status" },
+   { key: "totalInterestIncomeTotalIncomeValue", dbKey: "totalInterestIncomeTotalIncomeValue", label: "Int/Income Val." },
+   { key: "totalInterestIncomeTotalIncomeStatus", dbKey: "totalInterestIncomeTotalIncomeStatus", label: "Int/Income Status" },
+   { key: "cashBankReceivablesTotalAssetValue", dbKey: "cashBankReceivablesTotalAssetValue", label: "Cash/Asset Val." },
+   { key: "cashBankReceivablesTotalAssetStatus", dbKey: "cashBankReceivablesTotalAssetStatus", label: "Cash/Asset Status" },
+   { key: "marketCap", dbKey: "marketCap", label: "Market Cap" },
+   { key: "remark", dbKey: "remark", label: "Remark" },
+]
+
+function getChangedFields(row: ShariahImportRow, existing: ExistingShariahEntry): string[] {
+   return COMPARE_FIELDS.filter(({ key, dbKey }) => {
+      const nv = row[key]
+      const ov = existing[dbKey]
+      // Numeric strings: compare as floats (ignore precision noise)
+      if (typeof nv === "string" && typeof ov === "string") {
+         const fn = parseFloat(nv)
+         const fo = parseFloat(ov)
+         if (!isNaN(fn) && !isNaN(fo)) return Math.abs(fn - fo) > 0.001
+      }
+      return nv !== ov
+   }).map(({ label }) => label)
+}
+
+// ---------------------------------------------------------------------------
 // Preview row types
 // ---------------------------------------------------------------------------
 
-type PreviewStatus = "new" | "update" | "not_found" | "invalid"
+type PreviewStatus = "new" | "update" | "no_change" | "not_found" | "invalid"
 
 type PreviewRow = ShariahImportRow & {
    _status: PreviewStatus
    _missingFields?: string[]
+   _changedFields?: string[]
 }
 
 // ---------------------------------------------------------------------------
@@ -325,6 +404,7 @@ export function ImportShariahDialog() {
    const [currentMonth, setCurrentMonth] = React.useState<string | null>(null)
    const [existingProwessIds, setExistingProwessIds] = React.useState<Set<string>>(new Set())
    const [companyNames, setCompanyNames] = React.useState<Record<string, string>>({})
+   const [existingShariahData, setExistingShariahData] = React.useState<Record<string, ExistingShariahEntry>>({})
    const [isFetching, setIsFetching] = React.useState(false)
    const [isPending, startTransition] = React.useTransition()
    const fileInputRef = React.useRef<HTMLInputElement>(null)
@@ -334,10 +414,11 @@ export function ImportShariahDialog() {
       if (!open) return
       setIsFetching(true)
       getImportContext()
-         .then(({ currentMonth, existingProwessIds, companyNames }) => {
+         .then(({ currentMonth, existingProwessIds, companyNames, existingShariahData }) => {
             setCurrentMonth(currentMonth)
             setExistingProwessIds(existingProwessIds)
             setCompanyNames(companyNames)
+            setExistingShariahData(existingShariahData)
          })
          .finally(() => setIsFetching(false))
    }, [open])
@@ -372,10 +453,13 @@ export function ImportShariahDialog() {
             if (missingFields.length > 0) {
                return { ...r, _status: "invalid" as const, _missingFields: missingFields }
             }
-            return {
-               ...r,
-               _status: existingProwessIds.has(r.prowessId) ? "update" as const : "new" as const,
+            if (existingProwessIds.has(r.prowessId)) {
+               const existing = existingShariahData[r.prowessId]
+               const changedFields = existing ? getChangedFields(r, existing) : []
+               if (changedFields.length === 0) return { ...r, _status: "no_change" as const }
+               return { ...r, _status: "update" as const, _changedFields: changedFields }
             }
+            return { ...r, _status: "new" as const }
          })
          setPreview(rows)
          setActiveTab("new")
@@ -385,6 +469,7 @@ export function ImportShariahDialog() {
 
    const newRows = preview?.filter((r) => r._status === "new") ?? []
    const updateRows = preview?.filter((r) => r._status === "update") ?? []
+   const noChangeRows = preview?.filter((r) => r._status === "no_change") ?? []
    const notFoundRows = preview?.filter((r) => r._status === "not_found") ?? []
    const invalidRows = preview?.filter((r) => r._status === "invalid") ?? []
 
@@ -505,6 +590,12 @@ export function ImportShariahDialog() {
                               {updateRows.length} will update
                            </span>
                         )}
+                        {noChangeRows.length > 0 && (
+                           <span className="flex items-center gap-1 text-muted-foreground">
+                              <MinusCircleIcon className="size-3.5" />
+                              {noChangeRows.length} no change
+                           </span>
+                        )}
                         {invalidRows.length > 0 && (
                            <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
                               <XCircleIcon className="size-3.5" />
@@ -529,6 +620,10 @@ export function ImportShariahDialog() {
                               Update
                               <span className="rounded-full bg-muted px-1.5 text-xs tabular-nums">{updateRows.length}</span>
                            </TabsTrigger>
+                           <TabsTrigger value="no-change" className="gap-1.5">
+                              No Change
+                              <span className="rounded-full bg-muted px-1.5 text-xs tabular-nums">{noChangeRows.length}</span>
+                           </TabsTrigger>
                            <TabsTrigger value="invalid" className="gap-1.5">
                               Invalid
                               <span className="rounded-full bg-muted px-1.5 text-xs tabular-nums">{invalidRows.length}</span>
@@ -546,7 +641,12 @@ export function ImportShariahDialog() {
 
                         {/* Update */}
                         <TabsContent value="update" className="min-h-0 flex-1 flex flex-col overflow-hidden rounded-xl border">
-                           <PreviewTable rows={updateRows} companyNames={companyNames} emptyText="No records to update." highlight="blue" />
+                           <UpdatedPreviewTable rows={updateRows} companyNames={companyNames} />
+                        </TabsContent>
+
+                        {/* No Change */}
+                        <TabsContent value="no-change" className="min-h-0 flex-1 flex flex-col overflow-hidden rounded-xl border">
+                           <PreviewTable rows={noChangeRows} companyNames={companyNames} emptyText="No unchanged records." highlight="muted" />
                         </TabsContent>
 
                         {/* Invalid */}
@@ -590,11 +690,13 @@ function PreviewTable({
    rows: PreviewRow[]
    companyNames: Record<string, string>
    emptyText: string
-   highlight?: "blue"
+   highlight?: "blue" | "muted"
 }) {
    const { page, setPage, totalPages, pageRows } = usePagination(rows)
    const idClass = highlight === "blue"
       ? "text-blue-700 dark:text-blue-400"
+      : highlight === "muted"
+      ? "text-muted-foreground"
       : "text-emerald-700 dark:text-emerald-400"
 
    return (
@@ -640,6 +742,83 @@ function PreviewTable({
                            {row.marketCap ? parseFloat(row.marketCap).toLocaleString("en-IN") : <span className="text-muted-foreground opacity-40">—</span>}
                         </TableCell>
                         <TableCell className="pl-4 text-xs text-muted-foreground">{row.lastUpdatedAt ?? <span className="opacity-40">—</span>}</TableCell>
+                     </TableRow>
+                  ))}
+               </TableBody>
+            </Table>
+         </div>
+         <PaginationBar
+            page={page}
+            totalPages={totalPages}
+            count={pageRows.length}
+            total={rows.length}
+            onPrev={() => setPage((p) => p - 1)}
+            onNext={() => setPage((p) => p + 1)}
+         />
+      </>
+   )
+}
+
+// ---------------------------------------------------------------------------
+// Update tab table — shows changed field names as badges (paginated)
+// ---------------------------------------------------------------------------
+
+function UpdatedPreviewTable({
+   rows,
+   companyNames,
+}: {
+   rows: PreviewRow[]
+   companyNames: Record<string, string>
+}) {
+   const { page, setPage, totalPages, pageRows } = usePagination(rows)
+
+   return (
+      <>
+         <div className="flex-1 overflow-auto">
+            <Table>
+               <TableHeader className="bg-muted/60 sticky top-0 z-10">
+                  <TableRow className="hover:bg-transparent">
+                     <TableHead className="w-8 pl-4 text-muted-foreground">#</TableHead>
+                     <TableHead className="pl-4 text-muted-foreground">Prowess ID</TableHead>
+                     <TableHead className="pl-4 text-muted-foreground">Company</TableHead>
+                     <TableHead className="pl-4 text-muted-foreground whitespace-nowrap">Shariah Status</TableHead>
+                     <TableHead className="pl-4 text-muted-foreground">Changed Fields</TableHead>
+                  </TableRow>
+               </TableHeader>
+               <TableBody>
+                  {rows.length === 0 ? (
+                     <TableRow>
+                        <TableCell colSpan={5} className="h-24 text-center text-sm text-muted-foreground">
+                           No records to update.
+                        </TableCell>
+                     </TableRow>
+                  ) : pageRows.map((row, i) => (
+                     <TableRow key={row.prowessId}>
+                        <TableCell className="pl-4 text-xs text-muted-foreground tabular-nums">{page * PAGE_SIZE + i + 1}</TableCell>
+                        <TableCell className="pl-4 font-mono text-xs font-medium text-blue-700 dark:text-blue-400">{row.prowessId}</TableCell>
+                        <TableCell className="pl-4 text-sm">
+                           {companyNames[row.prowessId]
+                              ? <span className="font-medium whitespace-nowrap">{companyNames[row.prowessId]}</span>
+                              : <span className="text-muted-foreground opacity-40">—</span>}
+                        </TableCell>
+                        <TableCell className="pl-4 text-xs whitespace-nowrap">
+                           {row.shariahStatus
+                              ? <span>{row.shariahStatus}. {SHARIAH_STATUS_LABELS[row.shariahStatus]}</span>
+                              : <span className="text-muted-foreground opacity-40">—</span>}
+                        </TableCell>
+                        <TableCell className="pl-4">
+                           <div className="flex flex-wrap gap-1">
+                              {row._changedFields?.map((f) => (
+                                 <Badge
+                                    key={f}
+                                    variant="outline"
+                                    className="text-xs border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400"
+                                 >
+                                    {f}
+                                 </Badge>
+                              ))}
+                           </div>
+                        </TableCell>
                      </TableRow>
                   ))}
                </TableBody>
