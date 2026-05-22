@@ -10,11 +10,11 @@ import { appSettings, screeningStandardRemark } from "@/src/db/schema"
 const COMMON_REMARK_KEY = "snapshot_common_remark"
 
 const SCREENING_PARAMETERS = [
-   { key: "last_financial_data", label: "Latest Financial Data" },
+   { key: "last_financial_data", label: "Financial Data" },
+   { key: "incomplete_business_information", label: "Incomplete Business Information" },
    { key: "primary_business", label: "Primary Business" },
    { key: "secondary_business", label: "Secondary Business" },
    { key: "compliant_on_investment", label: "Compliant on Investment" },
-   { key: "financial_information", label: "Financial Information" },
 ] as const
 
 export type ScreeningStandardRow = {

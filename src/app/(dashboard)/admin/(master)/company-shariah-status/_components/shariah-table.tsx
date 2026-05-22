@@ -125,7 +125,7 @@ function exportRowsToCSV(rows: ShariahRow[], month: string) {
    const headers = [
       "prowess_id", "company_name", "company_status", "shariah_status",
       "assessment_year", "market_cap", "last_financial_data", "primary_business", "secondary_business",
-      "compliant_on_investment", "sufficient_financial_info",
+      "compliant_on_investment", "incomplete_bus_info",
       "total_debt_total_asset_value", "total_debt_total_asset_status",
       "total_interest_income_total_income_value", "total_interest_income_total_income_status",
       "cash_bank_receivables_total_asset_value", "cash_bank_receivables_total_asset_status",
@@ -149,7 +149,7 @@ function exportRowsToCSV(rows: ShariahRow[], month: string) {
       boolToCSV(r.primaryBusiness),
       boolToCSV(r.secondaryBusiness),
       boolToCSV(r.compliantOnInvestment),
-      boolToCSV(r.sufficientFinancialInfo),
+      boolToCSV(r.incompleteBusInfo),
       escape(r.totalDebtTotalAssetValue),
       boolToCSV(r.totalDebtTotalAssetStatus),
       escape(r.totalInterestIncomeTotalIncomeValue),
@@ -207,7 +207,7 @@ export type ShariahRow = {
    primaryBusiness: boolean | null
    secondaryBusiness: boolean | null
    compliantOnInvestment: boolean | null
-   sufficientFinancialInfo: boolean | null
+   incompleteBusInfo: boolean | null
    totalDebtTotalAssetValue: string | null
    totalDebtTotalAssetStatus: boolean | null
    totalInterestIncomeTotalIncomeValue: string | null
@@ -316,10 +316,10 @@ export function ShariahTable({
          cell: ({ row }) => <BoolCell value={row.original.compliantOnInvestment} />,
       },
       {
-         id: "sufficientFinancialInfo",
+         id: "incompleteBusInfo",
          enableSorting: false,
-         header: () => <span className="text-muted-foreground text-xs whitespace-nowrap">Suff. Fin. Info</span>,
-         cell: ({ row }) => <BoolCell value={row.original.sufficientFinancialInfo} />,
+         header: () => <span className="text-muted-foreground text-xs whitespace-nowrap">Inc. Bus. Info</span>,
+         cell: ({ row }) => <BoolCell value={row.original.incompleteBusInfo} />,
       },
       {
          id: "totalDebt",

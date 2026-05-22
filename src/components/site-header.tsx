@@ -16,7 +16,7 @@ export function SiteHeader({ title = "Dashboard", breadcrumb }: SiteHeaderProps)
           <SidebarTrigger className="-ml-1" />
           <Separator
             orientation="vertical"
-            className="mx-2 data-[orientation=vertical]:h-4"
+            className="mx-2 data-[orientation=vertical]:h-8"
           />
           <div className="flex items-center gap-2 text-sm">
             {breadcrumb && (

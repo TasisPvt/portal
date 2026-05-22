@@ -34,7 +34,7 @@ export async function getShariahDataForMonth(month: string) {
          primaryBusiness: companyShariah.primaryBusiness,
          secondaryBusiness: companyShariah.secondaryBusiness,
          compliantOnInvestment: companyShariah.compliantOnInvestment,
-         sufficientFinancialInfo: companyShariah.sufficientFinancialInfo,
+         incompleteBusInfo: companyShariah.incompleteBusInfo,
          totalDebtTotalAssetValue: companyShariah.totalDebtTotalAssetValue,
          totalDebtTotalAssetStatus: companyShariah.totalDebtTotalAssetStatus,
          totalInterestIncomeTotalIncomeValue: companyShariah.totalInterestIncomeTotalIncomeValue,
@@ -65,18 +65,54 @@ export async function getAvailableMonths(): Promise<string[]> {
    return rows.map((r) => r.month)
 }
 
-// Called by the import dialog on open — returns current month, existing prowessIds, and prowessId→name map
+export type ExistingShariahEntry = {
+   shariahStatus: number | null
+   companyStatus: string | null
+   lastFinancialData: boolean | null
+   incompleteBusInfo: boolean | null
+   primaryBusiness: boolean | null
+   secondaryBusiness: boolean | null
+   compliantOnInvestment: boolean | null
+   totalDebtTotalAssetValue: string | null
+   totalDebtTotalAssetStatus: boolean | null
+   totalInterestIncomeTotalIncomeValue: string | null
+   totalInterestIncomeTotalIncomeStatus: boolean | null
+   cashBankReceivablesTotalAssetValue: string | null
+   cashBankReceivablesTotalAssetStatus: boolean | null
+   marketCap: string | null
+   remark: string | null
+}
+
+// Called by the import dialog on open — returns current month, existing prowessIds, prowessId→name map, and existing shariah values
 export async function getImportContext(): Promise<{
    currentMonth: string
    existingProwessIds: Set<string>
    companyNames: Record<string, string>
+   existingShariahData: Record<string, ExistingShariahEntry>
 }> {
    const currentMonth = getCurrentMonth()
 
-   const [allCompanies, existing] = await Promise.all([
+   const [allCompanies, existingRows] = await Promise.all([
       db.select({ prowessId: companyMaster.prowessId, companyName: companyMaster.companyName }).from(companyMaster),
       db
-         .select({ prowessId: companyMaster.prowessId })
+         .select({
+            prowessId: companyMaster.prowessId,
+            shariahStatus: companyShariah.shariahStatus,
+            companyStatus: companyShariah.companyStatus,
+            lastFinancialData: companyShariah.lastFinancialData,
+            incompleteBusInfo: companyShariah.incompleteBusInfo,
+            primaryBusiness: companyShariah.primaryBusiness,
+            secondaryBusiness: companyShariah.secondaryBusiness,
+            compliantOnInvestment: companyShariah.compliantOnInvestment,
+            totalDebtTotalAssetValue: companyShariah.totalDebtTotalAssetValue,
+            totalDebtTotalAssetStatus: companyShariah.totalDebtTotalAssetStatus,
+            totalInterestIncomeTotalIncomeValue: companyShariah.totalInterestIncomeTotalIncomeValue,
+            totalInterestIncomeTotalIncomeStatus: companyShariah.totalInterestIncomeTotalIncomeStatus,
+            cashBankReceivablesTotalAssetValue: companyShariah.cashBankReceivablesTotalAssetValue,
+            cashBankReceivablesTotalAssetStatus: companyShariah.cashBankReceivablesTotalAssetStatus,
+            marketCap: companyShariah.marketCap,
+            remark: companyShariah.remark,
+         })
          .from(companyShariah)
          .innerJoin(companyMaster, eq(companyShariah.companyId, companyMaster.id))
          .where(eq(companyShariah.month, currentMonth)),
@@ -84,8 +120,9 @@ export async function getImportContext(): Promise<{
 
    return {
       currentMonth,
-      existingProwessIds: new Set(existing.map((r) => r.prowessId)),
+      existingProwessIds: new Set(existingRows.map((r) => r.prowessId)),
       companyNames: Object.fromEntries(allCompanies.map((c) => [c.prowessId, c.companyName])),
+      existingShariahData: Object.fromEntries(existingRows.map((r) => [r.prowessId, r])),
    }
 }
 
@@ -103,7 +140,7 @@ export type ShariahImportRow = {
    primaryBusiness?: boolean | null
    secondaryBusiness?: boolean | null
    compliantOnInvestment?: boolean | null
-   sufficientFinancialInfo?: boolean | null
+   incompleteBusInfo?: boolean | null
    totalDebtTotalAssetValue?: string | null
    totalDebtTotalAssetStatus?: boolean | null
    totalInterestIncomeTotalIncomeValue?: string | null
@@ -163,7 +200,7 @@ export async function importShariahData(records: ShariahImportRow[]): Promise<{
          primaryBusiness: record.primaryBusiness ?? null,
          secondaryBusiness: record.secondaryBusiness ?? null,
          compliantOnInvestment: record.compliantOnInvestment ?? null,
-         sufficientFinancialInfo: record.sufficientFinancialInfo ?? null,
+         incompleteBusInfo: record.incompleteBusInfo ?? null,
          totalDebtTotalAssetValue: record.totalDebtTotalAssetValue || null,
          totalDebtTotalAssetStatus: record.totalDebtTotalAssetStatus ?? null,
          totalInterestIncomeTotalIncomeValue: record.totalInterestIncomeTotalIncomeValue || null,
@@ -176,13 +213,13 @@ export async function importShariahData(records: ShariahImportRow[]): Promise<{
       }
 
       // Compliance cascade: if a step is not `true`, null out all subsequent steps.
-      // Order: lastFinancialData → primaryBusiness → secondaryBusiness → compliantOnInvestment → sufficientFinancialInfo
+      // Order: lastFinancialData → incompleteBusInfo → primaryBusiness → secondaryBusiness → compliantOnInvestment
       const complianceChain = [
          "lastFinancialData",
+         "incompleteBusInfo",
          "primaryBusiness",
          "secondaryBusiness",
          "compliantOnInvestment",
-         "sufficientFinancialInfo",
       ] as const
       let cascadeNull = false
       for (const field of complianceChain) {

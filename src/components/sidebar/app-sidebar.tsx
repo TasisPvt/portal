@@ -21,6 +21,7 @@ import {
    CreditCardIcon,
    ReceiptIcon,
    BookTextIcon,
+   PercentIcon,
 } from "lucide-react"
 import { NavCollapsible } from "@/src/components/sidebar/nav-collapsible"
 import { NavMain } from "@/src/components/sidebar/nav-main"
@@ -118,6 +119,11 @@ const adminNav = {
          title: "TASIS Standards",
          url: "/admin/tasis-screening-standards",
          icon: BookTextIcon,
+      },
+      {
+         title: "Financial Thresholds",
+         url: "/admin/financial-thresholds",
+         icon: PercentIcon,
       },
    ],
    navSecondary: [

@@ -1,6 +1,6 @@
 {
-  "id": "e3105d9c-ac50-420c-bb70-dc605ab39be1",
-  "prevId": "56fd7321-8d6c-4984-8ebc-fe7642fba0fb",
+  "id": "e3e7d8bc-c064-4a60-9c45-453576a74b6c",
+  "prevId": "2beb856b-1ec7-4179-9af7-56f8157d5179",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1199,6 +1199,65 @@
           "nullsNotDistinct": false,
           "columns": [
             "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.screening_financial_ratio_threshold": {
+      "name": "screening_financial_ratio_threshold",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "parameter": {
+          "name": "parameter",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "threshold": {
+          "name": "threshold",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "screening_financial_ratio_threshold_parameter_unique": {
+          "name": "screening_financial_ratio_threshold_parameter_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "parameter"
           ]
         }
       },
