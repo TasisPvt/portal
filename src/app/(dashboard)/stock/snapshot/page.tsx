@@ -2,11 +2,15 @@ import Link from "next/link"
 import { PackageIcon } from "lucide-react"
 import { Button } from "@/src/components/ui/button"
 import { SiteHeader } from "@/src/components/site-header"
-import { getSnapshotAccess, getCommonRemark } from "./_actions"
+import { getSnapshotAccess, getCommonRemark, getFinancialRatioThresholds } from "./_actions"
 import { SnapshotClient } from "./_components/snapshot-client"
 
 export default async function SnapshotPage() {
-   const [access, commonRemark] = await Promise.all([getSnapshotAccess(), getCommonRemark()])
+   const [access, commonRemark, thresholds] = await Promise.all([
+      getSnapshotAccess(),
+      getCommonRemark(),
+      getFinancialRatioThresholds(),
+   ])
 
    if (!access) {
       return (
@@ -33,7 +37,7 @@ export default async function SnapshotPage() {
    return (
       <>
          <SiteHeader breadcrumb="Stocks" title="Snapshot" />
-         <SnapshotClient access={access} commonRemark={commonRemark} />
+         <SnapshotClient access={access} commonRemark={commonRemark} thresholds={thresholds} />
       </>
    )
 }

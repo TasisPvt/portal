@@ -66,12 +66,6 @@ const BUSINESS_PARAMS = [
    "secondary_business",
    "compliant_on_investment",
 ]
-const FINANCIAL_PARAMS = [
-   "total_debt_total_asset",
-   "total_interest_income_total_income",
-   "cash_bank_receivables_total_asset",
-]
-
 type TabKey = "business" | "financials" | "historical" | "legends"
 const TABS: { key: TabKey; label: string }[] = [
    { key: "business", label: "Business & Data" },
@@ -93,11 +87,6 @@ function fmtMonthStr(month: string): string {
    const [y, m] = month.split("-")
    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
    return `${months[parseInt(m) - 1]} '${y.slice(2)}`
-}
-
-function fmtRatio(val: string | null | undefined): string {
-   if (!val) return "—"
-   return `${parseFloat(val).toFixed(2)}%`
 }
 
 function fmtMarketCapRaw(val: string | null | undefined): string {
@@ -230,31 +219,39 @@ function ComplianceHistory({ history }: { history: { month: string; shariahStatu
 type ScreeningRemark = SnapshotSuccess["screeningRemarks"][number]
 
 function RemarkPanel({ remark }: { remark: ScreeningRemark | null | undefined }) {
+   const activeRemark =
+      remark?.value === true
+         ? remark.passRemark
+         : remark?.value === false
+            ? remark.failRemark
+            : null
+
    return (
       <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">Remarks</p>
          {remark ? (
             <div className="flex flex-col gap-4">
                <p className="text-sm font-semibold text-foreground">{remark.label}</p>
-               {remark.passRemark && (
-                  <div className="flex items-start gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 p-3">
-                     <CheckCircle2Icon className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+               {activeRemark ? (
+                  <div
+                     className={cn(
+                        "flex items-start gap-3 rounded-xl p-3",
+                        remark.value === true
+                           ? "bg-emerald-50 dark:bg-emerald-950/20"
+                           : "bg-red-50 dark:bg-red-950/20",
+                     )}
+                  >
+                     {remark.value === true ? (
+                        <CheckCircle2Icon className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+                     ) : (
+                        <XCircleIcon className="mt-0.5 size-4 shrink-0 text-red-500" />
+                     )}
                      <div
                         className="text-sm leading-relaxed text-muted-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
-                        dangerouslySetInnerHTML={{ __html: remark.passRemark }}
+                        dangerouslySetInnerHTML={{ __html: activeRemark }}
                      />
                   </div>
-               )}
-               {remark.failRemark && (
-                  <div className="flex items-start gap-3 rounded-xl bg-red-50 dark:bg-red-950/20 p-3">
-                     <XCircleIcon className="mt-0.5 size-4 shrink-0 text-red-500" />
-                     <div
-                        className="text-sm leading-relaxed text-muted-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
-                        dangerouslySetInnerHTML={{ __html: remark.failRemark }}
-                     />
-                  </div>
-               )}
-               {!remark.passRemark && !remark.failRemark && (
+               ) : (
                   <p className="text-sm text-muted-foreground">No remarks available for this parameter.</p>
                )}
             </div>
@@ -272,73 +269,209 @@ function RemarkPanel({ remark }: { remark: ScreeningRemark | null | undefined })
 
 type ShariahData = NonNullable<SnapshotSuccess["shariah"]>
 
+function RatioChart({
+   label,
+   value,
+   status,
+   threshold,
+}: {
+   label: string
+   value: string | null
+   status: boolean | null
+   threshold: number // 0–1 decimal stored in DB
+}) {
+   const numericValue = value !== null ? parseFloat(value) : null
+   const thresholdPct = threshold * 100
+   const isNull = status === null
+   const isPass = status === true
+   const isOver = numericValue !== null && numericValue > thresholdPct
+
+   const fmtPct = (n: number) =>
+      n % 1 === 0 ? `${n.toFixed(0)}%` : `${n.toFixed(2)}%`
+
+   // Compliant (value ≤ threshold): track width = threshold, bar = value/threshold
+   // Non-compliant (value > threshold): track width = value, bar = 100%, threshold line inside
+   let barWidth: number
+   let thresholdLinePos: number | null // null when value ≤ threshold (threshold IS the right edge)
+
+   if (numericValue === null) {
+      barWidth = 0
+      thresholdLinePos = null
+   } else if (!isOver) {
+      barWidth = thresholdPct > 0 ? (numericValue / thresholdPct) * 100 : 0
+      thresholdLinePos = null
+   } else {
+      barWidth = 100
+      thresholdLinePos = (thresholdPct / numericValue) * 100
+   }
+
+   const pctOfLimit =
+      numericValue !== null && thresholdPct > 0
+         ? (numericValue / thresholdPct) * 100
+         : null
+
+   return (
+      <div className="flex flex-col gap-2 ">
+         {/* Header: label left, value / limit right */}
+         <div className="flex items-baseline justify-between gap-2">
+            <span className="text-sm text-muted-foreground leading-tight">{label}</span>
+            <div className="shrink-0 flex items-baseline gap-1">
+               <span
+                  className={cn(
+                     "text-sm font-bold tabular-nums",
+                     isNull
+                        ? "text-foreground"
+                        : isPass
+                           ? "text-emerald-600 dark:text-emerald-400"
+                           : "text-red-600 dark:text-red-400",
+                  )}
+               >
+                  {numericValue !== null ? `${numericValue.toFixed(2)}%` : "—"}
+               </span>
+               <span className="text-xs text-muted-foreground">/ {fmtPct(thresholdPct)}</span>
+            </div>
+         </div>
+
+         {/* Track */}
+         <div className="relative h-4 rounded-full overflow-hidden">
+            {/* Tinted background — gives context for tiny values */}
+            <div
+               className={cn(
+                  "absolute inset-0",
+                  isNull
+                     ? "bg-muted"
+                     : isPass
+                        ? "bg-emerald-100 dark:bg-emerald-950/30"
+                        : "bg-red-100 dark:bg-red-950/30",
+               )}
+            />
+            {/* Value bar */}
+            <div
+               className={cn(
+                  "absolute inset-y-0 left-0 rounded-full transition-all duration-700",
+                  isNull
+                     ? "bg-muted-foreground/30"
+                     : isPass
+                        ? "bg-emerald-500"
+                        : "bg-red-500",
+               )}
+               style={{ width: `${barWidth}%` }}
+            />
+            {/* Threshold line — only when value exceeds threshold */}
+            {thresholdLinePos !== null && (
+               <div
+                  className="absolute inset-y-0 w-[2px] bg-white/80 z-10"
+                  style={{ left: `calc(${thresholdLinePos}% - 1px)` }}
+               />
+            )}
+         </div>
+
+         {/* Scale labels */}
+         <div className="flex items-center text-[10px] text-muted-foreground">
+            <span>0%</span>
+            {isOver && thresholdLinePos !== null ? (
+               // Non-compliant: threshold label floats at its position, value at far right
+               <>
+                  <div className="relative flex-1 mx-1 h-4">
+                     <span
+                        className="absolute -translate-x-1/2 font-medium text-red-500/80 whitespace-nowrap"
+                        style={{ left: `${thresholdLinePos}%` }}
+                     >
+                        Limit: {fmtPct(thresholdPct)}
+                     </span>
+                  </div>
+                  <span className="font-medium">{numericValue?.toFixed(2)}%</span>
+               </>
+            ) : (
+               // Compliant: right edge = threshold
+               <>
+                  <span className="flex-1" />
+                  <span className="font-medium">Limit: {fmtPct(thresholdPct)}</span>
+               </>
+            )}
+         </div>
+
+         {/* Context sub-label */}
+         {pctOfLimit !== null && (
+            <p
+               className={cn(
+                  "text-[10px]",
+                  isNull
+                     ? "text-muted-foreground"
+                     : isPass
+                        ? "text-emerald-600/70 dark:text-emerald-400/60"
+                        : "text-red-600/70 dark:text-red-400/60",
+               )}
+            >
+               {isPass
+                  ? ``
+                  : `Exceeds limit by ${(numericValue! - thresholdPct).toFixed(2)}%`}
+            </p>
+         )}
+
+         {/* Pass / fail badge */}
+         {!isNull && (
+            <div
+               className={cn(
+                  "self-start rounded-full px-2.5 py-0.5 text-[10px] font-semibold",
+                  isPass
+                     ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                     : "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400",
+               )}
+            >
+               {isPass
+                  ? `Compliant — at or below ${fmtPct(thresholdPct)}`
+                  : `Non-compliant — exceeds ${fmtPct(thresholdPct)}`}
+            </div>
+         )}
+      </div>
+   )
+}
+
 function QuantitativeRatiosPanel({
    shariah,
-   financialRemarks,
+   thresholds,
 }: {
    shariah: ShariahData
-   financialRemarks: ScreeningRemark[]
+   thresholds: Record<string, number>
 }) {
    const ratioData = [
       {
          label: "Total Debt / Total Asset",
+         parameter: "total_debt_total_asset",
          value: shariah.totalDebtTotalAssetValue,
          status: shariah.totalDebtTotalAssetStatus,
-         remark: financialRemarks.find((r) => r.parameter === "total_debt_total_asset"),
       },
       {
          label: "Total Interest Income / Total Income",
+         parameter: "total_interest_income_total_income",
          value: shariah.totalInterestIncomeTotalIncomeValue,
          status: shariah.totalInterestIncomeTotalIncomeStatus,
-         remark: financialRemarks.find((r) => r.parameter === "total_interest_income_total_income"),
       },
       {
          label: "Cash + Bank + Receivables / Total Asset",
+         parameter: "cash_bank_receivables_total_asset",
          value: shariah.cashBankReceivablesTotalAssetValue,
          status: shariah.cashBankReceivablesTotalAssetStatus,
-         remark: financialRemarks.find((r) => r.parameter === "cash_bank_receivables_total_asset"),
       },
    ]
 
    return (
       <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
-         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">
+         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-6">
             Quantitative Ratios
          </p>
-         <div className="flex flex-col gap-4">
-            {ratioData.map(({ label, value, status }) => {
-               const pct = value ? Math.min(parseFloat(value), 100) : 0
-               const isNull = status === null || status === undefined
-               const barColor = isNull
-                  ? "bg-muted-foreground/30"
-                  : status
-                     ? "bg-emerald-500"
-                     : "bg-red-500"
-               const valColor = isNull
-                  ? "text-foreground"
-                  : status
-                     ? "text-emerald-600 dark:text-emerald-400"
-                     : "text-red-600 dark:text-red-400"
-
-               return (
-                  <div key={label} className="flex flex-col gap-1.5">
-                     <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm text-muted-foreground leading-tight">{label}</span>
-                        <span className={cn("text-sm font-semibold tabular-nums shrink-0", valColor)}>
-                           {fmtRatio(value)}
-                        </span>
-                     </div>
-                     <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                        <div
-                           className={cn("h-full rounded-full transition-all duration-500", barColor)}
-                           style={{ width: `${pct}%` }}
-                        />
-                     </div>
-                  </div>
-               )
-            })}
+         <div className="flex flex-col gap-7">
+            {ratioData.map(({ label, parameter, value, status }) => (
+               <RatioChart
+                  key={parameter}
+                  label={label}
+                  value={value}
+                  status={status}
+                  threshold={thresholds[parameter] ?? 0.33}
+               />
+            ))}
          </div>
-
       </div>
    )
 }
@@ -347,14 +480,19 @@ function QuantitativeRatiosPanel({
 
 type SnapshotSuccess = Extract<CompanySnapshotResult, { company: unknown }>
 
-function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRemark: string | null }) {
+function SnapshotCard({ data, commonRemark, thresholds }: { data: SnapshotSuccess; commonRemark: string | null; thresholds: Record<string, number> }) {
    const { company, shariah, complianceHistory, screeningRemarks, quota } = data
 
    const [activeTab, setActiveTab] = React.useState<TabKey>("business")
-   const [selectedParam, setSelectedParam] = React.useState<string | null>(null)
+   const [selectedParam, setSelectedParam] = React.useState<string | null>("last_financial_data")
 
    const businessRemarks = screeningRemarks.filter((r) => BUSINESS_PARAMS.includes(r.parameter))
-   const financialRemarks = screeningRemarks.filter((r) => FINANCIAL_PARAMS.includes(r.parameter))
+
+   const hasFinancials = !!shariah &&
+      businessRemarks.length > 0 &&
+      businessRemarks.every((r) => r.value === true)
+   const visibleTabs = TABS.filter((t) => t.key !== "financials" || hasFinancials)
+   const effectiveTab: TabKey = activeTab === "financials" && !hasFinancials ? "business" : activeTab
    const selectedRemark = screeningRemarks.find((r) => r.parameter === selectedParam) ?? null
 
    const isCompliant = shariah?.shariahStatus === 1
@@ -365,7 +503,7 @@ function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRem
 
    function handleTabChange(tab: TabKey) {
       setActiveTab(tab)
-      setSelectedParam(null)
+      setSelectedParam(tab === "business" ? "last_financial_data" : null)
    }
 
    return (
@@ -489,13 +627,13 @@ function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRem
             <>
                {/* ── Tabs ── */}
                <div className="flex overflow-x-auto border-b">
-                  {TABS.map((tab) => (
+                  {visibleTabs.map((tab) => (
                      <button
                         key={tab.key}
                         onClick={() => handleTabChange(tab.key)}
                         className={cn(
                            "shrink-0 px-5 py-3 text-xs font-semibold uppercase tracking-wider transition-colors",
-                           activeTab === tab.key
+                           effectiveTab === tab.key
                               ? "border-b-2 border-foreground text-foreground"
                               : "border-b-2 border-transparent text-muted-foreground hover:text-foreground",
                         )}
@@ -508,7 +646,7 @@ function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRem
                {/* ── Tab Content ── */}
 
                {/* Business & Data */}
-               {activeTab === "business" && (
+               {effectiveTab === "business" && (
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                      {/* Left: Qualitative Parameters */}
                      <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
@@ -516,44 +654,49 @@ function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRem
                            Qualitative Parameters
                         </p>
                         <div className="flex flex-col space-y-2">
-                           {businessRemarks.map((r) => (
-                              <button
-                                 key={r.parameter}
-                                 onClick={() =>
-                                    setSelectedParam(selectedParam === r.parameter ? null : r.parameter)
-                                 }
-                                 className={cn(
-                                    "flex items-center gap-3 rounded-xl px-3 py-3  bg-muted/40 text-left transition-colors hover:bg-muted",
-                                    selectedParam === r.parameter && "bg-muted/60",
-                                 )}
-                              >
-                                 <div
+                           {businessRemarks.map((r) => {
+                              const isInactive = r.value === null
+                              return (
+                                 <button
+                                    key={r.parameter}
+                                    onClick={() => {
+                                       if (isInactive) return
+                                       setSelectedParam(r.parameter)
+                                    }}
+                                    disabled={isInactive}
                                     className={cn(
-                                       "flex size-7 shrink-0 items-center justify-center rounded-full",
-                                       r.value === true
-                                          ? "bg-emerald-600"
-                                          : r.value === false
-                                             ? "bg-red-500"
-                                             : "bg-muted",
+                                       "flex items-center gap-3 rounded-xl px-3 py-3 bg-muted/40 text-left transition-colors border border-transparent",
+                                       isInactive
+                                          ? "cursor-not-allowed opacity-40"
+                                          : "hover:bg-muted",
+                                       selectedParam === r.parameter && !isInactive && "border-foreground/20 bg-muted/60",
                                     )}
                                  >
-                                    {r.value === true ? (
-                                       <CheckCircle2Icon className="size-4 text-white" />
-                                    ) : r.value === false ? (
-                                       <XCircleIcon className="size-4 text-white" />
-                                    ) : (
-                                       <MinusCircleIcon className="size-4 text-muted-foreground" />
+                                    <div
+                                       className={cn(
+                                          "flex size-7 shrink-0 items-center justify-center rounded-full",
+                                          r.value === true
+                                             ? "bg-emerald-600"
+                                             : r.value === false
+                                                ? "bg-red-500"
+                                                : "bg-muted",
+                                       )}
+                                    >
+                                       {r.value === true ? (
+                                          <CheckCircle2Icon className="size-4 text-white" />
+                                       ) : r.value === false ? (
+                                          <XCircleIcon className="size-4 text-white" />
+                                       ) : (
+                                          <MinusCircleIcon className="size-4 text-muted-foreground" />
+                                       )}
+                                    </div>
+                                    <span className="flex-1 text-sm font-medium leading-tight">{r.label}</span>
+                                    {!isInactive && (
+                                       <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground/40" />
                                     )}
-                                 </div>
-                                 <span className="flex-1 text-sm font-medium leading-tight">{r.label}</span>
-                                 <ChevronRightIcon
-                                    className={cn(
-                                       "size-4 shrink-0 text-muted-foreground/40 transition-transform duration-200",
-                                       selectedParam === r.parameter && "rotate-90",
-                                    )}
-                                 />
-                              </button>
-                           ))}
+                                 </button>
+                              )
+                           })}
                         </div>
                      </div>
 
@@ -563,14 +706,14 @@ function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRem
                )}
 
                {/* Financials */}
-               {activeTab === "financials" && (
+               {effectiveTab === "financials" && (
                   <div className="">
-                     <QuantitativeRatiosPanel shariah={shariah} financialRemarks={financialRemarks} />
+                     <QuantitativeRatiosPanel shariah={shariah} thresholds={thresholds} />
                   </div>
                )}
 
                {/* Historical */}
-               {activeTab === "historical" && (
+               {effectiveTab === "historical" && (
                   <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
                      <div className="mb-4 flex items-center justify-between">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -582,7 +725,7 @@ function SnapshotCard({ data, commonRemark }: { data: SnapshotSuccess; commonRem
                )}
 
                {/* Legends */}
-               {activeTab === "legends" && (
+               {effectiveTab === "legends" && (
                   <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
                      <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                         Status Color Legend
@@ -710,7 +853,7 @@ function SearchDropdown({
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
-export function SnapshotClient({ access, commonRemark }: { access: SnapshotAccess; commonRemark: string | null }) {
+export function SnapshotClient({ access, commonRemark, thresholds }: { access: SnapshotAccess; commonRemark: string | null; thresholds: Record<string, number> }) {
    const [query, setQuery] = React.useState("")
    const [searchResults, setSearchResults] = React.useState<CompanySearchResult[]>([])
    const [isSearching, setIsSearching] = React.useState(false)
@@ -878,7 +1021,7 @@ export function SnapshotClient({ access, commonRemark }: { access: SnapshotAcces
          )}
 
          {!isLoading && snapshotData && (
-            <SnapshotCard data={snapshotData} commonRemark={commonRemark} />
+            <SnapshotCard data={snapshotData} commonRemark={commonRemark} thresholds={thresholds} />
          )}
       </div>
    )
