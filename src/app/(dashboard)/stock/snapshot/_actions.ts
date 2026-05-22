@@ -10,6 +10,7 @@ import {
    appSettings,
    companyMaster,
    companyShariah,
+   financialRatioThreshold,
    industryGroup,
    pricingPlan,
    screeningStandardRemark,
@@ -467,4 +468,17 @@ export async function getCommonRemark(): Promise<string | null> {
       .where(eq(appSettings.key, "snapshot_common_remark"))
       .limit(1)
    return rows[0]?.value ?? null
+}
+
+export async function getFinancialRatioThresholds(): Promise<Record<string, number>> {
+   const defaults: Record<string, number> = {
+      total_debt_total_asset: 0.33,
+      total_interest_income_total_income: 0.05,
+      cash_bank_receivables_total_asset: 0.33,
+   }
+   const rows = await db.select().from(financialRatioThreshold)
+   for (const row of rows) {
+      defaults[row.parameter] = parseFloat(row.threshold)
+   }
+   return defaults
 }

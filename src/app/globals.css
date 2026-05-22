@@ -149,7 +149,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 
   --font-sans: var(--font-sans);
-  --font-heading: var(--font-inter);
+  --font-heading: var(--font-sans);
 
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);
