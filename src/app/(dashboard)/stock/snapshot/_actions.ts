@@ -10,7 +10,7 @@ import {
    appSettings,
    companyMaster,
    companyShariah,
-   financialRatioThreshold,
+   screeningFinancialRatioThreshold,
    industryGroup,
    pricingPlan,
    screeningStandardRemark,
@@ -476,7 +476,7 @@ export async function getFinancialRatioThresholds(): Promise<Record<string, numb
       total_interest_income_total_income: 0.05,
       cash_bank_receivables_total_asset: 0.33,
    }
-   const rows = await db.select().from(financialRatioThreshold)
+   const rows = await db.select().from(screeningFinancialRatioThreshold)
    for (const row of rows) {
       defaults[row.parameter] = parseFloat(row.threshold)
    }

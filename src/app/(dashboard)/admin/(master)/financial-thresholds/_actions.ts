@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
 import { db } from "@/src/db/client"
-import { financialRatioThreshold } from "@/src/db/schema"
+import { screeningFinancialRatioThreshold } from "@/src/db/schema"
 
 const RATIO_PARAMETERS = [
    { key: "total_debt_total_asset", label: "Total Debt / Total Asset", defaultThreshold: "0.3300" },
@@ -21,7 +21,7 @@ export type FinancialRatioRow = {
 }
 
 export async function getFinancialThresholds(): Promise<FinancialRatioRow[]> {
-   const rows = await db.select().from(financialRatioThreshold)
+   const rows = await db.select().from(screeningFinancialRatioThreshold)
    const map = new Map(rows.map((r) => [r.parameter, r]))
    return RATIO_PARAMETERS.map(({ key, label, defaultThreshold }) => {
       const existing = map.get(key)
@@ -48,7 +48,7 @@ export async function upsertFinancialThreshold(
 
    try {
       await db
-         .insert(financialRatioThreshold)
+         .insert(screeningFinancialRatioThreshold)
          .values({
             id: randomUUID(),
             parameter,
@@ -56,7 +56,7 @@ export async function upsertFinancialThreshold(
             threshold: num.toFixed(4),
          })
          .onConflictDoUpdate({
-            target: financialRatioThreshold.parameter,
+            target: screeningFinancialRatioThreshold.parameter,
             set: {
                threshold: num.toFixed(4),
                updatedAt: new Date(),

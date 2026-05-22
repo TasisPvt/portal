@@ -195,7 +195,7 @@ export const appSettings = pgTable("app_settings", {
       .notNull(),
 })
 
-export const financialRatioThreshold = pgTable("financial_ratio_threshold", {
+export const screeningFinancialRatioThreshold = pgTable("screening_financial_ratio_threshold", {
    id: varchar("id", { length: 36 }).primaryKey(),
    parameter: varchar("parameter", { length: 100 }).notNull().unique(),
    label: varchar("label", { length: 255 }).notNull(),
@@ -214,4 +214,4 @@ export type IndexMaster = typeof indexMaster.$inferSelect
 export type IndexCompany = typeof indexCompany.$inferSelect
 export type CompanyShariah = typeof companyShariah.$inferSelect
 export type ScreeningStandardRemark = typeof screeningStandardRemark.$inferSelect
-export type FinancialRatioThreshold = typeof financialRatioThreshold.$inferSelect
+export type FinancialRatioThreshold = typeof screeningFinancialRatioThreshold.$inferSelect
