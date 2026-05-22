@@ -154,7 +154,7 @@ const MONTH_ABBR: Record<string, string> = {
    jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
 }
 
-// Accepts YYYY-MM-DD (ISO), D-Mon-YY, DD-Mon-YYYY, DD/MM/YYYY. Returns null for invalid/placeholder dates.
+// Accepts YYYY-MM-DD (ISO), D-Mon-YY, DD-Mon-YYYY, DD/MM/YYYY, DD-MM-YYYY. Returns null for invalid/placeholder dates.
 function parseDate(v: string | undefined): string | null {
    if (!v) return null
    const s = v.trim()
@@ -183,6 +183,16 @@ function parseDate(v: string | undefined): string | null {
       const day = parseInt(slashMatch[1], 10)
       const mon = parseInt(slashMatch[2], 10)
       const year = parseInt(slashMatch[3], 10)
+      if (mon >= 1 && mon <= 12 && day >= 1 && day <= 31)
+         return `${year}-${String(mon).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+      return null
+   }
+   // DD-MM-YYYY (numeric month with dashes, e.g. "21-05-2026")
+   const dashNumMatch = s.match(/^(\d{1,2})-(\d{2})-(\d{4})$/)
+   if (dashNumMatch) {
+      const day = parseInt(dashNumMatch[1], 10)
+      const mon = parseInt(dashNumMatch[2], 10)
+      const year = parseInt(dashNumMatch[3], 10)
       if (mon >= 1 && mon <= 12 && day >= 1 && day <= 31)
          return `${year}-${String(mon).padStart(2, "0")}-${String(day).padStart(2, "0")}`
       return null
@@ -216,7 +226,10 @@ function parseCSVLine(line: string): string[] {
    return result
 }
 
-function parseCSV(text: string): ShariahImportRow[] {
+type ParseIssue = { field: string; rawValue: string }
+type RawParsedRow = ShariahImportRow & { _parseIssues?: ParseIssue[] }
+
+function parseCSV(text: string): RawParsedRow[] {
    const lines = text.split(/\r?\n/).filter((l) => l.trim())
    if (lines.length < 2) return []
 
@@ -229,9 +242,21 @@ function parseCSV(text: string): ShariahImportRow[] {
 
    return lines.slice(1).map((line) => {
       const row = parseCSVLine(line)
+      const issues: ParseIssue[] = []
+
+      // assessment_year is optional — empty or placeholder ("00-Jan-00") are valid nulls
+      const assessmentYear = parseDate(col(row, "assessment_year"))
+
+      // last_updated_at is required — flag if a value exists but can't be parsed
+      const rawLastUpdatedAt = col(row, "last_updated_at")?.trim()
+      const lastUpdatedAt = parseDate(rawLastUpdatedAt)
+      if (rawLastUpdatedAt && !lastUpdatedAt) {
+         issues.push({ field: "Last Updated At", rawValue: rawLastUpdatedAt })
+      }
+
       return {
          prowessId: col(row, "prowess_id")?.trim() ?? "",
-         assessmentYear: parseDate(col(row, "assessment_year")),
+         assessmentYear,
          marketCap: parseNum(col(row, "market_cap")),
          companyStatus: col(row, "company_status")?.trim() || null,
          shariahStatus: parseShariahStatus(col(row, "shariah_status")),
@@ -247,7 +272,8 @@ function parseCSV(text: string): ShariahImportRow[] {
          cashBankReceivablesTotalAssetValue: parseNumOrZero(col(row, "cash_bank_receivables_total_asset_value")),
          cashBankReceivablesTotalAssetStatus: parseBool(col(row, "cash_bank_receivables_total_asset_status")),
          remark: col(row, "remark")?.trim() || null,
-         lastUpdatedAt: col(row, "last_updated_at")?.trim() || null,
+         lastUpdatedAt,
+         ...(issues.length > 0 ? { _parseIssues: issues } : {}),
       }
    }).filter((r) => r.prowessId)
 }
@@ -390,6 +416,7 @@ type PreviewRow = ShariahImportRow & {
    _status: PreviewStatus
    _missingFields?: string[]
    _changedFields?: string[]
+   _parseIssues?: ParseIssue[]
 }
 
 // ---------------------------------------------------------------------------
@@ -444,14 +471,15 @@ export function ImportShariahDialog() {
          const text = ev.target?.result as string
          const parsed = parseCSV(text)
          const rows: PreviewRow[] = parsed.map((raw) => {
+            const { _parseIssues, ...rawRow } = raw
             // Apply cascade first so downstream NA fields are already null
-            const r = applyComplianceCascade(raw)
+            const r = applyComplianceCascade(rawRow)
             if (!r.prowessId || !companyNames[r.prowessId]) {
-               return { ...r, _status: "not_found" as const }
+               return { ...r, _status: "not_found" as const, _parseIssues }
             }
             const missingFields = getMissingFields(r)
-            if (missingFields.length > 0) {
-               return { ...r, _status: "invalid" as const, _missingFields: missingFields }
+            if (missingFields.length > 0 || (_parseIssues && _parseIssues.length > 0)) {
+               return { ...r, _status: "invalid" as const, _missingFields: missingFields, _parseIssues }
             }
             if (existingProwessIds.has(r.prowessId)) {
                const existing = existingShariahData[r.prowessId]
@@ -461,6 +489,14 @@ export function ImportShariahDialog() {
             }
             return { ...r, _status: "new" as const }
          })
+
+         const parseIssueCount = rows.filter((r) => r._parseIssues && r._parseIssues.length > 0).length
+         if (parseIssueCount > 0) {
+            toast.warning(`${parseIssueCount} row${parseIssueCount > 1 ? "s" : ""} have unrecognised field values`, {
+               description: "Check the Invalid tab for details. Affected rows won't be imported.",
+            })
+         }
+
          setPreview(rows)
          setActiveTab("new")
       }
@@ -858,7 +894,7 @@ function InvalidTable({
                      <TableHead className="w-10 pl-4 text-muted-foreground">#</TableHead>
                      <TableHead className="pl-4 text-muted-foreground">Prowess ID</TableHead>
                      <TableHead className="pl-4 text-muted-foreground">Company Name</TableHead>
-                     <TableHead className="pl-4 text-muted-foreground">Missing Fields</TableHead>
+                     <TableHead className="pl-4 text-muted-foreground">Issues</TableHead>
                   </TableRow>
                </TableHeader>
                <TableBody>
@@ -885,7 +921,17 @@ function InvalidTable({
                                     variant="outline"
                                     className="text-xs border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400"
                                  >
-                                    {f}
+                                    Missing: {f}
+                                 </Badge>
+                              ))}
+                              {row._parseIssues?.map((issue) => (
+                                 <Badge
+                                    key={issue.field}
+                                    variant="outline"
+                                    className="text-xs border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+                                    title={`Raw value: "${issue.rawValue}"`}
+                                 >
+                                    Unreadable: {issue.field} ({issue.rawValue})
                                  </Badge>
                               ))}
                            </div>

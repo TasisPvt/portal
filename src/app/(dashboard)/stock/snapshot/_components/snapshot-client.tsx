@@ -311,7 +311,7 @@ function RatioChart({
          : null
 
    return (
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 ">
          {/* Header: label left, value / limit right */}
          <div className="flex items-baseline justify-between gap-2">
             <span className="text-sm text-muted-foreground leading-tight">{label}</span>
@@ -404,7 +404,7 @@ function RatioChart({
                )}
             >
                {isPass
-                  ? `${pctOfLimit.toFixed(1)}% of limit used`
+                  ? ``
                   : `Exceeds limit by ${(numericValue! - thresholdPct).toFixed(2)}%`}
             </p>
          )}
@@ -487,6 +487,12 @@ function SnapshotCard({ data, commonRemark, thresholds }: { data: SnapshotSucces
    const [selectedParam, setSelectedParam] = React.useState<string | null>("last_financial_data")
 
    const businessRemarks = screeningRemarks.filter((r) => BUSINESS_PARAMS.includes(r.parameter))
+
+   const hasFinancials = !!shariah &&
+      businessRemarks.length > 0 &&
+      businessRemarks.every((r) => r.value === true)
+   const visibleTabs = TABS.filter((t) => t.key !== "financials" || hasFinancials)
+   const effectiveTab: TabKey = activeTab === "financials" && !hasFinancials ? "business" : activeTab
    const selectedRemark = screeningRemarks.find((r) => r.parameter === selectedParam) ?? null
 
    const isCompliant = shariah?.shariahStatus === 1
@@ -621,13 +627,13 @@ function SnapshotCard({ data, commonRemark, thresholds }: { data: SnapshotSucces
             <>
                {/* ── Tabs ── */}
                <div className="flex overflow-x-auto border-b">
-                  {TABS.map((tab) => (
+                  {visibleTabs.map((tab) => (
                      <button
                         key={tab.key}
                         onClick={() => handleTabChange(tab.key)}
                         className={cn(
                            "shrink-0 px-5 py-3 text-xs font-semibold uppercase tracking-wider transition-colors",
-                           activeTab === tab.key
+                           effectiveTab === tab.key
                               ? "border-b-2 border-foreground text-foreground"
                               : "border-b-2 border-transparent text-muted-foreground hover:text-foreground",
                         )}
@@ -640,7 +646,7 @@ function SnapshotCard({ data, commonRemark, thresholds }: { data: SnapshotSucces
                {/* ── Tab Content ── */}
 
                {/* Business & Data */}
-               {activeTab === "business" && (
+               {effectiveTab === "business" && (
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                      {/* Left: Qualitative Parameters */}
                      <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
@@ -655,15 +661,15 @@ function SnapshotCard({ data, commonRemark, thresholds }: { data: SnapshotSucces
                                     key={r.parameter}
                                     onClick={() => {
                                        if (isInactive) return
-                                       setSelectedParam(selectedParam === r.parameter ? null : r.parameter)
+                                       setSelectedParam(r.parameter)
                                     }}
                                     disabled={isInactive}
                                     className={cn(
-                                       "flex items-center gap-3 rounded-xl px-3 py-3 bg-muted/40 text-left transition-colors",
+                                       "flex items-center gap-3 rounded-xl px-3 py-3 bg-muted/40 text-left transition-colors border border-transparent",
                                        isInactive
                                           ? "cursor-not-allowed opacity-40"
                                           : "hover:bg-muted",
-                                       selectedParam === r.parameter && !isInactive && "bg-muted/60",
+                                       selectedParam === r.parameter && !isInactive && "border-foreground/20 bg-muted/60",
                                     )}
                                  >
                                     <div
@@ -686,12 +692,7 @@ function SnapshotCard({ data, commonRemark, thresholds }: { data: SnapshotSucces
                                     </div>
                                     <span className="flex-1 text-sm font-medium leading-tight">{r.label}</span>
                                     {!isInactive && (
-                                       <ChevronRightIcon
-                                          className={cn(
-                                             "size-4 shrink-0 text-muted-foreground/40 transition-transform duration-200",
-                                             selectedParam === r.parameter && "rotate-90",
-                                          )}
-                                       />
+                                       <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground/40" />
                                     )}
                                  </button>
                               )
@@ -705,14 +706,14 @@ function SnapshotCard({ data, commonRemark, thresholds }: { data: SnapshotSucces
                )}
 
                {/* Financials */}
-               {activeTab === "financials" && (
+               {effectiveTab === "financials" && (
                   <div className="">
                      <QuantitativeRatiosPanel shariah={shariah} thresholds={thresholds} />
                   </div>
                )}
 
                {/* Historical */}
-               {activeTab === "historical" && (
+               {effectiveTab === "historical" && (
                   <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
                      <div className="mb-4 flex items-center justify-between">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -724,7 +725,7 @@ function SnapshotCard({ data, commonRemark, thresholds }: { data: SnapshotSucces
                )}
 
                {/* Legends */}
-               {activeTab === "legends" && (
+               {effectiveTab === "legends" && (
                   <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
                      <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                         Status Color Legend
