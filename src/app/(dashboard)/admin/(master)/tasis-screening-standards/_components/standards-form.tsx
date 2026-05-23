@@ -185,11 +185,11 @@ function ParameterRow({ row }: { row: ScreeningStandardRow }) {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                <div className="flex flex-col gap-1">
                   <span className="text-xs font-medium text-emerald-600">PASS</span>
-                  <RemarkPreview html={row.passRemark} />
+                  <RemarkPreview html={row.passRemark ? row.passRemark.replaceAll("<p></p>", "<br/>") : ""} />
                </div>
                <div className="flex flex-col gap-1">
                   <span className="text-xs font-medium text-red-600">FAIL</span>
-                  <RemarkPreview html={row.failRemark} />
+                  <RemarkPreview html={row.failRemark ? row.failRemark.replaceAll("<p></p>", "<br/>") : ""} />
                </div>
             </div>
          )}
