@@ -92,7 +92,7 @@ function CommonRemarkSection({ initialValue }: { initialValue: string | null }) 
                </div>
             </div>
          ) : (
-            <RemarkPreview html={initialValue} />
+            <RemarkPreview html={initialValue?.replaceAll("<p></p>", "<br/>") ?? ""} />
          )}
       </div>
    )
