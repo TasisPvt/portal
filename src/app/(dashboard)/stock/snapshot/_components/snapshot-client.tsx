@@ -221,9 +221,9 @@ type ScreeningRemark = SnapshotSuccess["screeningRemarks"][number]
 function RemarkPanel({ remark }: { remark: ScreeningRemark | null | undefined }) {
    const activeRemark =
       remark?.value === true
-         ? remark.passRemark
+         ? remark.passRemark?.replaceAll("<p></p>", "<br/>")
          : remark?.value === false
-            ? remark.failRemark
+            ? remark.failRemark?.replaceAll("<p></p>", "<br/>")
             : null
 
    return (
