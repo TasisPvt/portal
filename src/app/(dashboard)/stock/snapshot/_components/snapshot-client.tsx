@@ -982,7 +982,7 @@ export function SnapshotClient({ access, commonRemark, thresholds }: { access: S
                      <div className="min-h-0 flex-1 overflow-y-auto">
                         <div
                            className="prose prose-sm max-w-none text-sm text-muted-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
-                           dangerouslySetInnerHTML={{ __html: commonRemark }}
+                           dangerouslySetInnerHTML={{ __html: commonRemark.replaceAll("<p></p>", "<br/>") }}
                         />
                      </div>
                   </DialogContent>
