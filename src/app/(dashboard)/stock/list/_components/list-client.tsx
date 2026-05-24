@@ -4,6 +4,7 @@ import * as React from "react"
 import { SearchIcon, BuildingIcon } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
 import { Skeleton } from "@/src/components/ui/skeleton"
+import { Spinner } from "@/src/components/ui/spinner"
 import {
    Select,
    SelectContent,
@@ -19,6 +20,8 @@ import {
 } from "@/src/components/ui/dialog"
 import { cn } from "@/src/lib/utils"
 import { getListCompanies, type ListSubscription, type ListCompany } from "../_actions"
+import { getCompanySnapshot, getFinancialRatioThresholds, type CompanySnapshotResult } from "../../snapshot/_actions"
+import { SnapshotCard, type SnapshotSuccess } from "../../snapshot/_components/snapshot-client"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -110,6 +113,14 @@ export function ListClient({ subscriptions }: ListClientProps) {
    const [loading, setLoading] = React.useState(subscriptions.length === 1)
    const [search, setSearch] = React.useState("")
    const [selectedCompany, setSelectedCompany] = React.useState<ListCompany | null>(null)
+   const [snapshotLoading, setSnapshotLoading] = React.useState(false)
+   const [snapshotData, setSnapshotData] = React.useState<SnapshotSuccess | null>(null)
+   const [snapshotError, setSnapshotError] = React.useState<string | null>(null)
+   const [thresholds, setThresholds] = React.useState<Record<string, number>>({})
+
+   React.useEffect(() => {
+      getFinancialRatioThresholds().then(setThresholds)
+   }, [])
 
    React.useEffect(() => {
       if (!selectedSubId) return
@@ -300,7 +311,18 @@ export function ListClient({ subscriptions }: ListClientProps) {
                                  <tr
                                     key={company.id}
                                     className="cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/50"
-                                    onClick={() => setSelectedCompany(company)}
+                                    onClick={() => {
+                                       setSelectedCompany(company)
+                                       setSnapshotData(null)
+                                       setSnapshotError(null)
+                                       setSnapshotLoading(true)
+                                       getCompanySnapshot(company.id, false)
+                                          .then((result) => {
+                                             if ("error" in result && result.error) setSnapshotError(result.error as string)
+                                             else if ("company" in result) setSnapshotData(result)
+                                          })
+                                          .finally(() => setSnapshotLoading(false))
+                                    }}
                                     tabIndex={0}
                                     role="button"
                                     aria-label={`View details for ${company.companyName}`}
@@ -337,36 +359,44 @@ export function ListClient({ subscriptions }: ListClientProps) {
             </>
          )}
 
-         {/* ── Company detail dialog ── */}
-         <Dialog open={selectedCompany !== null} onOpenChange={(open) => !open && setSelectedCompany(null)}>
-            <DialogContent className="max-w-md">
-               <DialogHeader>
+         {/* ── Company snapshot dialog ── */}
+         <Dialog
+            open={selectedCompany !== null}
+            onOpenChange={(open) => {
+               if (!open) {
+                  setSelectedCompany(null)
+                  setSnapshotData(null)
+                  setSnapshotError(null)
+               }
+            }}
+         >
+            <DialogContent className="flex max-h-[90dvh] w-full flex-col overflow-hidden sm:max-w-3xl">
+               <DialogHeader className="shrink-0">
                   <DialogTitle className="pr-6 text-base leading-snug">
                      {selectedCompany?.companyName}
                   </DialogTitle>
                </DialogHeader>
-               {selectedCompany && (
-                  <div className="mt-2">
-                     <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Identifiers
+               <div className="min-h-0 flex-1 overflow-y-auto">
+                  {snapshotLoading && (
+                     <div className="flex items-center justify-center py-16">
+                        <Spinner className="size-6" />
+                     </div>
+                  )}
+                  {!snapshotLoading && snapshotError && (
+                     <p className="py-10 text-center text-sm text-muted-foreground">
+                        {snapshotError === "daily_quota_exceeded"
+                           ? "Daily quota reached. You've viewed the maximum companies for today."
+                           : snapshotError === "total_quota_exceeded"
+                           ? "Subscription quota reached."
+                           : "Failed to load snapshot."}
                      </p>
-                     <DetailRow label="ISIN Code" value={selectedCompany.isinCode} />
-                     <DetailRow label="BSE Scrip Code" value={selectedCompany.bseScripCode} />
-                     <DetailRow label="BSE Scrip ID" value={selectedCompany.bseScripId} />
-                     <DetailRow label="BSE Group" value={selectedCompany.bseGroup} />
-                     <DetailRow label="NSE Symbol" value={selectedCompany.nseSymbol} />
-                     <DetailRow label="Service Group" value={selectedCompany.serviceGroup} />
-                     <DetailRow label="Industry Group" value={selectedCompany.industryGroup} />
-
-                     <p className="mb-3 mt-5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Listing Dates
-                     </p>
-                     <DetailRow label="NSE Listing" value={fmtDate(selectedCompany.nseListingDate)} />
-                     <DetailRow label="NSE Delisting" value={fmtDate(selectedCompany.nseDelistingDate)} />
-                     <DetailRow label="BSE Listing" value={fmtDate(selectedCompany.bseListingDate)} />
-                     <DetailRow label="BSE Delisting" value={fmtDate(selectedCompany.bseDelistingDate)} />
-                  </div>
-               )}
+                  )}
+                  {!snapshotLoading && snapshotData && (
+                     <div className="p-1">
+                        <SnapshotCard data={snapshotData} commonRemark={null} thresholds={thresholds} />
+                     </div>
+                  )}
+               </div>
             </DialogContent>
          </Dialog>
       </div>
