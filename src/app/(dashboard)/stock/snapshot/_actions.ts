@@ -174,7 +174,7 @@ export async function searchCompanies(query: string): Promise<CompanySearchResul
       .limit(20)
 }
 
-export async function getCompanySnapshot(companyId: string): Promise<CompanySnapshotResult> {
+export async function getCompanySnapshot(companyId: string, trackQuota = true): Promise<CompanySnapshotResult> {
    const session = await auth.api.getSession({ headers: await headers() })
    if (!session) return { error: "unauthenticated" }
 
@@ -201,73 +201,26 @@ export async function getCompanySnapshot(companyId: string): Promise<CompanySnap
 
    const today = new Date().toISOString().slice(0, 10)
 
-   // Check if already viewed today (free repeat view)
-   const viewedTodayRows = await db
-      .select({ id: stockViewLog.id })
-      .from(stockViewLog)
-      .where(
-         and(
-            eq(stockViewLog.subscriptionId, sub.id),
-            eq(stockViewLog.companyId, companyId),
-            eq(stockViewLog.viewedDate, today),
-         ),
-      )
-      .limit(1)
-
-   const viewedToday = viewedTodayRows.length > 0
-
-   if (!viewedToday) {
-      // Check daily quota
-      if (sub.stocksPerDay !== null) {
-         const [{ cnt: dailyCnt }] = await db
-            .select({ cnt: count() })
-            .from(stockViewLog)
-            .where(
-               and(
-                  eq(stockViewLog.subscriptionId, sub.id),
-                  eq(stockViewLog.viewedDate, today),
-               ),
-            )
-
-         if (dailyCnt >= sub.stocksPerDay) {
-            const [{ cnt: totalCnt }] = await db
-               .select({ cnt: sql<number>`count(distinct ${stockViewLog.companyId})` })
-               .from(stockViewLog)
-               .where(eq(stockViewLog.subscriptionId, sub.id))
-
-            return {
-               error: "daily_quota_exceeded",
-               quota: {
-                  dailyUsed: dailyCnt,
-                  dailyLimit: sub.stocksPerDay,
-                  totalUsed: Number(totalCnt),
-                  totalLimit: sub.stocksInDuration,
-               },
-            }
-         }
-      }
-
-      // Check if company was ever viewed in this subscription
-      const everViewedRows = await db
+   // Quota tracking — only if trackQuota is true
+   if (trackQuota) {
+      // Check if already viewed today (free repeat view)
+      const viewedTodayRows = await db
          .select({ id: stockViewLog.id })
          .from(stockViewLog)
          .where(
             and(
                eq(stockViewLog.subscriptionId, sub.id),
                eq(stockViewLog.companyId, companyId),
+               eq(stockViewLog.viewedDate, today),
             ),
          )
          .limit(1)
 
-      const isNewCompany = everViewedRows.length === 0
+      const viewedToday = viewedTodayRows.length > 0
 
-      if (isNewCompany && sub.stocksInDuration !== null) {
-         const [{ cnt: totalCnt }] = await db
-            .select({ cnt: sql<number>`count(distinct ${stockViewLog.companyId})` })
-            .from(stockViewLog)
-            .where(eq(stockViewLog.subscriptionId, sub.id))
-
-         if (Number(totalCnt) >= sub.stocksInDuration) {
+      if (!viewedToday) {
+         // Check daily quota
+         if (sub.stocksPerDay !== null) {
             const [{ cnt: dailyCnt }] = await db
                .select({ cnt: count() })
                .from(stockViewLog)
@@ -278,92 +231,137 @@ export async function getCompanySnapshot(companyId: string): Promise<CompanySnap
                   ),
                )
 
-            return {
-               error: "total_quota_exceeded",
-               quota: {
-                  dailyUsed: dailyCnt,
-                  dailyLimit: sub.stocksPerDay,
-                  totalUsed: Number(totalCnt),
-                  totalLimit: sub.stocksInDuration,
-               },
+            if (dailyCnt >= sub.stocksPerDay) {
+               const [{ cnt: totalCnt }] = await db
+                  .select({ cnt: sql<number>`count(distinct ${stockViewLog.companyId})` })
+                  .from(stockViewLog)
+                  .where(eq(stockViewLog.subscriptionId, sub.id))
+
+               return {
+                  error: "daily_quota_exceeded",
+                  quota: {
+                     dailyUsed: dailyCnt,
+                     dailyLimit: sub.stocksPerDay,
+                     totalUsed: Number(totalCnt),
+                     totalLimit: sub.stocksInDuration,
+                  },
+               }
             }
          }
-      }
 
-      // Log the view
-      await db
-         .insert(stockViewLog)
-         .values({
-            id: randomUUID(),
-            subscriptionId: sub.id,
-            companyId,
-            viewedDate: today,
-         })
-         .onConflictDoNothing()
+         // Check if company was ever viewed in this subscription
+         const everViewedRows = await db
+            .select({ id: stockViewLog.id })
+            .from(stockViewLog)
+            .where(
+               and(
+                  eq(stockViewLog.subscriptionId, sub.id),
+                  eq(stockViewLog.companyId, companyId),
+               ),
+            )
+            .limit(1)
+
+         const isNewCompany = everViewedRows.length === 0
+
+         if (isNewCompany && sub.stocksInDuration !== null) {
+            const [{ cnt: totalCnt }] = await db
+               .select({ cnt: sql<number>`count(distinct ${stockViewLog.companyId})` })
+               .from(stockViewLog)
+               .where(eq(stockViewLog.subscriptionId, sub.id))
+
+            if (Number(totalCnt) >= sub.stocksInDuration) {
+               const [{ cnt: dailyCnt }] = await db
+                  .select({ cnt: count() })
+                  .from(stockViewLog)
+                  .where(
+                     and(
+                        eq(stockViewLog.subscriptionId, sub.id),
+                        eq(stockViewLog.viewedDate, today),
+                     ),
+                  )
+
+               return {
+                  error: "total_quota_exceeded",
+                  quota: {
+                     dailyUsed: dailyCnt,
+                     dailyLimit: sub.stocksPerDay,
+                     totalUsed: Number(totalCnt),
+                     totalLimit: sub.stocksInDuration,
+                  },
+               }
+            }
+         }
+
+         // Log the view
+         await db
+            .insert(stockViewLog)
+            .values({
+               id: randomUUID(),
+               subscriptionId: sub.id,
+               companyId,
+               viewedDate: today,
+            })
+            .onConflictDoNothing()
+      }
    }
 
-   // Fetch company info
-   const companies = await db
-      .select({
-         id: companyMaster.id,
-         companyName: companyMaster.companyName,
-         prowessId: companyMaster.prowessId,
-         isinCode: companyMaster.isinCode,
-         bseScripCode: companyMaster.bseScripCode,
-         bseScripId: companyMaster.bseScripId,
-         nseSymbol: companyMaster.nseSymbol,
-         industryGroup: industryGroup.name,
-      })
-      .from(companyMaster)
-      .leftJoin(industryGroup, eq(companyMaster.industryGroupId, industryGroup.id))
-      .where(eq(companyMaster.id, companyId))
-      .limit(1)
+   // Fetch company, shariah, history, and remarks in parallel
+   const [companies, shariahRows, historyRows, remarkRows] = await Promise.all([
+      db
+         .select({
+            id: companyMaster.id,
+            companyName: companyMaster.companyName,
+            prowessId: companyMaster.prowessId,
+            isinCode: companyMaster.isinCode,
+            bseScripCode: companyMaster.bseScripCode,
+            bseScripId: companyMaster.bseScripId,
+            nseSymbol: companyMaster.nseSymbol,
+            industryGroup: industryGroup.name,
+         })
+         .from(companyMaster)
+         .leftJoin(industryGroup, eq(companyMaster.industryGroupId, industryGroup.id))
+         .where(eq(companyMaster.id, companyId))
+         .limit(1),
+      db
+         .select({
+            month: companyShariah.month,
+            assessmentYear: companyShariah.assessmentYear,
+            marketCap: companyShariah.marketCap,
+            companyStatus: companyShariah.companyStatus,
+            shariahStatus: companyShariah.shariahStatus,
+            lastFinancialData: companyShariah.lastFinancialData,
+            primaryBusiness: companyShariah.primaryBusiness,
+            secondaryBusiness: companyShariah.secondaryBusiness,
+            compliantOnInvestment: companyShariah.compliantOnInvestment,
+            incompleteBusInfo: companyShariah.incompleteBusInfo,
+            totalDebtTotalAssetValue: companyShariah.totalDebtTotalAssetValue,
+            totalDebtTotalAssetStatus: companyShariah.totalDebtTotalAssetStatus,
+            totalInterestIncomeTotalIncomeValue: companyShariah.totalInterestIncomeTotalIncomeValue,
+            totalInterestIncomeTotalIncomeStatus: companyShariah.totalInterestIncomeTotalIncomeStatus,
+            cashBankReceivablesTotalAssetValue: companyShariah.cashBankReceivablesTotalAssetValue,
+            cashBankReceivablesTotalAssetStatus: companyShariah.cashBankReceivablesTotalAssetStatus,
+            remark: companyShariah.remark,
+            lastUpdatedAt: companyShariah.lastUpdatedAt,
+         })
+         .from(companyShariah)
+         .where(eq(companyShariah.companyId, companyId))
+         .orderBy(desc(companyShariah.month))
+         .limit(1),
+      db
+         .select({
+            month: companyShariah.month,
+            shariahStatus: companyShariah.shariahStatus,
+         })
+         .from(companyShariah)
+         .where(eq(companyShariah.companyId, companyId))
+         .orderBy(desc(companyShariah.month))
+         .limit(12),
+      db.select().from(screeningStandardRemark),
+   ])
 
    if (!companies.length) return { error: "company_not_found" }
    const company = companies[0]
-
-   // Latest shariah data
-   const shariahRows = await db
-      .select({
-         month: companyShariah.month,
-         assessmentYear: companyShariah.assessmentYear,
-         marketCap: companyShariah.marketCap,
-         companyStatus: companyShariah.companyStatus,
-         shariahStatus: companyShariah.shariahStatus,
-         lastFinancialData: companyShariah.lastFinancialData,
-         primaryBusiness: companyShariah.primaryBusiness,
-         secondaryBusiness: companyShariah.secondaryBusiness,
-         compliantOnInvestment: companyShariah.compliantOnInvestment,
-         incompleteBusInfo: companyShariah.incompleteBusInfo,
-         totalDebtTotalAssetValue: companyShariah.totalDebtTotalAssetValue,
-         totalDebtTotalAssetStatus: companyShariah.totalDebtTotalAssetStatus,
-         totalInterestIncomeTotalIncomeValue: companyShariah.totalInterestIncomeTotalIncomeValue,
-         totalInterestIncomeTotalIncomeStatus: companyShariah.totalInterestIncomeTotalIncomeStatus,
-         cashBankReceivablesTotalAssetValue: companyShariah.cashBankReceivablesTotalAssetValue,
-         cashBankReceivablesTotalAssetStatus: companyShariah.cashBankReceivablesTotalAssetStatus,
-         remark: companyShariah.remark,
-         lastUpdatedAt: companyShariah.lastUpdatedAt,
-      })
-      .from(companyShariah)
-      .where(eq(companyShariah.companyId, companyId))
-      .orderBy(desc(companyShariah.month))
-      .limit(1)
-
    const shariah = shariahRows[0] ?? null
-
-   // Compliance history — last 12 months
-   const historyRows = await db
-      .select({
-         month: companyShariah.month,
-         shariahStatus: companyShariah.shariahStatus,
-      })
-      .from(companyShariah)
-      .where(eq(companyShariah.companyId, companyId))
-      .orderBy(desc(companyShariah.month))
-      .limit(12)
-
-   // Per-parameter screening remarks
-   const remarkRows = await db.select().from(screeningStandardRemark)
    const remarkMap = new Map(remarkRows.map((r) => [r.parameter, r]))
 
    const isOnHold = shariah?.shariahStatus === 8

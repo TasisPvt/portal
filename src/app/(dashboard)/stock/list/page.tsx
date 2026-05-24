@@ -33,7 +33,11 @@ export default async function ListPage() {
    return (
       <>
          <SiteHeader breadcrumb="Stocks" title="List" />
-         <ListClient subscriptions={subscriptions} />
+         <div className="flex flex-1 flex-col">
+            <div className="@container/main ">
+               <ListClient subscriptions={subscriptions} />
+            </div>
+         </div>
       </>
    )
 }

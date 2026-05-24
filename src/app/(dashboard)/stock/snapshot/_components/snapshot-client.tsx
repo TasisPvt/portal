@@ -478,9 +478,9 @@ function QuantitativeRatiosPanel({
 
 // ─── Main Snapshot Card ────────────────────────────────────────────────────────
 
-type SnapshotSuccess = Extract<CompanySnapshotResult, { company: unknown }>
+export type SnapshotSuccess = Extract<CompanySnapshotResult, { company: unknown }>
 
-function SnapshotCard({ data, commonRemark, thresholds }: { data: SnapshotSuccess; commonRemark: string | null; thresholds: Record<string, number> }) {
+export function SnapshotCard({ data, commonRemark, thresholds }: { data: SnapshotSuccess; commonRemark: string | null; thresholds: Record<string, number> }) {
    const { company, shariah, complianceHistory, screeningRemarks, quota } = data
 
    const [activeTab, setActiveTab] = React.useState<TabKey>("business")
