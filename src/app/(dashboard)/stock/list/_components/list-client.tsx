@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { SearchIcon, BuildingIcon } from "lucide-react"
+import { SearchIcon, BuildingIcon, FilterIcon, ChevronDownIcon } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
 import { Skeleton } from "@/src/components/ui/skeleton"
 import { Spinner } from "@/src/components/ui/spinner"
@@ -18,6 +18,13 @@ import {
    DialogHeader,
    DialogTitle,
 } from "@/src/components/ui/dialog"
+import { Button } from "@/src/components/ui/button"
+import {
+   DropdownMenu,
+   DropdownMenuContent,
+   DropdownMenuItem,
+   DropdownMenuTrigger,
+} from "@/src/components/ui/dropdown-menu"
 import { cn } from "@/src/lib/utils"
 import { getListCompanies, type ListSubscription, type ListCompany } from "../_actions"
 import { getCompanySnapshot, getFinancialRatioThresholds, type CompanySnapshotResult } from "../../snapshot/_actions"
@@ -112,6 +119,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
    const [availableMonths, setAvailableMonths] = React.useState<string[]>([])
    const [loading, setLoading] = React.useState(subscriptions.length === 1)
    const [search, setSearch] = React.useState("")
+   const [complianceFilter, setComplianceFilter] = React.useState<"all" | "compliant" | "non-compliant">("all")
    const [selectedCompany, setSelectedCompany] = React.useState<ListCompany | null>(null)
    const [snapshotLoading, setSnapshotLoading] = React.useState(false)
    const [snapshotData, setSnapshotData] = React.useState<SnapshotSuccess | null>(null)
@@ -137,10 +145,26 @@ export function ListClient({ subscriptions }: ListClientProps) {
 
    const selectedSub = subscriptions.find((s) => s.subscriptionId === selectedSubId)
 
+   const complianceCounts = React.useMemo(() => {
+      const compliant = companies.filter((c) => c.shariahStatus === 1).length
+      const nonCompliant = companies.filter((c) => c.shariahStatus !== null && c.shariahStatus !== 1).length
+      return { compliant, nonCompliant, all: companies.length }
+   }, [companies])
+
    const filtered = React.useMemo(() => {
+      let result = companies
+
+      // Apply compliance filter
+      if (complianceFilter === "compliant") {
+         result = result.filter((c) => c.shariahStatus === 1)
+      } else if (complianceFilter === "non-compliant") {
+         result = result.filter((c) => c.shariahStatus !== null && c.shariahStatus !== 1)
+      }
+
+      // Apply search filter
       const q = search.toLowerCase()
-      if (!q) return companies
-      return companies.filter(
+      if (!q) return result
+      return result.filter(
          (c) =>
             c.companyName.toLowerCase().includes(q) ||
             (c.nseSymbol?.toLowerCase().includes(q) ?? false) ||
@@ -148,14 +172,14 @@ export function ListClient({ subscriptions }: ListClientProps) {
             (c.isinCode?.toLowerCase().includes(q) ?? false) ||
             (c.industryGroup?.toLowerCase().includes(q) ?? false),
       )
-   }, [companies, search])
+   }, [companies, search, complianceFilter])
 
    return (
-      <div className="flex flex-col gap-5 p-4 sm:p-6">
+      <div className="flex flex-col gap-6 p-4 sm:p-6">
 
          {/* ── Subscription selector (multiple only) ── */}
          {subscriptions.length > 1 && (
-            <div className="flex flex-wrap gap-3" role="group" aria-label="Select a list">
+            <div className="flex flex-wrap gap-2 sm:gap-3" role="group" aria-label="Select a list">
                {subscriptions.map((sub) => {
                   const active = sub.subscriptionId === selectedSubId
                   return (
@@ -169,13 +193,14 @@ export function ListClient({ subscriptions }: ListClientProps) {
                            setSelectedSubId(sub.subscriptionId)
                         }}
                         className={cn(
-                           "flex min-h-[56px] flex-col justify-center gap-0.5 rounded-xl border px-4 py-3 text-left transition-all",
+                           "rounded-lg border px-3 sm:px-4 py-2 sm:py-2.5 text-sm transition-all",
+                           "hover:cursor-pointer hover:border-primary",
                            active
-                              ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
-                              : "border-border bg-card hover:border-border/70 hover:bg-muted/40",
+                              ? "border-primary bg-primary/10 text-foreground font-medium"
+                              : "border-border bg-muted/40 text-muted-foreground hover:bg-muted/60",
                         )}
                      >
-                        <span className="text-sm font-semibold leading-tight">{sub.indexName}</span>
+                        <span className="block font-medium">{sub.indexName}</span>
                         <span className="text-xs text-muted-foreground">
                            {fmtDurationType(sub.durationType)} · {fmtMonth(sub.startMonth)} – {fmtMonth(sub.endMonth)}
                         </span>
@@ -187,37 +212,130 @@ export function ListClient({ subscriptions }: ListClientProps) {
 
          {/* ── Empty state (no sub selected) ── */}
          {!selectedSubId ? (
-            <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+            <div className="flex flex-col items-center justify-center gap-4 p-6 py-24 text-center">
                <div className="flex size-14 items-center justify-center rounded-full bg-muted">
                   <BuildingIcon className="size-6 text-muted-foreground" />
                </div>
-               <p className="text-sm text-muted-foreground">Select a list above to view its companies</p>
+               <div>
+                  <h3 className="font-semibold text-foreground">No List Selected</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Select a list above to view its companies</p>
+               </div>
             </div>
          ) : (
             <>
-               {/* ── Index header ── */}
+               {/* ── Index header with statistics ── */}
                {selectedSub && (
-                  <div className="flex items-start justify-between gap-4">
-                     <div className="min-w-0">
-                        <h2 className="truncate text-xl font-semibold tracking-tight">
-                           {selectedSub.indexName}
-                        </h2>
-                        {selectedSub.indexDescription && (
-                           <p className="mt-1 text-sm text-muted-foreground">{selectedSub.indexDescription}</p>
-                        )}
+                  <div className="space-y-4">
+                     <div>
+                        <h1 className="text-3xl font-bold text-foreground">{selectedSub.indexName}</h1>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                           {selectedSub.indexDescription}
+                        </p>
                      </div>
-                     <div className="flex shrink-0 flex-col items-end gap-1">
-                        {!loading && companies.length > 0 && (
-                           <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium tabular-nums text-muted-foreground">
-                              {companies.length} companies
-                           </span>
-                        )}
-                        <span className="text-xs text-muted-foreground">
-                           {fmtMonth(selectedSub.startMonth)} – {fmtMonth(selectedSub.endMonth)}
-                        </span>
-                     </div>
+
+                     {/* ── Statistics ── */}
+                     {!loading && companies.length > 0 && (
+                        <div className="grid grid-cols-3 gap-4 sm:gap-6">
+                           <div className="space-y-1">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Companies</p>
+                              <p className="text-sm font-bold text-foreground">{companies.length}</p>
+                           </div>
+                           <div className="space-y-1">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Compliant</p>
+                              <p className="text-sm font-bold text-foreground">{complianceCounts.compliant}</p>
+                           </div>
+                           <div className="space-y-1">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Window</p>
+                              <p className="text-sm font-medium text-foreground">
+                                 {fmtMonth(selectedSub.startMonth)} – {fmtMonth(selectedSub.endMonth)}
+                              </p>
+                           </div>
+                        </div>
+                     )}
                   </div>
                )}
+
+               {/* ── Filter & Search ── */}
+               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+                  {/* Filter Button */}
+                  <DropdownMenu>
+                     <DropdownMenuTrigger asChild>
+                        <Button
+                           variant="outline"
+                           size="sm"
+                           className="w-fit gap-2"
+                        >
+                           <FilterIcon className="size-4" />
+                           <span>
+                              {complianceFilter === "all"
+                                 ? "All"
+                                 : complianceFilter === "compliant"
+                                 ? "Shariah Compliant"
+                                 : "Non-Compliant"}
+                           </span>
+                           {complianceFilter !== "all" && (
+                              <span className="ml-1 rounded-full bg-primary/20 px-1.5 py-0.5 text-xs font-semibold text-primary">
+                                 {complianceFilter === "compliant"
+                                    ? complianceCounts.compliant
+                                    : complianceCounts.nonCompliant}
+                              </span>
+                           )}
+                           <ChevronDownIcon className="size-4 ml-auto" />
+                        </Button>
+                     </DropdownMenuTrigger>
+                     <DropdownMenuContent align="start">
+                        <DropdownMenuItem
+                           onClick={() => {
+                              setComplianceFilter("all")
+                              setSearch("")
+                           }}
+                           className={complianceFilter === "all" ? "bg-primary/10" : ""}
+                        >
+                           All Companies ({complianceCounts.all})
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                           onClick={() => {
+                              setComplianceFilter("compliant")
+                              setSearch("")
+                           }}
+                           className={complianceFilter === "compliant" ? "bg-primary/10" : ""}
+                        >
+                           Shariah Compliant ({complianceCounts.compliant})
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                           onClick={() => {
+                              setComplianceFilter("non-compliant")
+                              setSearch("")
+                           }}
+                           className={complianceFilter === "non-compliant" ? "bg-primary/10" : ""}
+                        >
+                           Non-Shariah Compliant ({complianceCounts.nonCompliant})
+                        </DropdownMenuItem>
+                     </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Search Input */}
+                  <div className="relative flex-1 sm:max-w-full">
+                     <SearchIcon
+                        className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                        aria-hidden="true"
+                     />
+                     <Input
+                        aria-label="Search companies"
+                        placeholder="Search by name, symbol, ISIN, or industry…"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="pl-9 h-9"
+                     />
+                  </div>
+
+                  {/* Results Count */}
+                  {!loading && companies.length > 0 && (
+                     <p className="text-xs text-muted-foreground whitespace-nowrap" aria-live="polite">
+                        {filtered.length} of {companies.length} shown
+                     </p>
+                  )}
+               </div>
 
                {/* ── Month selector (quarterly / annual only) ── */}
                {availableMonths.length > 1 && (
@@ -247,114 +365,109 @@ export function ListClient({ subscriptions }: ListClientProps) {
                   </div>
                )}
 
-               {/* ── Search bar + filtered count ── */}
-               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="relative w-full max-w-sm">
-                     <SearchIcon
-                        className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                        aria-hidden="true"
-                     />
-                     <Input
-                        aria-label="Search companies"
-                        placeholder="Search name, symbol, ISIN, industry…"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="pl-9"
-                     />
-                  </div>
-                  {!loading && search && (
-                     <p className="shrink-0 text-sm text-muted-foreground" aria-live="polite">
-                        {filtered.length} of {companies.length} shown
-                     </p>
-                  )}
-               </div>
+               {/* ── Company list (horizontal cards) ── */}
+               <div className="space-y-3">
+                  {loading ? (
+                     <>
+                        {Array.from({ length: 6 }).map((_, i) => (
+                           <div key={i} className="rounded-lg border p-4 space-y-3">
+                              <div className="flex items-start gap-3">
+                                 <Skeleton className="h-6 w-6 shrink-0" />
+                                 <Skeleton className="h-5 w-48" />
+                                 <Skeleton className="h-6 w-32 ml-auto shrink-0" />
+                              </div>
+                              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                                 <Skeleton className="h-4 w-20" />
+                                 <Skeleton className="h-4 w-20" />
+                                 <Skeleton className="h-4 w-20" />
+                                 <Skeleton className="h-4 w-20" />
+                              </div>
+                           </div>
+                        ))}
+                     </>
+                  ) : filtered.length === 0 ? (
+                     <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-12 px-4 text-center">
+                        <p className="text-sm font-medium text-foreground">No companies found</p>
+                        <p className="text-xs text-muted-foreground">
+                           {search ? `No matches for "${search}"` : "Try adjusting your filters or search"}
+                        </p>
+                     </div>
+                  ) : (
+                     filtered.map((company, i) => (
+                        <div
+                           key={company.id}
+                           onClick={() => {
+                              setSelectedCompany(company)
+                              setSnapshotData(null)
+                              setSnapshotError(null)
+                              setSnapshotLoading(true)
+                              getCompanySnapshot(company.id, false)
+                                 .then((result) => {
+                                    if ("error" in result && result.error) setSnapshotError(result.error as string)
+                                    else if ("company" in result) setSnapshotData(result)
+                                 })
+                                 .finally(() => setSnapshotLoading(false))
+                           }}
+                           role="button"
+                           tabIndex={0}
+                           aria-label={`View details for ${company.companyName}`}
+                           onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                 e.preventDefault()
+                                 setSelectedCompany(company)
+                              }
+                           }}
+                           className="group cursor-pointer rounded-lg border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
+                        >
+                           {/* Header: Mobile (badge on top) vs Desktop (badge on right) */}
+                           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3 mb-3">
+                              <div className="flex items-start gap-3 flex-1 min-w-0">
+                                 <span className="text-sm font-semibold text-muted-foreground shrink-0 pt-[2px]">#{i + 1}</span>
+                                 <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors break-words">
+                                    {company.companyName}
+                                 </h3>
+                              </div>
+                              <div className="shrink-0">
+                                 <StatusBadge status={company.shariahStatus} />
+                              </div>
+                           </div>
 
-               {/* ── Data table ── */}
-               <div className="overflow-hidden rounded-xl border">
-                  <div className="overflow-x-auto">
-                     <table className="w-full text-sm" aria-label={selectedSub?.indexName ?? "Companies"}>
-                        <thead>
-                           <tr className="border-b bg-muted/50">
-                              <th scope="col" className="w-10 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                 #
-                              </th>
-                              <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                 Company
-                              </th>
-                              <th scope="col" className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:table-cell">
-                                 NSE Symbol
-                              </th>
-                              <th scope="col" className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground md:table-cell">
-                                 Industry
-                              </th>
-                              <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                 Status
-                              </th>
-                              <th scope="col" className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:table-cell">
-                                 Screening Month
-                              </th>
-                           </tr>
-                        </thead>
-                        <tbody>
-                           {loading ? (
-                              <TableSkeleton />
-                           ) : filtered.length === 0 ? (
-                              <tr>
-                                 <td colSpan={6} className="px-4 py-14 text-center text-sm text-muted-foreground">
-                                    {search
-                                       ? `No companies match "${search}".`
-                                       : "No companies found for this index."}
-                                 </td>
-                              </tr>
-                           ) : (
-                              filtered.map((company, i) => (
-                                 <tr
-                                    key={company.id}
-                                    className="cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/50"
-                                    onClick={() => {
-                                       setSelectedCompany(company)
-                                       setSnapshotData(null)
-                                       setSnapshotError(null)
-                                       setSnapshotLoading(true)
-                                       getCompanySnapshot(company.id, false)
-                                          .then((result) => {
-                                             if ("error" in result && result.error) setSnapshotError(result.error as string)
-                                             else if ("company" in result) setSnapshotData(result)
-                                          })
-                                          .finally(() => setSnapshotLoading(false))
-                                    }}
-                                    tabIndex={0}
-                                    role="button"
-                                    aria-label={`View details for ${company.companyName}`}
-                                    onKeyDown={(e) => {
-                                       if (e.key === "Enter" || e.key === " ") {
-                                          e.preventDefault()
-                                          setSelectedCompany(company)
-                                       }
-                                    }}
-                                 >
-                                    <td className="px-4 py-3.5 text-xs tabular-nums text-muted-foreground">
-                                       {i + 1}
-                                    </td>
-                                    <td className="px-4 py-3.5 font-medium">{company.companyName}</td>
-                                    <td className="hidden px-4 py-3.5 text-muted-foreground sm:table-cell">
-                                       {company.nseSymbol || "—"}
-                                    </td>
-                                    <td className="hidden px-4 py-3.5 text-muted-foreground md:table-cell">
-                                       {company.industryGroup || "—"}
-                                    </td>
-                                    <td className="px-4 py-3.5">
-                                       <StatusBadge status={company.shariahStatus} />
-                                    </td>
-                                    <td className="hidden px-4 py-3.5 text-muted-foreground lg:table-cell">
-                                       {fmtMonth(company.month)}
-                                    </td>
-                                 </tr>
-                              ))
-                           )}
-                        </tbody>
-                     </table>
-                  </div>
+                           {/* Details: Horizontal grid */}
+                           <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4 md:grid-cols-3 text-sm">
+                              {/* {company.bseScripCode && (
+                                 <div>
+                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">BSE Code</p>
+                                    <p className="text-foreground font-medium mt-0.5">{company.bseScripCode}</p>
+                                 </div>
+                              )}
+                              {company.isinCode && (
+                                 <div>
+                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">ISIN</p>
+                                    <p className="text-foreground font-medium mt-0.5">{company.isinCode}</p>
+                                 </div>
+                              )} */}
+                              {company.industryGroup && (
+                                 <div>
+                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Industry</p>
+                                    <p className="text-foreground font-medium mt-0.5">{company.industryGroup}</p>
+                                 </div>
+                              )}
+                              {company.nseSymbol && (
+                                 <div className="hidden md:block">
+                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">NSE Symbol</p>
+                                    <p className="text-foreground font-medium mt-0.5">{company.nseSymbol}</p>
+                                 </div>
+                              )}
+                              {company.month && (
+                                 <div>
+                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Screening Month</p>
+                                    <p className="text-foreground font-medium mt-0.5">{fmtMonth(company.month)}</p>
+                                 </div>
+                              )}
+                           </div>
+                        </div>
+                     ))
+                  )}
                </div>
             </>
          )}
