@@ -29,6 +29,7 @@ import { cn } from "@/src/lib/utils"
 import { getListCompanies, type ListSubscription, type ListCompany } from "../_actions"
 import { getCompanySnapshot, getFinancialRatioThresholds, type CompanySnapshotResult } from "../../snapshot/_actions"
 import { SnapshotCard, type SnapshotSuccess } from "../../snapshot/_components/snapshot-client"
+import { Badge } from "@/src/components/ui/badge"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -169,7 +170,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
             c.companyName.toLowerCase().includes(q) ||
             (c.nseSymbol?.toLowerCase().includes(q) ?? false) ||
             (c.bseScripCode?.toLowerCase().includes(q) ?? false) ||
-            (c.isinCode?.toLowerCase().includes(q) ?? false) ||
+            // (c.isinCode?.toLowerCase().includes(q) ?? false) ||
             (c.industryGroup?.toLowerCase().includes(q) ?? false),
       )
    }, [companies, search, complianceFilter])
@@ -193,7 +194,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
                            setSelectedSubId(sub.subscriptionId)
                         }}
                         className={cn(
-                           "rounded-lg border px-3 sm:px-4 py-2 sm:py-2.5 text-sm transition-all",
+                           "rounded-xl border px-3 sm:px-4 py-2 sm:py-2.5 text-sm transition-all",
                            "hover:cursor-pointer hover:border-primary",
                            active
                               ? "border-primary bg-primary/10 text-foreground font-medium"
@@ -270,8 +271,8 @@ export function ListClient({ subscriptions }: ListClientProps) {
                               {complianceFilter === "all"
                                  ? "All"
                                  : complianceFilter === "compliant"
-                                 ? "Shariah Compliant"
-                                 : "Non-Compliant"}
+                                    ? "Shariah Compliant"
+                                    : "Non-Compliant"}
                            </span>
                            {complianceFilter !== "all" && (
                               <span className="ml-1 rounded-full bg-primary/20 px-1.5 py-0.5 text-xs font-semibold text-primary">
@@ -322,7 +323,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
                      />
                      <Input
                         aria-label="Search companies"
-                        placeholder="Search by name, symbol, ISIN, or industry…"
+                        placeholder="Search by name, symbol, or industry…"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="pl-9 h-9"
@@ -365,28 +366,27 @@ export function ListClient({ subscriptions }: ListClientProps) {
                   </div>
                )}
 
-               {/* ── Company list (horizontal cards) ── */}
-               <div className="space-y-3">
+               {/* ── Company list (2-column grid - adaptive to available space) ── */}
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {loading ? (
                      <>
                         {Array.from({ length: 6 }).map((_, i) => (
-                           <div key={i} className="rounded-lg border p-4 space-y-3">
-                              <div className="flex items-start gap-3">
-                                 <Skeleton className="h-6 w-6 shrink-0" />
-                                 <Skeleton className="h-5 w-48" />
-                                 <Skeleton className="h-6 w-32 ml-auto shrink-0" />
+                           <div key={i} className="rounded-xl border p-3 space-y-2">
+                              <div className="flex items-start justify-between gap-2">
+                                 <Skeleton className="h-5 w-40" />
+                                 <Skeleton className="h-5 w-20 shrink-0" />
                               </div>
-                              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                                 <Skeleton className="h-4 w-20" />
-                                 <Skeleton className="h-4 w-20" />
-                                 <Skeleton className="h-4 w-20" />
-                                 <Skeleton className="h-4 w-20" />
+                              <div className="grid grid-cols-2 gap-3">
+                                 <Skeleton className="h-4 w-24" />
+                                 <Skeleton className="h-4 w-24" />
+                                 <Skeleton className="h-4 w-24" />
+                                 <Skeleton className="h-4 w-24" />
                               </div>
                            </div>
                         ))}
                      </>
                   ) : filtered.length === 0 ? (
-                     <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-12 px-4 text-center">
+                     <div className="col-span-1 lg:col-span-2 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-12 px-4 text-center">
                         <p className="text-sm font-medium text-foreground">No companies found</p>
                         <p className="text-xs text-muted-foreground">
                            {search ? `No matches for "${search}"` : "Try adjusting your filters or search"}
@@ -417,51 +417,33 @@ export function ListClient({ subscriptions }: ListClientProps) {
                                  setSelectedCompany(company)
                               }
                            }}
-                           className="group cursor-pointer rounded-lg border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
+                           className="group cursor-pointer rounded-xl border bg-card p-3 transition-all hover:border-primary/40 hover:shadow-md"
+                           style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}
                         >
-                           {/* Header: Mobile (badge on top) vs Desktop (badge on right) */}
-                           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3 mb-3">
-                              <div className="flex items-start gap-3 flex-1 min-w-0">
-                                 <span className="text-sm font-semibold text-muted-foreground shrink-0 pt-[2px]">#{i + 1}</span>
-                                 <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors break-words">
-                                    {company.companyName}
-                                 </h3>
-                              </div>
+                           {/* Header: Company name + Status badge */}
+                           <div className="flex items-start justify-between gap-2 mb-2.5">
+                              <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors break-words flex-1 min-w-0">
+                                 {company.companyName}
+                                 <div className="flex flex-wrap gap-1 mt-1">
+                                    {company.nseSymbol && (<Badge variant="secondary" className="rounded-lg">
+                                       <span className="text-muted-foreground ">NSE: </span>{company.nseSymbol}
+                                    </Badge>)}
+                                    {company.bseScripCode && (<Badge variant="secondary" className="rounded-lg">
+                                       <span className="text-muted-foreground ">BSE: </span>{company.bseScripCode}
+                                    </Badge>)}
+                                 </div>
+                              </h3>
                               <div className="shrink-0">
                                  <StatusBadge status={company.shariahStatus} />
                               </div>
                            </div>
 
-                           {/* Details: Horizontal grid */}
-                           <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4 md:grid-cols-3 text-sm">
-                              {/* {company.bseScripCode && (
-                                 <div>
-                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">BSE Code</p>
-                                    <p className="text-foreground font-medium mt-0.5">{company.bseScripCode}</p>
-                                 </div>
-                              )}
-                              {company.isinCode && (
-                                 <div>
-                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">ISIN</p>
-                                    <p className="text-foreground font-medium mt-0.5">{company.isinCode}</p>
-                                 </div>
-                              )} */}
+                           {/* Details: 2x2 grid */}
+                           <div className="text-xs">
                               {company.industryGroup && (
                                  <div>
-                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Industry</p>
-                                    <p className="text-foreground font-medium mt-0.5">{company.industryGroup}</p>
-                                 </div>
-                              )}
-                              {company.nseSymbol && (
-                                 <div className="hidden md:block">
-                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">NSE Symbol</p>
-                                    <p className="text-foreground font-medium mt-0.5">{company.nseSymbol}</p>
-                                 </div>
-                              )}
-                              {company.month && (
-                                 <div>
-                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Screening Month</p>
-                                    <p className="text-foreground font-medium mt-0.5">{fmtMonth(company.month)}</p>
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Industry</p>
+                                    <p className="text-foreground font-medium truncate">{company.industryGroup}</p>
                                  </div>
                               )}
                            </div>
@@ -500,8 +482,8 @@ export function ListClient({ subscriptions }: ListClientProps) {
                         {snapshotError === "daily_quota_exceeded"
                            ? "Daily quota reached. You've viewed the maximum companies for today."
                            : snapshotError === "total_quota_exceeded"
-                           ? "Subscription quota reached."
-                           : "Failed to load snapshot."}
+                              ? "Subscription quota reached."
+                              : "Failed to load snapshot."}
                      </p>
                   )}
                   {!snapshotLoading && snapshotData && (
