@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { SearchIcon, BuildingIcon, FilterIcon, ChevronDownIcon } from "lucide-react"
+import { SearchIcon, BuildingIcon, FilterIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
 import { Skeleton } from "@/src/components/ui/skeleton"
 import { Spinner } from "@/src/components/ui/spinner"
@@ -49,6 +49,34 @@ function fmtDate(date: string | null): string {
 
 function fmtDurationType(t: string): string {
    return t.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+// Indian-grouped currency (e.g. ₹12,34,56,78,91,011), no decimals.
+function fmtMarketCap(total: number): string {
+   return `₹${total.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
+}
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+
+// Builds the list of page tokens to render: numbers plus "…" placeholders.
+// Always shows first/last page and a window around the current page.
+function getPageRange(current: number, total: number): (number | "ellipsis")[] {
+   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+   const pages: (number | "ellipsis")[] = [1]
+   let start = Math.max(2, current - 1)
+   let end = Math.min(total - 1, current + 1)
+   if (current <= 3) {
+      start = 2
+      end = 4
+   } else if (current >= total - 2) {
+      start = total - 3
+      end = total - 1
+   }
+   if (start > 2) pages.push("ellipsis")
+   for (let i = start; i <= end; i++) pages.push(i)
+   if (end < total - 1) pages.push("ellipsis")
+   pages.push(total)
+   return pages
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -121,6 +149,8 @@ export function ListClient({ subscriptions }: ListClientProps) {
    const [loading, setLoading] = React.useState(subscriptions.length === 1)
    const [search, setSearch] = React.useState("")
    const [complianceFilter, setComplianceFilter] = React.useState<"all" | "compliant" | "non-compliant">("all")
+   const [pageSize, setPageSize] = React.useState(10)
+   const [currentPage, setCurrentPage] = React.useState(1)
    const [selectedCompany, setSelectedCompany] = React.useState<ListCompany | null>(null)
    const [snapshotLoading, setSnapshotLoading] = React.useState(false)
    const [snapshotData, setSnapshotData] = React.useState<SnapshotSuccess | null>(null)
@@ -147,9 +177,24 @@ export function ListClient({ subscriptions }: ListClientProps) {
    const selectedSub = subscriptions.find((s) => s.subscriptionId === selectedSubId)
 
    const complianceCounts = React.useMemo(() => {
-      const compliant = companies.filter((c) => c.shariahStatus === 1).length
-      const nonCompliant = companies.filter((c) => c.shariahStatus !== null && c.shariahStatus !== 1).length
-      return { compliant, nonCompliant, all: companies.length }
+      let compliant = 0
+      let nonCompliant = 0
+      let totalCap = 0
+      let compliantCap = 0
+      let nonCompliantCap = 0
+      for (const c of companies) {
+         const parsed = c.marketCap ? parseFloat(c.marketCap) : 0
+         const cap = Number.isFinite(parsed) ? parsed : 0
+         totalCap += cap
+         if (c.shariahStatus === 1) {
+            compliant++
+            compliantCap += cap
+         } else if (c.shariahStatus !== null) {
+            nonCompliant++
+            nonCompliantCap += cap
+         }
+      }
+      return { compliant, nonCompliant, all: companies.length, totalCap, compliantCap, nonCompliantCap }
    }, [companies])
 
    const filtered = React.useMemo(() => {
@@ -174,6 +219,18 @@ export function ListClient({ subscriptions }: ListClientProps) {
             (c.industryGroup?.toLowerCase().includes(q) ?? false),
       )
    }, [companies, search, complianceFilter])
+
+   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+
+   const paginated = React.useMemo(
+      () => filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+      [filtered, currentPage, pageSize],
+   )
+
+   // Reset to the first page whenever the result set or page size changes.
+   React.useEffect(() => {
+      setCurrentPage(1)
+   }, [search, complianceFilter, pageSize, selectedSubId, selectedMonth])
 
    return (
       <div className="flex flex-col gap-6 p-4 sm:p-6">
@@ -224,33 +281,53 @@ export function ListClient({ subscriptions }: ListClientProps) {
             </div>
          ) : (
             <>
-               {/* ── Index header with statistics ── */}
+               {/* ── Index header card (gradient — matches snapshot header) ── */}
                {selectedSub && (
-                  <div className="space-y-4">
-                     <div>
-                        <h1 className="text-3xl font-bold text-foreground">{selectedSub.indexName}</h1>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                           {selectedSub.indexDescription}
-                        </p>
+                  <div
+                     style={{ background: "linear-gradient(160deg, #0d1f3c 0%, #1a3a6e 100%)" }}
+                     className="overflow-hidden rounded-2xl shadow-lg"
+                  >
+                     {/* List name + window badge */}
+                     <div className="px-6 py-6">
+                        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+                           <h1 className="text-2xl font-bold text-white sm:text-3xl">{selectedSub.indexName}</h1>
+                           <div className="flex items-center gap-1.5 self-start rounded-full border border-white/20 bg-white/10 px-3 py-1">
+                              <span className="size-1.5 shrink-0 rounded-full bg-emerald-400" />
+                              <span className="whitespace-nowrap text-xs font-medium text-white">
+                                 {fmtMonth(selectedSub.startMonth)} – {fmtMonth(selectedSub.endMonth)}
+                              </span>
+                           </div>
+                        </div>
+                        {selectedSub.indexDescription && (
+                           <p className="mt-2 max-w-3xl text-sm text-blue-100/70">{selectedSub.indexDescription}</p>
+                        )}
                      </div>
 
-                     {/* ── Statistics ── */}
+                     {/* Statistics table */}
                      {!loading && companies.length > 0 && (
-                        <div className="grid grid-cols-3 gap-4 sm:gap-6">
-                           <div className="space-y-1">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Companies</p>
-                              <p className="text-sm font-bold text-foreground">{companies.length}</p>
-                           </div>
-                           <div className="space-y-1">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Compliant</p>
-                              <p className="text-sm font-bold text-foreground">{complianceCounts.compliant}</p>
-                           </div>
-                           <div className="space-y-1">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Window</p>
-                              <p className="text-sm font-medium text-foreground">
-                                 {fmtMonth(selectedSub.startMonth)} – {fmtMonth(selectedSub.endMonth)}
-                              </p>
-                           </div>
+                        <div className="overflow-x-auto border-t border-white/10 px-6 py-5">
+                           <table className="w-full border-collapse text-left text-sm">
+                              <thead>
+                                 <tr className="border-b border-white/10 text-[10px] font-semibold uppercase tracking-widest text-blue-300/60">
+                                    <th className="pb-2 font-semibold">Companies</th>
+                                    <th className="pb-2 pl-4 text-right font-semibold">Nos</th>
+                                    <th className="pb-2 pl-4 text-right font-semibold">Market Cap (in millions)</th>
+                                 </tr>
+                              </thead>
+                              <tbody className="text-white [&_tr:first-child_td]:pt-3">
+                                 {[
+                                    { label: "Total", nos: complianceCounts.all, cap: complianceCounts.totalCap },
+                                    { label: "Shariah Compliant", nos: complianceCounts.compliant, cap: complianceCounts.compliantCap },
+                                    { label: "Shariah Non-Compliant", nos: complianceCounts.nonCompliant, cap: complianceCounts.nonCompliantCap },
+                                 ].map(({ label, nos, cap }) => (
+                                    <tr key={label}>
+                                       <td className="py-1.5 font-medium whitespace-nowrap">{label}</td>
+                                       <td className="py-1.5 pl-4 text-right tabular-nums">{nos}</td>
+                                       <td className="py-1.5 pl-4 text-right tabular-nums whitespace-nowrap">{fmtMarketCap(cap)}</td>
+                                    </tr>
+                                 ))}
+                              </tbody>
+                           </table>
                         </div>
                      )}
                   </div>
@@ -393,7 +470,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
                         </p>
                      </div>
                   ) : (
-                     filtered.map((company, i) => (
+                     paginated.map((company, i) => (
                         <div
                            key={company.id}
                            onClick={() => {
@@ -417,29 +494,28 @@ export function ListClient({ subscriptions }: ListClientProps) {
                                  setSelectedCompany(company)
                               }
                            }}
-                           className="group cursor-pointer rounded-xl border bg-card p-3 transition-all hover:border-primary/40 hover:shadow-md"
-                           style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}
+                           className="group cursor-pointer rounded-xl border bg-card p-3 transition-all shadow-sm hover:border-primary/40 hover:shadow-md"
                         >
                            {/* Header: Company name + Status badge */}
                            <div className="flex items-start justify-between gap-2 mb-2.5">
                               <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors break-words flex-1 min-w-0">
                                  {company.companyName}
-                                 <div className="flex flex-wrap gap-1 mt-1">
-                                    {company.nseSymbol && (<Badge variant="secondary" className="rounded-lg">
-                                       <span className="text-muted-foreground ">NSE: </span>{company.nseSymbol}
-                                    </Badge>)}
-                                    {company.bseScripCode && (<Badge variant="secondary" className="rounded-lg">
-                                       <span className="text-muted-foreground ">BSE: </span>{company.bseScripCode}
-                                    </Badge>)}
-                                 </div>
                               </h3>
                               <div className="shrink-0">
                                  <StatusBadge status={company.shariahStatus} />
                               </div>
                            </div>
+                           <div className="flex flex-wrap gap-1 mt-1">
+                              {company.nseSymbol && (<Badge variant="secondary" className="rounded-lg">
+                                 <span className="text-black ">NSE Symbol: </span>{company.nseSymbol}
+                              </Badge>)}
+                              {company.bseScripCode && (<Badge variant="secondary" className="rounded-lg">
+                                 <span className="text-black ">BSE Scrip Code: </span>{company.bseScripCode}
+                              </Badge>)}
+                           </div>
 
                            {/* Details: 2x2 grid */}
-                           <div className="text-xs">
+                           <div className="text-xs mt-3">
                               {company.industryGroup && (
                                  <div>
                                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Industry</p>
@@ -451,6 +527,73 @@ export function ListClient({ subscriptions }: ListClientProps) {
                      ))
                   )}
                </div>
+
+               {/* ── Pagination ── */}
+               {!loading && filtered.length > 0 && (
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                     {/* Page size selector */}
+                     <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">Companies per page</span>
+                        <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                           <SelectTrigger className="h-9 w-20">
+                              <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent>
+                              {PAGE_SIZE_OPTIONS.map((size) => (
+                                 <SelectItem key={size} value={String(size)}>
+                                    {size}
+                                 </SelectItem>
+                              ))}
+                           </SelectContent>
+                        </Select>
+                     </div>
+
+                     {/* Page navigation */}
+                     <div className="flex items-center gap-1.5">
+                        <Button
+                           variant="outline"
+                           size="icon"
+                           className="size-9"
+                           aria-label="Previous page"
+                           disabled={currentPage === 1}
+                           onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        >
+                           <ChevronLeftIcon className="size-4" />
+                        </Button>
+
+                        {getPageRange(currentPage, totalPages).map((page, i) =>
+                           page === "ellipsis" ? (
+                              <span key={`ellipsis-${i}`} className="px-1 text-sm text-muted-foreground select-none">
+                                 …
+                              </span>
+                           ) : (
+                              <Button
+                                 key={page}
+                                 variant={page === currentPage ? "default" : "outline"}
+                                 size="icon"
+                                 className="size-9"
+                                 aria-label={`Go to page ${page}`}
+                                 aria-current={page === currentPage ? "page" : undefined}
+                                 onClick={() => setCurrentPage(page)}
+                              >
+                                 {page}
+                              </Button>
+                           ),
+                        )}
+
+                        <Button
+                           variant="outline"
+                           size="icon"
+                           className="size-9"
+                           aria-label="Next page"
+                           disabled={currentPage >= totalPages}
+                           onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        >
+                           <ChevronRightIcon className="size-4" />
+                        </Button>
+                     </div>
+                  </div>
+               )}
             </>
          )}
 

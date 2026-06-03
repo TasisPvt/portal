@@ -44,6 +44,7 @@ export type ListCompany = {
    month: string | null
    shariahStatus: number | null
    companyStatus: string | null
+   marketCap: string | null
 }
 
 export type ListCompaniesResult = {
@@ -174,6 +175,7 @@ export async function getListCompanies(
       month: companyShariah.month,
       shariahStatus: companyShariah.shariahStatus,
       companyStatus: companyShariah.companyStatus,
+      marketCap: companyShariah.marketCap,
    }
 
    const shariahRows = await db
@@ -223,7 +225,7 @@ export async function getListCompanies(
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-type ShariahRow = { companyId: string; month: string; shariahStatus: number | null; companyStatus: string | null }
+type ShariahRow = { companyId: string; month: string; shariahStatus: number | null; companyStatus: string | null; marketCap: string | null }
 type CompanyRow = { id: string; companyName: string; isinCode: string | null; bseScripCode: string | null; bseScripId: string | null; bseGroup: string | null; nseSymbol: string | null; serviceGroup: string | null; nseListingDate: string | null; nseDelistingDate: string | null; bseListingDate: string | null; bseDelistingDate: string | null; industryGroupName: string | null }
 
 function mapCompanies(companies: CompanyRow[], shariahMap: Map<string, ShariahRow>): ListCompany[] {
@@ -246,6 +248,7 @@ function mapCompanies(companies: CompanyRow[], shariahMap: Map<string, ShariahRo
          month: s?.month ?? null,
          shariahStatus: s?.shariahStatus ?? null,
          companyStatus: s?.companyStatus ?? null,
+         marketCap: s?.marketCap ?? null,
       }
    })
 }
