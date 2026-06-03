@@ -37,13 +37,13 @@ import { Button } from "@/src/components/ui/button"
 
 const STATUS_LABELS: Record<number, string> = {
    1: "Shariah Compliant",
-   2: "Primary Bus. Non-compliant",
-   3: "Secondary Bus. Non-compliant",
-   4: "Financial Non-compliant",
-   5: "Fail on Investment",
-   6: "Incomplete / Old Data",
-   7: "Incomplete Bus. Info",
-   8: "Status on Hold",
+   2: "Primary Business Non-compliant",
+   3: "Secondary Business Non-compliant",
+   4: "Financial Ratio/s Non compliant",
+   5: "Failed on Investment",
+   6: "Incomplete/Old Data",
+   7: "Incomplete Business Information",
+   8: "Shariah Status on Hold",
    9: "Not in Universe",
 }
 
@@ -93,7 +93,7 @@ function fmtMarketCapRaw(val: string | null | undefined): string {
    if (!val) return "—"
    const n = parseFloat(val)
    if (isNaN(n)) return "—"
-   return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`
+   return `₹${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
 }
 
 // ─── CompactQuotaBar (inline with search bar) ─────────────────────────────────
@@ -170,7 +170,7 @@ function FullQuotaBar({
                { label: "Total", used: totalUsed, limit: totalLimit, pct: totalPct },
             ].map(({ label, used, limit, pct }) => (
                <div key={label} className="flex min-w-24 flex-col gap-1">
-                  <div className="flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center justify-between gap-3 text-sm">
                      <span className="text-muted-foreground">{label}</span>
                      <span className="font-semibold tabular-nums text-foreground">
                         {used}{limit !== null ? `/${limit}` : ""}
@@ -227,7 +227,7 @@ function RemarkPanel({ remark }: { remark: ScreeningRemark | null | undefined })
             : null
 
    return (
-      <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
+      <div className="rounded-2xl border bg-card p-5 shadow-lg">
          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">Remarks</p>
          {remark ? (
             <div className="flex flex-col gap-4">
@@ -328,7 +328,7 @@ function RatioChart({
                >
                   {numericValue !== null ? `${numericValue.toFixed(2)}%` : "—"}
                </span>
-               <span className="text-xs text-muted-foreground">/ {fmtPct(thresholdPct)}</span>
+               <span className="text-sm text-muted-foreground">/ {fmtPct(thresholdPct)}</span>
             </div>
          </div>
 
@@ -457,9 +457,9 @@ function QuantitativeRatiosPanel({
    ]
 
    return (
-      <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
+      <div className="rounded-2xl border bg-card p-5 shadow-lg">
          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-6">
-            Quantitative Ratios
+            Quantitative Parameters
          </p>
          <div className="flex flex-col gap-7">
             {ratioData.map(({ label, parameter, value, status }) => (
@@ -512,10 +512,9 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
          {/* ── Dark Navy Header ── */}
          <div
             style={{
-               background: "linear-gradient(160deg, #0d1f3c 0%, #1a3a6e 100%)",
-               boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)"
+               background: "linear-gradient(160deg, #0d1f3c 0%, #1a3a6e 100%)"
             }}
-            className="overflow-hidden rounded-2xl"
+            className="overflow-hidden rounded-2xl shadow-lg"
          >
             {/* Company name + codes */}
             <div className="px-6 py-6">
@@ -523,25 +522,25 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
                   <h2 className="text-2xl font-bold text-white sm:text-3xl">{company.companyName}</h2>
                   <div className="flex items-center gap-1.5 rounded-full self-start border border-white/20 bg-white/10 px-3 py-1">
                      <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" />
-                     <span className="text-xs font-medium text-white">Updated • {snapshotDate}</span>
+                     <span className="text-sm font-medium text-white">Updated • {snapshotDate}</span>
                   </div>
                </div>
-               <div className="mt-2 flex flex-wrap items-center gap-4 text-xs">
+               <div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
                   {company.nseSymbol && (
                      <span className="text-blue-100">
-                        <span className="text-blue-400/80">NSE</span>{" "}
+                        <span className="text-blue-400/80">NSE Symbol</span>{" "}
                         <span className="font-semibold">{company.nseSymbol}</span>
                      </span>
                   )}
                   {company.bseScripCode && (
                      <span className="text-blue-100">
-                        <span className="text-blue-400/80">BSE</span>{" "}
+                        <span className="text-blue-400/80">BSE Scrip ID</span>{" "}
                         <span className="font-semibold">{company.bseScripCode}</span>
                      </span>
                   )}
                   {company.isinCode && (
                      <span className="text-blue-100">
-                        <span className="text-blue-400/80">ISIN</span>{" "}
+                        <span className="text-blue-400/80">ISIN Code</span>{" "}
                         <span className="font-semibold">{company.isinCode}</span>
                      </span>
                   )}
@@ -554,23 +553,22 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
                   {[
                      { label: "Industry", value: company.industryGroup, sub: null },
                      {
-                        label: "Market Cap",
+                        label: "Market Cap. (in Millions)",
                         value: fmtMarketCapRaw(shariah.marketCap),
-                        sub: "Rs. Millions",
                      },
                      {
-                        label: "Assessment Year",
+                        label: "Annual Report",
                         value: fmtDateStr(shariah.assessmentYear),
                         sub: null,
                      },
                      {
-                        label: "Company Status",
+                        label: "Reporting Basis",
                         value: shariah.companyStatus ?? "—",
                         sub: null,
                      },
                   ].map(({ label, value, sub }) => (
                      <div key={label} className="flex flex-col gap-0.5 px-5 py-4 border-b border-r border-white/10 [&:nth-child(2n)]:border-r-0 last:border-r-0 sm:[&:nth-child(2n)]:border-r  lg:[&:nth-child(3n)]:border-r lg:border-b-0">
-                        <span className="text-[9px] font-semibold uppercase tracking-widest text-blue-300/60">
+                        <span className="text-xs font-semibold uppercase tracking-widest text-blue-300/60">
                            {label}
                         </span>
                         <span className="mt-1 text-sm font-bold text-white">
@@ -587,7 +585,7 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
 
          {/* ── Compliance Verdict ── */}
          {shariah && (
-            <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
+            <div className="rounded-2xl border bg-card p-5 shadow-lg">
                <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
                      <Image
@@ -632,7 +630,7 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
                         key={tab.key}
                         onClick={() => handleTabChange(tab.key)}
                         className={cn(
-                           "shrink-0 px-5 py-3 text-xs font-semibold uppercase tracking-wider transition-colors",
+                           "shrink-0 px-5 py-3 text-sm font-semibold uppercase tracking-wider transition-colors",
                            effectiveTab === tab.key
                               ? "border-b-2 border-foreground text-foreground"
                               : "border-b-2 border-transparent text-muted-foreground hover:text-foreground",
@@ -649,7 +647,7 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
                {effectiveTab === "business" && (
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                      {/* Left: Qualitative Parameters */}
-                     <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
+                     <div className="rounded-2xl border bg-card p-5 shadow-lg">
                         <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                            Qualitative Parameters
                         </p>
@@ -714,7 +712,7 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
 
                {/* Historical */}
                {effectiveTab === "historical" && (
-                  <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
+                  <div className="rounded-2xl border bg-card p-5 shadow-lg">
                      <div className="mb-4 flex items-center justify-between">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                            Last 12 Months
@@ -726,7 +724,7 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
 
                {/* Legends */}
                {effectiveTab === "legends" && (
-                  <div className="rounded-2xl border bg-card p-5" style={{ boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.18)" }}>
+                  <div className="rounded-2xl border bg-card p-5 shadow-lg">
                      <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                         Status Color Legend
                      </p>
@@ -747,10 +745,10 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
                {/* Important Note */}
                <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900/40 dark:bg-amber-950/10">
                   <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
-                     Important Note
+                     Important Note from TASIS Shariah Board
                   </h3>
                   <div className="flex flex-col gap-1.5">
-                     <p className="text-xs leading-relaxed text-muted-foreground">
+                     <p className="text-sm leading-relaxed text-muted-foreground">
                         It is important to note that{" "}
                         <strong>
                            Shariah scholars globally allow investment in companies with a small amount of interest
@@ -758,11 +756,11 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
                         </strong>
                         .
                      </p>
-                     <p className="text-xs leading-relaxed text-muted-foreground">
+                     <p className="text-sm leading-relaxed text-muted-foreground">
                         However, investors must{" "}
                         <strong>identify this portion and donate it to charity (purification)</strong>.
                      </p>
-                     <p className="text-xs leading-relaxed text-muted-foreground">
+                     <p className="text-sm leading-relaxed text-muted-foreground">
                         If this is not done, the{" "}
                         <strong>
                            investment and its returns shall be considered non-compliant for the investor concerned
@@ -841,9 +839,9 @@ function SearchDropdown({
                onClick={() => onSelect(c)}
             >
                <span className="font-medium">{c.companyName}</span>
-               <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  {c.isinCode && <span>{c.isinCode}</span>}
-                  {c.nseSymbol && <span>NSE: {c.nseSymbol}</span>}
+               <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                  {c.isinCode && <span>ISIN Code: {c.isinCode}</span>}
+                  {c.nseSymbol && <span>NSE Symbol: {c.nseSymbol}</span>}
                </div>
             </button>
          ))}
@@ -914,7 +912,7 @@ export function SnapshotClient({ access, commonRemark, thresholds }: { access: S
       setIsLoading(true)
       try {
          const result = await getCompanySnapshot(company.id)
-         console.log({result})
+         console.log({ result })
          if ("error" in result) {
             if (result.error === "daily_quota_exceeded") {
                toast.error("Daily quota reached. You've viewed the maximum companies for today.")
@@ -999,20 +997,20 @@ export function SnapshotClient({ access, commonRemark, thresholds }: { access: S
          />
 
          {/* Recently viewed / empty state */}
-         {!isLoading && !snapshotData && (
-            <>
-               <RecentlyViewedSection items={recentlyViewed} onSelect={handleSelectCompany} />
-               {recentlyViewed.length === 0 && (
-                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed py-20 text-center">
-                     <SearchIcon className="mb-3 size-8 text-muted-foreground/30" />
-                     <p className="text-sm font-medium text-muted-foreground">Search for a company above</p>
-                     <p className="mt-1 text-xs text-muted-foreground/70">
-                        Enter a company name, ISIN, or exchange symbol
-                     </p>
-                  </div>
-               )}
-            </>
+         {/* {!isLoading && !snapshotData && (
+            <> */}
+         <RecentlyViewedSection items={recentlyViewed} onSelect={handleSelectCompany} />
+         {recentlyViewed.length === 0 && (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed py-20 text-center">
+               <SearchIcon className="mb-3 size-8 text-muted-foreground/30" />
+               <p className="text-sm font-medium text-muted-foreground">Search for a company above</p>
+               <p className="mt-1 text-sm text-muted-foreground/70">
+                  Enter a company name, ISIN, or exchange symbol
+               </p>
+            </div>
          )}
+         {/* </>
+         )} */}
 
          {isLoading && (
             <div className="flex items-center justify-center py-16">

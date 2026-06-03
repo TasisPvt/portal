@@ -14,7 +14,7 @@ const SCREENING_PARAMETERS = [
    { key: "incomplete_business_information", label: "Incomplete Business Information" },
    { key: "primary_business", label: "Primary Business" },
    { key: "secondary_business", label: "Secondary Business" },
-   { key: "compliant_on_investment", label: "Compliant on Investment" },
+   { key: "compliant_on_investment", label: "Compliance on Investment" },
 ] as const
 
 export type ScreeningStandardRow = {

@@ -371,7 +371,7 @@ export async function getCompanySnapshot(companyId: string, trackQuota = true): 
       { parameter: "incomplete_business_information", label: "Incomplete Business Information", value: isOnHold ? null : (shariah?.incompleteBusInfo ?? null) },
       { parameter: "primary_business", label: "Primary Business", value: isOnHold ? null : (shariah?.primaryBusiness ?? null) },
       { parameter: "secondary_business", label: "Secondary Business", value: isOnHold ? null : (shariah?.secondaryBusiness ?? null) },
-      { parameter: "compliant_on_investment", label: "Compliant on Investment", value: isOnHold ? null : (shariah?.compliantOnInvestment ?? null) },
+      { parameter: "compliant_on_investment", label: "Compliance on Investment", value: isOnHold ? null : (shariah?.compliantOnInvestment ?? null) },
       { parameter: "total_debt_total_asset", label: "Total Debt / Total Asset", value: isOnHold ? null : (shariah?.totalDebtTotalAssetStatus ?? null) },
       { parameter: "total_interest_income_total_income", label: "Total Interest Income / Total Income", value: isOnHold ? null : (shariah?.totalInterestIncomeTotalIncomeStatus ?? null) },
       { parameter: "cash_bank_receivables_total_asset", label: "Cash + Bank + Receivables / Total Asset", value: isOnHold ? null : (shariah?.cashBankReceivablesTotalAssetStatus ?? null) },
