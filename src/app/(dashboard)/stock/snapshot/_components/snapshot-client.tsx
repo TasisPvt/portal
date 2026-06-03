@@ -22,6 +22,7 @@ import {
 } from "@/src/components/ui/dialog"
 import Image from "next/image"
 import { cn } from "@/src/lib/utils"
+import { formatDateStr as fmtDateStr, formatMonth as fmtMonthStr } from "@/src/lib/format"
 import {
    searchCompanies,
    getCompanySnapshot,
@@ -75,19 +76,6 @@ const TABS: { key: TabKey; label: string }[] = [
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtDateStr(dateStr: string | null | undefined): string {
-   if (!dateStr) return "—"
-   const [y, m, d] = dateStr.split("-")
-   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-   return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`
-}
-
-function fmtMonthStr(month: string): string {
-   const [y, m] = month.split("-")
-   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-   return `${months[parseInt(m) - 1]} '${y.slice(2)}`
-}
 
 function fmtMarketCapRaw(val: string | null | undefined): string {
    if (!val) return "—"

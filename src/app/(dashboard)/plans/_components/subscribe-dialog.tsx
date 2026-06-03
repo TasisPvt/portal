@@ -15,17 +15,8 @@ import {
    DialogTrigger,
 } from "@/src/components/ui/dialog"
 import { cn } from "@/src/lib/utils"
-
-export const DURATION_LABELS: Record<DurationType, string> = {
-   one_time: "One-Time",
-   monthly: "Monthly",
-   quarterly: "Quarterly",
-   annual: "Annual",
-}
-
-function fmtPrice(price: string) {
-   return "₹" + new Intl.NumberFormat("en-IN").format(parseFloat(price))
-}
+import { formatPrice as fmtPrice } from "@/src/lib/format"
+import { DURATION_LABELS } from "@/src/lib/constants"
 
 interface SubscribeButtonProps {
    planId: string
