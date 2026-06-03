@@ -31,6 +31,7 @@ import {
 import { Badge } from "@/src/components/ui/badge"
 import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
+import { formatDateStr as fmtDateStr } from "@/src/lib/format"
 import {
    Select,
    SelectContent,
@@ -107,13 +108,6 @@ function NumCell({ value, decimals = 2 }: { value: string | null | undefined; de
          {parseFloat(value).toLocaleString("en-IN", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
       </span>
    )
-}
-
-function fmtDateStr(dateStr: string | null | undefined): string {
-   if (!dateStr) return "—"
-   const [y, m, d] = dateStr.split("-")
-   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-   return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`
 }
 
 function boolToCSV(v: boolean | null | undefined): string {

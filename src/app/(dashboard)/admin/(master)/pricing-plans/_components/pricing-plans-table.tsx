@@ -25,6 +25,7 @@ import {
 
 import { Badge } from "@/src/components/ui/badge"
 import { Button } from "@/src/components/ui/button"
+import { PlanTypeBadge as TypeBadge } from "@/src/components/plan-type-badge"
 import { Input } from "@/src/components/ui/input"
 import {
    Select,
@@ -60,22 +61,6 @@ function fmt(v: string | null | undefined) {
       <span className="tabular-nums text-xs">
          ₹{parseFloat(v).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </span>
-   )
-}
-
-function TypeBadge({ type }: { type: string }) {
-   return (
-      <Badge
-         variant="outline"
-         className={cn(
-            "text-xs font-normal capitalize",
-            type === "snapshot"
-               ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400"
-               : "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-400",
-         )}
-      >
-         {type}
-      </Badge>
    )
 }
 

@@ -4,7 +4,6 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { XCircleIcon } from "lucide-react"
-import { Badge } from "@/src/components/ui/badge"
 import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
 import { Spinner } from "@/src/components/ui/spinner"
@@ -17,6 +16,10 @@ import {
    DialogTrigger,
 } from "@/src/components/ui/dialog"
 import { cn } from "@/src/lib/utils"
+import { formatPrice as fmtPrice, formatDate as fmtDate } from "@/src/lib/format"
+import { DURATION_LABELS } from "@/src/lib/constants"
+import { SubscriptionStatusBadge as StatusBadge } from "@/src/components/subscription-status-badge"
+import { PlanTypeBadge as TypeBadge } from "@/src/components/plan-type-badge"
 import { adminCancelSubscription } from "../_actions"
 
 type SubscriptionRow = {
@@ -36,55 +39,6 @@ type SubscriptionRow = {
 }
 
 type StatusFilter = "all" | "active" | "cancelled" | "expired"
-
-const DURATION_LABELS: Record<string, string> = {
-   one_time: "One-Time",
-   monthly: "Monthly",
-   quarterly: "Quarterly",
-   annual: "Annual",
-}
-
-function fmtPrice(price: string) {
-   return "₹" + new Intl.NumberFormat("en-IN").format(parseFloat(price))
-}
-
-function fmtDate(d: Date) {
-   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-}
-
-function StatusBadge({ status }: { status: string }) {
-   return (
-      <Badge
-         variant="outline"
-         className={cn(
-            "text-xs font-normal capitalize",
-            status === "active"
-               ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400"
-               : status === "cancelled"
-                 ? "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400"
-                 : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400",
-         )}
-      >
-         {status}
-      </Badge>
-   )
-}
-
-function TypeBadge({ type }: { type: string }) {
-   return (
-      <Badge
-         variant="outline"
-         className={cn(
-            "text-xs font-normal capitalize",
-            type === "snapshot"
-               ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400"
-               : "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-400",
-         )}
-      >
-         {type}
-      </Badge>
-   )
-}
 
 function CancelDialog({ id, clientName, planName }: { id: string; clientName: string; planName: string }) {
    const [open, setOpen] = React.useState(false)

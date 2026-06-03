@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { CheckCircle2Icon } from "lucide-react"
-import { Badge } from "@/src/components/ui/badge"
 import {
    Select,
    SelectContent,
@@ -11,7 +10,8 @@ import {
    SelectValue,
 } from "@/src/components/ui/select"
 import { cn } from "@/src/lib/utils"
-import { SubscribeButton, DURATION_LABELS } from "./subscribe-dialog"
+import { SubscribeButton } from "./subscribe-dialog"
+import { PlanTypeBadge } from "@/src/components/plan-type-badge"
 import type { DurationType } from "../_actions"
 
 type PlanRow = {
@@ -76,22 +76,6 @@ function fmtNum(n: string | null | undefined): string {
    return isNaN(v) ? "0" : new Intl.NumberFormat("en-IN").format(v)
 }
 
-function TypeBadge({ type }: { type: string }) {
-   return (
-      <Badge
-         variant="outline"
-         className={cn(
-            "text-xs font-normal capitalize shrink-0",
-            type === "snapshot"
-               ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400"
-               : "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-400",
-         )}
-      >
-         {type}
-      </Badge>
-   )
-}
-
 function PlanCard({ plan, isSubscribed }: { plan: PlanRow; isSubscribed: boolean }) {
    const isSnapshot = plan.type === "snapshot"
    const availableDurations = isSnapshot ? SNAPSHOT_DURATIONS : LIST_DURATIONS
@@ -130,7 +114,7 @@ function PlanCard({ plan, isSubscribed }: { plan: PlanRow; isSubscribed: boolean
          <div className={cn("flex items-start justify-between gap-2", isSubscribed && "mt-2")}>
             <h3 className="text-base font-bold leading-tight text-foreground">{plan.name}</h3>
             <div className="flex items-center gap-1.5 shrink-0">
-               <TypeBadge type={plan.type} />
+               <PlanTypeBadge type={plan.type} className="shrink-0" />
             </div>
          </div>
 

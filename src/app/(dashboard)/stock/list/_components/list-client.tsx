@@ -26,26 +26,13 @@ import {
    DropdownMenuTrigger,
 } from "@/src/components/ui/dropdown-menu"
 import { cn } from "@/src/lib/utils"
+import { formatMonth as fmtMonth } from "@/src/lib/format"
 import { getListCompanies, type ListSubscription, type ListCompany } from "../_actions"
-import { getCompanySnapshot, getFinancialRatioThresholds, type CompanySnapshotResult } from "../../snapshot/_actions"
+import { getCompanySnapshot, getFinancialRatioThresholds } from "../../snapshot/_actions"
 import { SnapshotCard, type SnapshotSuccess } from "../../snapshot/_components/snapshot-client"
 import { Badge } from "@/src/components/ui/badge"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtMonth(month: string | null): string {
-   if (!month) return "—"
-   const [y, m] = month.split("-")
-   const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-   return `${names[parseInt(m) - 1]} '${y.slice(2)}`
-}
-
-function fmtDate(date: string | null): string {
-   if (!date) return "—"
-   const [y, m, d] = date.split("-")
-   const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-   return `${parseInt(d)} ${names[parseInt(m) - 1]} ${y}`
-}
 
 function fmtDurationType(t: string): string {
    return t.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())
@@ -104,32 +91,6 @@ function StatusBadge({ status }: { status: number | null }) {
          />
          {compliant ? "Shariah Compliant" : "Non-Shariah Compliant"}
       </span>
-   )
-}
-
-function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
-   return (
-      <div className="grid grid-cols-2 gap-2 border-b py-2.5 text-sm last:border-0">
-         <span className="text-muted-foreground">{label}</span>
-         <span className="text-right font-medium">{value || "—"}</span>
-      </div>
-   )
-}
-
-function TableSkeleton() {
-   return (
-      <>
-         {Array.from({ length: 10 }).map((_, i) => (
-            <tr key={i} className="border-b">
-               <td className="px-4 py-3.5"><Skeleton className="h-3.5 w-5" /></td>
-               <td className="px-4 py-3.5"><Skeleton className="h-4 w-52" /></td>
-               <td className="hidden px-4 py-3.5 sm:table-cell"><Skeleton className="h-4 w-20" /></td>
-               <td className="hidden px-4 py-3.5 md:table-cell"><Skeleton className="h-4 w-36" /></td>
-               <td className="px-4 py-3.5"><Skeleton className="h-6 w-36 rounded-full" /></td>
-               <td className="hidden px-4 py-3.5 lg:table-cell"><Skeleton className="h-4 w-14" /></td>
-            </tr>
-         ))}
-      </>
    )
 }
 
@@ -470,7 +431,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
                         </p>
                      </div>
                   ) : (
-                     paginated.map((company, i) => (
+                     paginated.map((company) => (
                         <div
                            key={company.id}
                            onClick={() => {
@@ -507,10 +468,10 @@ export function ListClient({ subscriptions }: ListClientProps) {
                            </div>
                            <div className="flex flex-wrap gap-1 mt-1">
                               {company.nseSymbol && (<Badge variant="secondary" className="rounded-lg">
-                                 <span className="text-black ">NSE Symbol: </span>{company.nseSymbol}
+                                 <span className="text-foreground ">NSE Symbol: </span>{company.nseSymbol}
                               </Badge>)}
                               {company.bseScripCode && (<Badge variant="secondary" className="rounded-lg">
-                                 <span className="text-black ">BSE Scrip Code: </span>{company.bseScripCode}
+                                 <span className="text-foreground ">BSE Scrip Code: </span>{company.bseScripCode}
                               </Badge>)}
                            </div>
 

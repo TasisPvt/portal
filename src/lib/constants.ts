@@ -9,3 +9,10 @@ export const UserType = {
    ADMIN: "admin",
    CLIENT: "client",
 } as const
+
+export const DURATION_LABELS: Record<string, string> = {
+   one_time: "One-Time",
+   monthly: "Monthly",
+   quarterly: "Quarterly",
+   annual: "Annual",
+}
