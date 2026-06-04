@@ -68,3 +68,45 @@ export const subscriptionListSnapshot = pgTable(
 )
 
 export type SubscriptionListSnapshot = typeof subscriptionListSnapshot.$inferSelect
+
+// One row per checkout attempt. Created when a Razorpay order is generated and
+// updated after the browser returns + server-side signature verification.
+// On successful verification a subscription is created and linked back here.
+export const payment = pgTable(
+   "payment",
+   {
+      id: varchar("id", { length: 36 }).primaryKey(),
+      clientId: varchar("client_id", { length: 36 })
+         .notNull()
+         .references(() => user.id, { onDelete: "cascade" }),
+      planId: varchar("plan_id", { length: 36 })
+         .notNull()
+         .references(() => pricingPlan.id, { onDelete: "restrict" }),
+      durationType: varchar("duration_type", { length: 20 }).notNull(),
+      // Amount charged, in paise (Razorpay's smallest currency unit).
+      amount: integer("amount").notNull(),
+      currency: varchar("currency", { length: 3 }).notNull().default("INR"),
+      // Price/limits locked at order time, mirrored onto the subscription on success.
+      priceSnapshot: numeric("price_snapshot", { precision: 12, scale: 2 }).notNull(),
+      stocksPerDaySnapshot: integer("stocks_per_day_snapshot"),
+      stocksInDurationSnapshot: integer("stocks_in_duration_snapshot"),
+      razorpayOrderId: varchar("razorpay_order_id", { length: 255 }).notNull().unique(),
+      razorpayPaymentId: varchar("razorpay_payment_id", { length: 255 }),
+      razorpaySignature: varchar("razorpay_signature", { length: 255 }),
+      status: varchar("status", { length: 20 }).notNull().default("created"), // "created" | "paid" | "failed" | "cancelled"
+      subscriptionId: varchar("subscription_id", { length: 36 })
+         .references(() => subscription.id, { onDelete: "set null" }),
+      createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
+      updatedAt: timestamp("updated_at", { precision: 3 })
+         .defaultNow()
+         .$onUpdate(() => new Date())
+         .notNull(),
+   },
+   (table) => [
+      index("payment_client_idx").on(table.clientId),
+      index("payment_status_idx").on(table.status),
+      index("payment_order_idx").on(table.razorpayOrderId),
+   ],
+)
+
+export type Payment = typeof payment.$inferSelect

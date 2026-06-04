@@ -14,7 +14,7 @@ export default async function PlansPage() {
                   <div className="px-4 lg:px-6">
                      <h2 className="text-xl font-semibold tracking-tight">Subscription Plans</h2>
                      <p className="mt-1 text-sm text-muted-foreground">
-                        Choose a plan that fits your needs. Payment will be collected separately.
+                        Choose a plan that fits your needs. Pay securely online and your subscription activates instantly.
                      </p>
                   </div>
                   <div className="px-4 lg:px-6">

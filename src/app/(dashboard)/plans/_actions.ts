@@ -1,7 +1,7 @@
 "use server"
 
 import { randomUUID } from "crypto"
-import { and, eq, inArray, max } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
 
@@ -10,11 +10,12 @@ import {
    subscription,
    pricingPlan,
    indexMaster,
-   indexCompany,
-   companyShariah,
-   subscriptionListSnapshot,
+   payment,
+   clientProfile,
 } from "@/src/db/schema"
 import { auth } from "@/src/lib/auth"
+import { getRazorpay, RAZORPAY_KEY_ID, verifyRazorpaySignature } from "@/src/lib/razorpay"
+import { finalizePaidOrder } from "@/src/lib/payments"
 
 export type DurationType = "one_time" | "monthly" | "quarterly" | "annual"
 
@@ -41,20 +42,6 @@ function snapshotFromPlan(
       case "annual":
          return { price: plan.annualPrice!, stocksPerDay: plan.annualStocksPerDay, stocksInDuration: plan.annualStocksInDuration }
    }
-}
-
-function computeEndDate(durationType: DurationType, startDate: Date): Date {
-   if (durationType === "one_time") {
-      const end = new Date(startDate)
-      end.setHours(23, 59, 59, 999)
-      return end
-   }
-   const days: Record<Exclude<DurationType, "one_time">, number> = {
-      monthly: 30,
-      quarterly: 90,
-      annual: 365,
-   }
-   return new Date(startDate.getTime() + days[durationType] * 24 * 60 * 60 * 1000)
 }
 
 export async function getSubscribedPlanIds(): Promise<string[]> {
@@ -94,125 +81,237 @@ export async function getActivePlans() {
       .orderBy(pricingPlan.name)
 }
 
-export async function subscribeToPlan(
+async function hasActiveSubscription(
+   clientId: string,
    planId: string,
    durationType: DurationType,
-): Promise<ActionResult> {
-   const session = await auth.api.getSession({ headers: await headers() })
-   if (!session?.user?.id) return { success: false, message: "Unauthorized" }
-
-   const [plan] = await db
-      .select()
-      .from(pricingPlan)
-      .where(and(eq(pricingPlan.id, planId), eq(pricingPlan.isActive, true)))
-      .limit(1)
-
-   if (!plan) return { success: false, message: "Plan not found or inactive" }
-
-   if (!(VALID_DURATIONS[plan.type] ?? []).includes(durationType)) {
-      return { success: false, message: "Invalid duration for this plan type" }
-   }
-
+): Promise<boolean> {
    const existing = await db
       .select({ id: subscription.id })
       .from(subscription)
       .where(
          and(
-            eq(subscription.clientId, session.user.id),
+            eq(subscription.clientId, clientId),
             eq(subscription.planId, planId),
             eq(subscription.durationType, durationType),
             eq(subscription.status, "active"),
          ),
       )
       .limit(1)
+   return existing.length > 0
+}
 
-   if (existing.length > 0) {
+// ─── Razorpay payment flow ──────────────────────────────────────────────────
+
+export type CreateOrderResult =
+   | {
+        success: true
+        orderId: string
+        amount: number
+        currency: string
+        keyId: string
+        planName: string
+        prefill: { name: string; email: string; contact: string }
+     }
+   | { success: false; message: string }
+
+// Step 1 — create a Razorpay order + a pending payment row. No subscription is
+// created yet. Amount is always derived server-side from the plan.
+export async function createPaymentOrder(
+   planId: string,
+   durationType: DurationType,
+): Promise<CreateOrderResult> {
+   const session = await auth.api.getSession({ headers: await headers() })
+   if (!session?.user?.id) return { success: false, message: "Unauthorized" }
+   const userId = session.user.id
+
+   const [plan] = await db
+      .select()
+      .from(pricingPlan)
+      .where(and(eq(pricingPlan.id, planId), eq(pricingPlan.isActive, true)))
+      .limit(1)
+   if (!plan) return { success: false, message: "Plan not found or inactive" }
+
+   if (!(VALID_DURATIONS[plan.type] ?? []).includes(durationType)) {
+      return { success: false, message: "Invalid duration for this plan type" }
+   }
+
+   if (await hasActiveSubscription(userId, planId, durationType)) {
       return { success: false, message: "You already have an active subscription for this plan and duration" }
    }
 
    const { price, stocksPerDay, stocksInDuration } = snapshotFromPlan(plan, durationType)
-   const startDate = new Date()
-   const endDate = computeEndDate(durationType, startDate)
+   const amountPaise = Math.round(parseFloat(price ?? "") * 100)
+   if (!Number.isFinite(amountPaise) || amountPaise < 100) {
+      return { success: false, message: "This plan option is not available for purchase" }
+   }
 
-   const subscriptionId = randomUUID()
+   const paymentId = randomUUID()
 
+   let order: { id: string }
    try {
-      await db.transaction(async (tx) => {
-         await tx.insert(subscription).values({
-            id: subscriptionId,
-            clientId: session.user.id,
-            planId,
-            durationType,
-            status: "active",
-            startDate,
-            endDate,
-            priceSnapshot: price,
-            stocksPerDaySnapshot: stocksPerDay,
-            stocksInDurationSnapshot: stocksInDuration,
-            createdAt: startDate,
-            updatedAt: startDate,
-         })
-
-         // For list plans: snapshot the current index companies so the client's
-         // company list is frozen at subscription time and never affected by
-         // later index changes.
-         if (plan.type === "list" && plan.indexId) {
-            await createListSnapshot(tx, subscriptionId, plan.indexId, durationType, startDate)
-         }
+      order = await getRazorpay().orders.create({
+         amount: amountPaise,
+         currency: "INR",
+         receipt: paymentId, // ≤ 40 chars (UUID is 36)
+         notes: { paymentId, planId, durationType, clientId: userId },
       })
+   } catch (err) {
+      console.error("[createPaymentOrder] razorpay", err)
+      return { success: false, message: "Could not initiate payment. Please try again." }
+   }
 
-      revalidatePath("/plans")
-      revalidatePath("/subscriptions")
-      revalidatePath("/stock/list")
-      return { success: true }
-   } catch (err: any) {
-      console.error("[subscribeToPlan]", err)
-      return { success: false, message: err?.message ?? "Something went wrong" }
+   await db.insert(payment).values({
+      id: paymentId,
+      clientId: userId,
+      planId,
+      durationType,
+      amount: amountPaise,
+      currency: "INR",
+      priceSnapshot: price!,
+      stocksPerDaySnapshot: stocksPerDay,
+      stocksInDurationSnapshot: stocksInDuration,
+      razorpayOrderId: order.id,
+      status: "created",
+   })
+
+   const [profile] = await db
+      .select({ phone: clientProfile.phone })
+      .from(clientProfile)
+      .where(eq(clientProfile.userId, userId))
+      .limit(1)
+
+   return {
+      success: true,
+      orderId: order.id,
+      amount: amountPaise,
+      currency: "INR",
+      keyId: RAZORPAY_KEY_ID,
+      planName: plan.name,
+      prefill: {
+         name: session.user.name ?? "",
+         email: session.user.email ?? "",
+         contact: profile?.phone ?? "",
+      },
    }
 }
 
-// ─── Snapshot helpers ─────────────────────────────────────────────────────────
+// Step 2 — verify the checkout signature, then create the subscription. The
+// amount is never trusted from the client; we use the row created in step 1.
+export async function verifyPayment(args: {
+   razorpayOrderId: string
+   razorpayPaymentId: string
+   razorpaySignature: string
+}): Promise<ActionResult & { orderId?: string }> {
+   const session = await auth.api.getSession({ headers: await headers() })
+   if (!session?.user?.id) return { success: false, message: "Unauthorized" }
+   const userId = session.user.id
 
-async function createListSnapshot(
-   tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
-   subscriptionId: string,
-   indexId: string,
-   durationType: DurationType,
-   startDate: Date,
-) {
-   const members = await tx
-      .select({ companyId: indexCompany.companyId })
-      .from(indexCompany)
-      .where(eq(indexCompany.indexId, indexId))
+   const [pay] = await db
+      .select({ status: payment.status })
+      .from(payment)
+      .where(and(eq(payment.razorpayOrderId, args.razorpayOrderId), eq(payment.clientId, userId)))
+      .limit(1)
 
-   if (!members.length) return
+   if (!pay) return { success: false, message: "Payment record not found" }
+   // Idempotent: the webhook or a double-submit may have already finalized it.
+   if (pay.status === "paid") return { success: true, orderId: args.razorpayOrderId }
 
-   const companyIds = members.map((m) => m.companyId)
-
-   // one_time: pin to the latest month that was already uploaded as of now.
-   // quarterly/annual: use the current month (snapshot is for the start month;
-   //   subsequent months are added when the admin uploads monthly data).
-   let snapshotMonth: string | null
-
-   if (durationType === "one_time") {
-      const [row] = await tx
-         .select({ month: max(companyShariah.month) })
-         .from(companyShariah)
-         .where(inArray(companyShariah.companyId, companyIds))
-      snapshotMonth = row?.month ?? null
-   } else {
-      snapshotMonth = startDate.toISOString().slice(0, 7)
+   if (!verifyRazorpaySignature(args.razorpayOrderId, args.razorpayPaymentId, args.razorpaySignature)) {
+      await db
+         .update(payment)
+         .set({ status: "failed", razorpayPaymentId: args.razorpayPaymentId })
+         .where(and(eq(payment.razorpayOrderId, args.razorpayOrderId), eq(payment.clientId, userId)))
+      return { success: false, message: "Payment verification failed" }
    }
 
-   if (!snapshotMonth) return
+   // Create the subscription + mark paid (race-safe & idempotent; shared with the webhook).
+   const result = await finalizePaidOrder({
+      razorpayOrderId: args.razorpayOrderId,
+      razorpayPaymentId: args.razorpayPaymentId,
+      razorpaySignature: args.razorpaySignature,
+   })
+   if (!result.ok) {
+      console.error("[verifyPayment] finalize failed", result.reason)
+      return { success: false, message: "Payment succeeded but activating the subscription failed. Please contact support." }
+   }
 
-   await tx
-      .insert(subscriptionListSnapshot)
-      .values(members.map((m) => ({
-         id: randomUUID(),
-         subscriptionId,
-         companyId: m.companyId,
-         month: snapshotMonth!,
-      })))
-      .onConflictDoNothing()
+   revalidatePath("/plans")
+   revalidatePath("/subscriptions")
+   revalidatePath("/stock/list")
+   return { success: true, orderId: args.razorpayOrderId }
+}
+
+// Marks a pending order as failed (called from the client on a failed payment)
+// so the confirm page can show an accurate status.
+export async function markPaymentFailed(razorpayOrderId: string): Promise<void> {
+   const session = await auth.api.getSession({ headers: await headers() })
+   if (!session?.user?.id) return
+   await db
+      .update(payment)
+      .set({ status: "failed" })
+      .where(
+         and(
+            eq(payment.razorpayOrderId, razorpayOrderId),
+            eq(payment.clientId, session.user.id),
+            eq(payment.status, "created"),
+         ),
+      )
+}
+
+// Marks a pending order as cancelled (called when the user dismisses the
+// checkout without paying). Only affects still-pending orders.
+export async function markPaymentCancelled(razorpayOrderId: string): Promise<void> {
+   const session = await auth.api.getSession({ headers: await headers() })
+   if (!session?.user?.id) return
+   await db
+      .update(payment)
+      .set({ status: "cancelled" })
+      .where(
+         and(
+            eq(payment.razorpayOrderId, razorpayOrderId),
+            eq(payment.clientId, session.user.id),
+            eq(payment.status, "created"),
+         ),
+      )
+}
+
+export type PaymentDetails = {
+   status: string
+   planName: string | null
+   planType: string | null
+   durationType: string
+   amount: number
+   currency: string
+   priceSnapshot: string
+   startDate: Date | null
+   endDate: Date | null
+   subscriptionId: string | null
+}
+
+// Read model for the /confirm-payment page. Scoped to the logged-in user.
+export async function getPaymentDetails(razorpayOrderId: string): Promise<PaymentDetails | null> {
+   const session = await auth.api.getSession({ headers: await headers() })
+   if (!session?.user?.id) return null
+
+   const [row] = await db
+      .select({
+         status: payment.status,
+         durationType: payment.durationType,
+         amount: payment.amount,
+         currency: payment.currency,
+         priceSnapshot: payment.priceSnapshot,
+         planName: pricingPlan.name,
+         planType: pricingPlan.type,
+         startDate: subscription.startDate,
+         endDate: subscription.endDate,
+         subscriptionId: payment.subscriptionId,
+      })
+      .from(payment)
+      .leftJoin(pricingPlan, eq(payment.planId, pricingPlan.id))
+      .leftJoin(subscription, eq(payment.subscriptionId, subscription.id))
+      .where(and(eq(payment.razorpayOrderId, razorpayOrderId), eq(payment.clientId, session.user.id)))
+      .limit(1)
+
+   return row ?? null
 }
