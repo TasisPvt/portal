@@ -34,6 +34,7 @@ import {
    SidebarMenu,
    SidebarMenuButton,
    SidebarMenuItem,
+   SidebarRail,
 } from "@/src/components/ui/sidebar"
 import Logo from "@/src/components/logo"
 import type { User } from "@/src/lib/auth"
@@ -144,15 +145,17 @@ export function AppSidebar({
       : adminNav.navMain
 
    return (
-      <Sidebar collapsible="offcanvas" {...props}>
-         <SidebarHeader>
+      <Sidebar collapsible="icon" {...props}>
+         <SidebarHeader className="p-0">
             <SidebarMenu>
                <SidebarMenuItem>
                   <SidebarMenuButton
                      asChild
                      className="data-[slot=sidebar-menu-button]:p-2! hover:bg-transparent"
                   >
-                     <a href={userType === UserType.ADMIN ? "/admin/dashboard" : "/dashboard"}>
+                     <a
+                     className="h-full"
+                      href={userType === UserType.ADMIN ? "/admin/dashboard" : "/dashboard"}>
                         <Logo />
                      </a>
                   </SidebarMenuButton>
@@ -174,6 +177,7 @@ export function AppSidebar({
          <SidebarFooter>
             <NavUser user={user} />
          </SidebarFooter>
+         <SidebarRail />
       </Sidebar>
    )
 }

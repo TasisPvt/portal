@@ -1,5 +1,5 @@
+import Image from "next/image"
 import { cn } from "@/src/lib/utils"
-
 interface LogoProps {
    className?: string
    white?: boolean
@@ -7,8 +7,8 @@ interface LogoProps {
 
 const Logo = ({ className, white = false }: LogoProps) => {
    return (
-      <div className={cn('flex items-center gap-2', className)}>
-         <div className="grid grid-cols-2 gap-0.5">
+      <div className={cn('flex justify-center w-full', className)}>
+         {/* <div className="grid grid-cols-2 gap-0.5">
             {[...Array(4)].map((_, i) => (
                <div
                   key={i}
@@ -18,7 +18,8 @@ const Logo = ({ className, white = false }: LogoProps) => {
          </div>
          <span className={cn("font-heading text-xl font-bold", white ? "text-white" : "text-hero-foreground")}>
             PORTAL
-         </span>
+         </span> */}
+         <Image src="/assets/images/logo.jpg" alt="Tasis Logo" width={150} height={300} />
       </div>
    )
 }

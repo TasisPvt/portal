@@ -21,7 +21,7 @@ export default async function DashboardLayout({
             } as React.CSSProperties
          }
       >
-         <AppSidebar variant="inset" user={user} />
+         <AppSidebar user={user} />
          <SidebarInset>
             {children}
          </SidebarInset>
