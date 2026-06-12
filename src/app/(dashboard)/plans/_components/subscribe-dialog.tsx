@@ -1,9 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { subscribeToPlan, type DurationType } from "../_actions"
+import { createPaymentOrder, verifyPayment, markPaymentFailed, markPaymentCancelled, type DurationType } from "../_actions"
+import { loadRazorpay } from "@/src/lib/load-razorpay"
 import { Button } from "@/src/components/ui/button"
 import { Spinner } from "@/src/components/ui/spinner"
 import {
@@ -32,18 +32,59 @@ interface SubscribeButtonProps {
 export function SubscribeButton(props: SubscribeButtonProps) {
    const [open, setOpen] = React.useState(false)
    const [isPending, startTransition] = React.useTransition()
-   const router = useRouter()
 
    function handleSubscribe() {
       startTransition(async () => {
-         const result = await subscribeToPlan(props.planId, props.durationType)
-         if (result.success) {
-            toast.success(`Subscribed to "${props.planName}" — ${DURATION_LABELS[props.durationType]}`)
-            setOpen(false)
-            router.refresh()
-         } else {
-            toast.error(result.message)
+         const order = await createPaymentOrder(props.planId, props.durationType)
+         if (!order.success) {
+            toast.error(order.message)
+            return
          }
+
+         const ready = await loadRazorpay()
+         if (!ready || !window.Razorpay) {
+            toast.error("Could not load the payment gateway. Please try again.")
+            return
+         }
+
+         const rzp = new window.Razorpay({
+            key: order.keyId,
+            amount: order.amount,
+            currency: order.currency,
+            order_id: order.orderId,
+            name: "TASIS",
+            description: `${props.planName} — ${DURATION_LABELS[props.durationType]}`,
+            prefill: order.prefill,
+            theme: { color: "#1a3a6e" },
+            handler: (response) => {
+               // Verify server-side, then show the result on the confirm page.
+               // Hard navigation (not router.push): Razorpay's modal teardown
+               // swallows Next.js soft navigations, leaving the user on /plans.
+               verifyPayment({
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+               }).finally(() => {
+                  window.location.assign(`/confirm-payment?order=${order.orderId}`)
+               })
+            },
+            modal: {
+               ondismiss: () => {
+                  // User closed checkout without paying — mark the order cancelled.
+                  markPaymentCancelled(order.orderId)
+                  toast.info("Payment cancelled.")
+               },
+            },
+         })
+
+         rzp.on("payment.failed", () => {
+            markPaymentFailed(order.orderId).finally(() => {
+               window.location.assign(`/confirm-payment?order=${order.orderId}`)
+            })
+         })
+
+         setOpen(false)
+         rzp.open()
       })
    }
 
@@ -92,7 +133,8 @@ export function SubscribeButton(props: SubscribeButtonProps) {
                   </div>
                </div>
                <p className="text-xs text-muted-foreground">
-                  Payment will be collected separately. Your subscription will be active immediately.
+                  You&apos;ll be redirected to Razorpay to complete payment securely. Your subscription
+                  activates as soon as the payment succeeds.
                </p>
             </div>
 
@@ -101,7 +143,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
                   Cancel
                </Button>
                <Button onClick={handleSubscribe} disabled={isPending}>
-                  {isPending ? "Subscribing…" : "Confirm"}
+                  {isPending ? "Processing…" : `Pay ${fmtPrice(props.price)}`}
                   {isPending && <Spinner className="ml-2" />}
                </Button>
             </DialogFooter>

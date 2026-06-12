@@ -113,6 +113,13 @@
       "when": 1779481361408,
       "tag": "0015_modern_nehzno",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1780602819996,
+      "tag": "0016_payment_table",
+      "breakpoints": true
     }
   ]
 }
