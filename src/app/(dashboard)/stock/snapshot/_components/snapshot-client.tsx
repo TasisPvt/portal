@@ -10,6 +10,8 @@ import {
    InfoIcon,
    ChevronRightIcon,
    Info,
+   ShieldCheckIcon,
+   ShieldXIcon,
 } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
 import { Spinner } from "@/src/components/ui/spinner"
@@ -283,11 +285,9 @@ function RatioChart({
    const fmtPct = (n: number) =>
       n % 1 === 0 ? `${n.toFixed(0)}%` : `${n.toFixed(2)}%`
 
-   // Build a (possibly signed) axis for the bar:
-   //   axisMin drops below 0 to the value when it's negative, so the negative
-   //   portion is visible with 0 marked in between.
-   //   axisMax extends to the value when it exceeds the threshold; otherwise the
-   //   threshold stays the right edge (the maximum is kept intact).
+   // Threshold-relative axis: axisMin drops below 0 for negative values (0 marked
+   // in between); axisMax extends to the value when it exceeds the threshold,
+   // otherwise the threshold stays the right edge.
    const axisMin = hasValue ? Math.min(0, numericValue!) : 0
    const axisMax = hasValue ? Math.max(thresholdPct, numericValue!) : thresholdPct
    const axisRange = axisMax - axisMin || 1
@@ -297,124 +297,155 @@ function RatioChart({
    const valuePos = hasValue ? toPos(numericValue!) : 0
    const thresholdPos = toPos(thresholdPct)
 
-   // Value bar runs between the 0 baseline and the value (extends left for negatives).
    const barLeft = Math.min(zeroPos, valuePos)
    const barWidth = Math.abs(valuePos - zeroPos)
-
-   // Threshold guide line — only when it sits strictly inside the track (over-limit).
    const showThresholdLine = isOver && thresholdPos > 0 && thresholdPos < 100
 
    return (
-      <div className="flex flex-col gap-2 ">
-         {/* Header: label left, value / limit right */}
-         <div className="flex items-baseline justify-between gap-2">
-            <span className="text-sm text-muted-foreground leading-tight">{label}</span>
-            <div className="shrink-0 flex items-baseline gap-1">
+      <div className="flex flex-col gap-2">
+         {/* Header: status pill (left) + centered title */}
+         <div className="relative flex min-h-6 flex-wrap items-center justify-center gap-2">
+            {!isNull && (
                <span
                   className={cn(
-                     "text-sm font-bold tabular-nums",
-                     isNull
-                        ? "text-foreground"
-                        : isPass
-                           ? "text-emerald-600 dark:text-emerald-400"
-                           : "text-red-600 dark:text-red-400",
+                     "static rounded-full px-2.5 py-0.5 text-[10px] font-semibold sm:absolute sm:left-0",
+                     isPass
+                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                        : "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400",
                   )}
                >
-                  {numericValue !== null ? `${numericValue.toFixed(2)}%` : "—"}
+                  {isPass
+                     ? `Compliant — at or below ${fmtPct(thresholdPct)}`
+                     : `Non-compliant — exceeds ${fmtPct(thresholdPct)}`}
                </span>
-               <span className="text-sm text-muted-foreground">/ {fmtPct(thresholdPct)}</span>
-            </div>
-         </div>
-
-         {/* Track */}
-         <div className="relative h-4 rounded-full overflow-hidden">
-            {/* Tinted background — gives context for tiny values */}
-            <div
-               className={cn(
-                  "absolute inset-0",
-                  isNull
-                     ? "bg-muted"
-                     : isPass
-                        ? "bg-emerald-100 dark:bg-emerald-950/30"
-                        : "bg-red-100 dark:bg-red-950/30",
-               )}
-            />
-            {/* Value bar — runs between the 0 baseline and the value */}
-            <div
-               className={cn(
-                  "absolute inset-y-0 rounded-full transition-all duration-700",
-                  isNull
-                     ? "bg-muted-foreground/30"
-                     : isPass
-                        ? "bg-emerald-500"
-                        : "bg-red-500",
-               )}
-               style={{ left: `${barLeft}%`, width: `${barWidth}%` }}
-            />
-            {/* Zero marker — shown when the axis extends into negative values */}
-            {hasNegative && (
-               <div
-                  className="absolute inset-y-0 w-[2px] bg-foreground/50 z-10"
-                  style={{ left: `calc(${zeroPos}% - 1px)` }}
-               />
             )}
-            {/* Threshold line — only when value exceeds threshold */}
-            {showThresholdLine && (
+            <h4 className="text-center text-sm font-semibold text-blue-700 dark:text-blue-400">
+               {label}
+            </h4>
+         </div>
+
+         {/* Card: icon + value (left) · 0–100% scale bar (right) */}
+         <div className="flex flex-col md:flex-row items-center gap-4 rounded-2xl border bg-card px-4 py-3.5 shadow-sm">
+            {/* Left: icon + value + limit status */}
+            <div className="flex w-44 shrink-0 items-center gap-3">
                <div
-                  className="absolute inset-y-0 w-[2px] bg-white/80 z-10"
-                  style={{ left: `calc(${thresholdPos}% - 1px)` }}
-               />
-            )}
-         </div>
-
-         {/* Scale labels */}
-         <div className="flex items-center text-[10px] text-muted-foreground">
-            <span className="font-medium">{hasNegative ? `${numericValue!.toFixed(2)}%` : "0%"}</span>
-            <div className="relative flex-1 mx-1 h-4">
-               {hasNegative && (
+                  className={cn(
+                     "flex size-11 shrink-0 items-center justify-center rounded-full",
+                     isNull
+                        ? "bg-muted"
+                        : isPass
+                           ? "bg-emerald-100 dark:bg-emerald-950/40"
+                           : "bg-red-100 dark:bg-red-950/40",
+                  )}
+               >
+                  {isNull ? (
+                     <MinusCircleIcon className="size-5 text-muted-foreground" />
+                  ) : isPass ? (
+                     <ShieldCheckIcon className="size-6 text-emerald-600 dark:text-emerald-400" />
+                  ) : (
+                     <ShieldXIcon className="size-6 text-red-600 dark:text-red-400" />
+                  )}
+               </div>
+               <div className="flex min-w-0 flex-col leading-tight">
                   <span
-                     className="absolute -translate-x-1/2 font-medium"
-                     style={{ left: `${zeroPos}%` }}
+                     className={cn(
+                        "text-xl font-bold tabular-nums",
+                        isNull
+                           ? "text-foreground"
+                           : isPass
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-red-600 dark:text-red-400",
+                     )}
                   >
-                     0%
+                     {hasValue ? `${numericValue!.toFixed(2)}%` : "—"}
                   </span>
-               )}
-               {isOver && (
-                  <span
-                     className="absolute -translate-x-1/2 font-medium text-red-500/80 whitespace-nowrap"
-                     style={{ left: `${thresholdPos}%` }}
-                  >
-                     Limit: {fmtPct(thresholdPct)}
-                  </span>
-               )}
+                  {!isNull && (
+                     <span
+                        className={cn(
+                           "text-[10px] font-semibold uppercase leading-tight tracking-wide",
+                           isPass
+                              ? "text-emerald-600/80 dark:text-emerald-400/70"
+                              : "text-red-600/80 dark:text-red-400/70",
+                        )}
+                     >
+                        {isPass ? "Within limit" : "Exceeds limit"}
+                        <br />
+                        of {fmtPct(thresholdPct)}
+                     </span>
+                  )}
+               </div>
             </div>
-            <span className="font-medium">
-               {isOver ? `${numericValue!.toFixed(2)}%` : `Limit: ${fmtPct(thresholdPct)}`}
-            </span>
+
+            {/* Right: threshold-relative scale bar */}
+            <div className="min-w-0 flex-1">
+               {/* Track */}
+               <div className="relative h-4 rounded-full overflow-hidden">
+                  {/* Tinted background — gives context for tiny values */}
+                  <div
+                     className={cn(
+                        "absolute inset-0",
+                        isNull
+                           ? "bg-muted"
+                           : isPass
+                              ? "bg-emerald-100 dark:bg-emerald-950/30"
+                              : "bg-red-100 dark:bg-red-950/30",
+                     )}
+                  />
+                  {/* Value bar — runs between the 0 baseline and the value */}
+                  <div
+                     className={cn(
+                        "absolute inset-y-0 rounded-full transition-all duration-700",
+                        isNull
+                           ? "bg-muted-foreground/30"
+                           : isPass
+                              ? "bg-emerald-500"
+                              : "bg-red-500",
+                     )}
+                     style={{ left: `${barLeft}%`, width: `${barWidth}%` }}
+                  />
+                  {/* Zero marker — shown when the axis extends into negative values */}
+                  {hasNegative && (
+                     <div
+                        className="absolute inset-y-0 w-[2px] bg-foreground/50 z-10"
+                        style={{ left: `calc(${zeroPos}% - 1px)` }}
+                     />
+                  )}
+                  {/* Threshold line — only when value exceeds threshold */}
+                  {showThresholdLine && (
+                     <div
+                        className="absolute inset-y-0 w-[2px] bg-white/80 z-10"
+                        style={{ left: `calc(${thresholdPos}% - 1px)` }}
+                     />
+                  )}
+               </div>
+
+               {/* Scale labels */}
+               <div className="mt-1.5 flex items-center text-[10px] text-muted-foreground">
+                  <span className="font-medium">{hasNegative ? `${numericValue!.toFixed(2)}%` : "0%"}</span>
+                  <div className="relative mx-1 h-4 flex-1">
+                     {hasNegative && (
+                        <span
+                           className="absolute -translate-x-1/2 font-medium"
+                           style={{ left: `${zeroPos}%` }}
+                        >
+                           0%
+                        </span>
+                     )}
+                     {isOver && (
+                        <span
+                           className="absolute -translate-x-1/2 whitespace-nowrap font-medium text-red-500/80"
+                           style={{ left: `${thresholdPos}%` }}
+                        >
+                           Limit: {fmtPct(thresholdPct)}
+                        </span>
+                     )}
+                  </div>
+                  <span className="font-medium">
+                     {isOver ? `${numericValue!.toFixed(2)}%` : `Limit: ${fmtPct(thresholdPct)}`}
+                  </span>
+               </div>
+            </div>
          </div>
-
-         {/* Context sub-label — only meaningful when the value exceeds the limit */}
-         {isOver && (
-            <p className="text-[10px] text-red-600/70 dark:text-red-400/60">
-               Exceeds limit by {(numericValue! - thresholdPct).toFixed(2)}%
-            </p>
-         )}
-
-         {/* Pass / fail badge */}
-         {!isNull && (
-            <div
-               className={cn(
-                  "self-start rounded-full px-2.5 py-0.5 text-[10px] font-semibold",
-                  isPass
-                     ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
-                     : "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400",
-               )}
-            >
-               {isPass
-                  ? `Compliant — at or below ${fmtPct(thresholdPct)}`
-                  : `Non-compliant — exceeds ${fmtPct(thresholdPct)}`}
-            </div>
-         )}
       </div>
    )
 }
@@ -455,7 +486,7 @@ function QuantitativeRatiosPanel({
          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-6">
             Quantitative Parameters
          </p>
-         <div className="flex flex-col gap-7">
+         <div className="flex flex-col gap-8">
             {ratioData.map(({ label, parameter, value, status }) => (
                <RatioChart
                   key={parameter}
