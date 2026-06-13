@@ -67,12 +67,13 @@ const BUSINESS_PARAMS = [
    "secondary_business",
    "compliant_on_investment",
 ]
-type TabKey = "business" | "financials" | "historical" | "legends"
+type TabKey = "business" | "financials" | "historical" | "legends" | "disclaimer"
 const TABS: { key: TabKey; label: string }[] = [
    { key: "business", label: "Business & Data" },
    { key: "financials", label: "Financials" },
    { key: "historical", label: "Historical" },
    { key: "legends", label: "Legends" },
+   { key: "disclaimer", label: "Disclaimer" },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -215,7 +216,10 @@ function RemarkPanel({ remark }: { remark: ScreeningRemark | null | undefined })
             : null
 
    return (
-      <div className="rounded-2xl border bg-card p-5 shadow-lg">
+      <div className="rounded-2xl border bg-card p-5"
+         style={{
+            boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.50)"
+         }}>
          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">Remarks</p>
          {remark ? (
             <div className="flex flex-col gap-4">
@@ -272,31 +276,33 @@ function RatioChart({
    const thresholdPct = threshold * 100
    const isNull = status === null
    const isPass = status === true
-   const isOver = numericValue !== null && numericValue > thresholdPct
+   const hasValue = numericValue !== null
+   const isOver = hasValue && numericValue! > thresholdPct
+   const hasNegative = hasValue && numericValue! < 0
 
    const fmtPct = (n: number) =>
       n % 1 === 0 ? `${n.toFixed(0)}%` : `${n.toFixed(2)}%`
 
-   // Compliant (value ≤ threshold): track width = threshold, bar = value/threshold
-   // Non-compliant (value > threshold): track width = value, bar = 100%, threshold line inside
-   let barWidth: number
-   let thresholdLinePos: number | null // null when value ≤ threshold (threshold IS the right edge)
+   // Build a (possibly signed) axis for the bar:
+   //   axisMin drops below 0 to the value when it's negative, so the negative
+   //   portion is visible with 0 marked in between.
+   //   axisMax extends to the value when it exceeds the threshold; otherwise the
+   //   threshold stays the right edge (the maximum is kept intact).
+   const axisMin = hasValue ? Math.min(0, numericValue!) : 0
+   const axisMax = hasValue ? Math.max(thresholdPct, numericValue!) : thresholdPct
+   const axisRange = axisMax - axisMin || 1
+   const toPos = (x: number) => ((x - axisMin) / axisRange) * 100
 
-   if (numericValue === null) {
-      barWidth = 0
-      thresholdLinePos = null
-   } else if (!isOver) {
-      barWidth = thresholdPct > 0 ? (numericValue / thresholdPct) * 100 : 0
-      thresholdLinePos = null
-   } else {
-      barWidth = 100
-      thresholdLinePos = (thresholdPct / numericValue) * 100
-   }
+   const zeroPos = toPos(0)
+   const valuePos = hasValue ? toPos(numericValue!) : 0
+   const thresholdPos = toPos(thresholdPct)
 
-   const pctOfLimit =
-      numericValue !== null && thresholdPct > 0
-         ? (numericValue / thresholdPct) * 100
-         : null
+   // Value bar runs between the 0 baseline and the value (extends left for negatives).
+   const barLeft = Math.min(zeroPos, valuePos)
+   const barWidth = Math.abs(valuePos - zeroPos)
+
+   // Threshold guide line — only when it sits strictly inside the track (over-limit).
+   const showThresholdLine = isOver && thresholdPos > 0 && thresholdPos < 100
 
    return (
       <div className="flex flex-col gap-2 ">
@@ -333,67 +339,64 @@ function RatioChart({
                         : "bg-red-100 dark:bg-red-950/30",
                )}
             />
-            {/* Value bar */}
+            {/* Value bar — runs between the 0 baseline and the value */}
             <div
                className={cn(
-                  "absolute inset-y-0 left-0 rounded-full transition-all duration-700",
+                  "absolute inset-y-0 rounded-full transition-all duration-700",
                   isNull
                      ? "bg-muted-foreground/30"
                      : isPass
                         ? "bg-emerald-500"
                         : "bg-red-500",
                )}
-               style={{ width: `${barWidth}%` }}
+               style={{ left: `${barLeft}%`, width: `${barWidth}%` }}
             />
+            {/* Zero marker — shown when the axis extends into negative values */}
+            {hasNegative && (
+               <div
+                  className="absolute inset-y-0 w-[2px] bg-foreground/50 z-10"
+                  style={{ left: `calc(${zeroPos}% - 1px)` }}
+               />
+            )}
             {/* Threshold line — only when value exceeds threshold */}
-            {thresholdLinePos !== null && (
+            {showThresholdLine && (
                <div
                   className="absolute inset-y-0 w-[2px] bg-white/80 z-10"
-                  style={{ left: `calc(${thresholdLinePos}% - 1px)` }}
+                  style={{ left: `calc(${thresholdPos}% - 1px)` }}
                />
             )}
          </div>
 
          {/* Scale labels */}
          <div className="flex items-center text-[10px] text-muted-foreground">
-            <span>0%</span>
-            {isOver && thresholdLinePos !== null ? (
-               // Non-compliant: threshold label floats at its position, value at far right
-               <>
-                  <div className="relative flex-1 mx-1 h-4">
-                     <span
-                        className="absolute -translate-x-1/2 font-medium text-red-500/80 whitespace-nowrap"
-                        style={{ left: `${thresholdLinePos}%` }}
-                     >
-                        Limit: {fmtPct(thresholdPct)}
-                     </span>
-                  </div>
-                  <span className="font-medium">{numericValue?.toFixed(2)}%</span>
-               </>
-            ) : (
-               // Compliant: right edge = threshold
-               <>
-                  <span className="flex-1" />
-                  <span className="font-medium">Limit: {fmtPct(thresholdPct)}</span>
-               </>
-            )}
+            <span className="font-medium">{hasNegative ? `${numericValue!.toFixed(2)}%` : "0%"}</span>
+            <div className="relative flex-1 mx-1 h-4">
+               {hasNegative && (
+                  <span
+                     className="absolute -translate-x-1/2 font-medium"
+                     style={{ left: `${zeroPos}%` }}
+                  >
+                     0%
+                  </span>
+               )}
+               {isOver && (
+                  <span
+                     className="absolute -translate-x-1/2 font-medium text-red-500/80 whitespace-nowrap"
+                     style={{ left: `${thresholdPos}%` }}
+                  >
+                     Limit: {fmtPct(thresholdPct)}
+                  </span>
+               )}
+            </div>
+            <span className="font-medium">
+               {isOver ? `${numericValue!.toFixed(2)}%` : `Limit: ${fmtPct(thresholdPct)}`}
+            </span>
          </div>
 
-         {/* Context sub-label */}
-         {pctOfLimit !== null && (
-            <p
-               className={cn(
-                  "text-[10px]",
-                  isNull
-                     ? "text-muted-foreground"
-                     : isPass
-                        ? "text-emerald-600/70 dark:text-emerald-400/60"
-                        : "text-red-600/70 dark:text-red-400/60",
-               )}
-            >
-               {isPass
-                  ? ``
-                  : `Exceeds limit by ${(numericValue! - thresholdPct).toFixed(2)}%`}
+         {/* Context sub-label — only meaningful when the value exceeds the limit */}
+         {isOver && (
+            <p className="text-[10px] text-red-600/70 dark:text-red-400/60">
+               Exceeds limit by {(numericValue! - thresholdPct).toFixed(2)}%
             </p>
          )}
 
@@ -445,7 +448,10 @@ function QuantitativeRatiosPanel({
    ]
 
    return (
-      <div className="rounded-2xl border bg-card p-5 shadow-lg">
+      <div className="rounded-2xl border bg-card p-5"
+         style={{
+            boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.50)"
+         }}>
          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-6">
             Quantitative Parameters
          </p>
@@ -573,7 +579,10 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
 
          {/* ── Compliance Verdict ── */}
          {shariah && (
-            <div className="rounded-2xl border bg-card p-5 shadow-lg">
+            <div className="rounded-2xl border bg-card p-5"
+               style={{
+                  boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.50)"
+               }}>
                <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
                      <Image
@@ -635,7 +644,10 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
                {effectiveTab === "business" && (
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                      {/* Left: Qualitative Parameters */}
-                     <div className="rounded-2xl border bg-card p-5 shadow-lg">
+                     <div className="rounded-2xl border bg-card p-5"
+                        style={{
+                           boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.50)"
+                        }}>
                         <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                            Qualitative Parameters
                         </p>
@@ -700,7 +712,10 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
 
                {/* Historical */}
                {effectiveTab === "historical" && (
-                  <div className="rounded-2xl border bg-card p-5 shadow-lg">
+                  <div className="rounded-2xl border bg-card p-5"
+                     style={{
+                        boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.50)"
+                     }}>
                      <div className="mb-4 flex items-center justify-between">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                            Last 12 Months
@@ -712,7 +727,10 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
 
                {/* Legends */}
                {effectiveTab === "legends" && (
-                  <div className="rounded-2xl border bg-card p-5 shadow-lg">
+                  <div className="rounded-2xl border bg-card p-5"
+                     style={{
+                        boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.50)"
+                     }}>
                      <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                         Status Color Legend
                      </p>
@@ -726,6 +744,39 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
                               <span className="text-sm">{STATUS_LABELS[Number(s)]}</span>
                            </div>
                         ))}
+                     </div>
+                  </div>
+               )}
+
+               {/* Disclaimer */}
+               {effectiveTab === "disclaimer" && (
+                  <div className="rounded-2xl border bg-card p-5"
+                     style={{
+                        boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.50)"
+                     }}>
+                     <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                        Disclaimer note on Screening (Final)
+                     </p>
+                     <div className="flex flex-col gap-3">
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                           TASIS acts as a Shariah advisor, conducting screening of companies based on established
+                           Shariah principles and a defined methodology. This includes periodic review of business
+                           activities, financials, investments, and publicly available information.
+                        </p>
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                           The Shariah status assigned reflects a professional opinion based on information available
+                           at the time. While due care is taken through both automated and manual processes, errors,
+                           omissions, or changes in company data may occur.
+                        </p>
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                           TASIS does not guarantee that its opinion will be universally accepted, as interpretations
+                           may differ among Shariah scholars and investors. Users are encouraged to seek clarification
+                           where required.
+                        </p>
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                           TASIS and its Shariah advisors shall not be held liable for any losses arising from reliance
+                           on the screening results.
+                        </p>
                      </div>
                   </div>
                )}

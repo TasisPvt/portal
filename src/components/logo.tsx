@@ -7,7 +7,7 @@ interface LogoProps {
 
 const Logo = ({ className, white = false }: LogoProps) => {
    return (
-      <div className={cn('flex justify-center w-full', className)}>
+      <div className={cn('flex justify-center bg-white rounded-xl', className)}>
          {/* <div className="grid grid-cols-2 gap-0.5">
             {[...Array(4)].map((_, i) => (
                <div
@@ -19,7 +19,7 @@ const Logo = ({ className, white = false }: LogoProps) => {
          <span className={cn("font-heading text-xl font-bold", white ? "text-white" : "text-hero-foreground")}>
             PORTAL
          </span> */}
-         <Image src="/assets/images/logo.jpg" alt="Tasis Logo" width={150} height={300} />
+         <Image className="transform scale-[1.01]" src="/assets/images/logo.png" alt="Tasis Logo" width={60} height={150} />
       </div>
    )
 }
