@@ -31,7 +31,9 @@ export function LoginForm() {
    const [formError, setFormError] = useState<string | null>(null)
    const [showPassword, setShowPassword] = useState(false)
 
-   const { register, handleSubmit, formState: { errors } } = useForm<LoginType>()
+   const { register, handleSubmit, formState: { errors } } = useForm<LoginType>({
+      mode: "onTouched",
+   })
 
    const loginMutation = useMutation({
       mutationFn: async (data: LoginType) => {
@@ -63,11 +65,11 @@ export function LoginForm() {
    return (
       <div className="w-full animate-fade-in">
          {/* Heading */}
-         <div className="mb-6 text-center">
-            <h1 className="mb-1 text-2xl font-bold text-primary">
-               Welcome Back!
+         <div className="mb-7 text-center">
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+               Welcome back
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="mt-1.5 text-sm text-muted-foreground">
                Sign in to continue to your portal.
             </p>
          </div>
@@ -90,9 +92,11 @@ export function LoginForm() {
                   <FieldLabel className="text-sm font-medium">Email</FieldLabel>
                   <Input
                      type="email"
-                     placeholder="Enter your email"
+                     placeholder="you@example.com"
                      autoComplete="email"
-                     className={errors.email ? "border-destructive" : ""}
+                     autoFocus
+                     className="h-11 border-2 border-slate-300 dark:border-slate-700"
+                     aria-invalid={!!errors.email}
                      {...register("email", {
                         required: "Email address is required",
                         pattern: {
@@ -102,7 +106,7 @@ export function LoginForm() {
                      })}
                   />
                   {errors.email && (
-                     <FieldDescription className="text-xs text-destructive">
+                     <FieldDescription role="alert" className="text-xs text-destructive">
                         {errors.email.message}
                      </FieldDescription>
                   )}
@@ -123,7 +127,8 @@ export function LoginForm() {
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
                         autoComplete="current-password"
-                        className={errors.password ? "border-destructive pr-10" : "pr-10"}
+                        className="h-11 pr-11 border-2 border-slate-300 dark:border-slate-700"
+                        aria-invalid={!!errors.password}
                         {...register("password", {
                            required: "Password is required",
                         })}
@@ -131,8 +136,8 @@ export function LoginForm() {
                      <Button
                         type="button"
                         variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:bg-transparent hover:text-foreground"
+                        size="icon-sm"
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:bg-muted hover:text-foreground"
                         onClick={() => setShowPassword((v) => !v)}
                         tabIndex={-1}
                         aria-label={showPassword ? "Hide password" : "Show password"}
@@ -141,7 +146,7 @@ export function LoginForm() {
                      </Button>
                   </div>
                   {errors.password && (
-                     <FieldDescription className="text-xs text-destructive">
+                     <FieldDescription role="alert" className="text-xs text-destructive">
                         {errors.password.message}
                      </FieldDescription>
                   )}
@@ -150,7 +155,7 @@ export function LoginForm() {
                <Field className="mt-1">
                   <Button
                      type="submit"
-                     className="w-full font-semibold"
+                     className="h-11 w-full text-base font-semibold"
                      disabled={isLoading}
                   >
                      {isRedirecting ? "Preparing dashboard…" : isLoading ? "Signing in…" : "Sign In"}
