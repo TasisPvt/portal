@@ -60,6 +60,7 @@ const clientNav = {
          url: "#",
          icon: RocketIcon,
          isActive: false,
+         comingSoon: true,
          items: [{ title: "Snapshot", url: "#" }, { title: "List", url: "#" }],
       },
       {
@@ -67,6 +68,7 @@ const clientNav = {
          url: "#",
          icon: LayersIcon,
          isActive: false,
+         comingSoon: true,
          items: [{ title: "Snapshot", url: "#" }, { title: "List", url: "#" }],
       },
       {
@@ -74,6 +76,7 @@ const clientNav = {
          url: "#",
          icon: PieChartIcon,
          isActive: false,
+         comingSoon: true,
          items: [{ title: "Snapshot", url: "#" }, { title: "List", url: "#" }],
       },
    ],
@@ -151,12 +154,14 @@ export function AppSidebar({
                <SidebarMenuItem>
                   <SidebarMenuButton
                      asChild
-                     className="data-[slot=sidebar-menu-button]:p-2! hover:bg-transparent"
+                     className="h-auto justify-center overflow-visible py-2 hover:bg-transparent group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-1!"
                   >
-                     <a
-                     className="h-full"
-                      href={userType === UserType.ADMIN ? "/admin/dashboard" : "/dashboard"}>
-                        <Logo />
+                     <a href={userType === UserType.ADMIN ? "/admin/dashboard" : "/dashboard"}>
+                        <Logo
+                           width={50}
+                           height={70}
+                           imgClassName="h-15 w-auto object-contain group-data-[collapsible=icon]:h-8"
+                        />
                      </a>
                   </SidebarMenuButton>
                </SidebarMenuItem>

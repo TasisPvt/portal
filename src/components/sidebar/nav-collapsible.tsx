@@ -33,6 +33,7 @@ type NavItem = {
    url: string
    icon?: LucideIcon
    isActive?: boolean
+   comingSoon?: boolean
    items?: { title: string; url: string }[]
 }
 
@@ -52,6 +53,25 @@ export function NavCollapsible({
          <SidebarGroupLabel>{title}</SidebarGroupLabel>
          <SidebarMenu>
             {items.map((item) => {
+               // Coming soon — non-interactive, no expansion
+               if (item.comingSoon) {
+                  return (
+                     <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                           tooltip="Coming soon"
+                           disabled
+                           className="cursor-not-allowed opacity-60"
+                        >
+                           {item.icon && <item.icon />}
+                           <span>{item.title}</span>
+                           <span className="ml-auto rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 group-data-[collapsible=icon]:hidden dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400">
+                              Coming soon
+                           </span>
+                        </SidebarMenuButton>
+                     </SidebarMenuItem>
+                  )
+               }
+
                const hasChildren = item.items && item.items.length > 0
                const isGroupActive = hasChildren
                   ? item.items!.some(

@@ -2,6 +2,7 @@ import Image from "next/image"
 import { cn } from "@/src/lib/utils"
 interface LogoProps {
    className?: string
+   imgClassName?: string
    white?: boolean
    width?: number
    height?: number
@@ -10,6 +11,7 @@ interface LogoProps {
 
 const Logo = ({
    className,
+   imgClassName,
    white = false,
    width = 60,
    height = 150,
@@ -23,6 +25,7 @@ const Logo = ({
             width={width}
             height={height}
             priority={priority}
+            className={imgClassName}
          />
       </div>
    )
