@@ -3,23 +3,27 @@ import { cn } from "@/src/lib/utils"
 interface LogoProps {
    className?: string
    white?: boolean
+   width?: number
+   height?: number
+   priority?: boolean
 }
 
-const Logo = ({ className, white = false }: LogoProps) => {
+const Logo = ({
+   className,
+   white = false,
+   width = 60,
+   height = 150,
+   priority = false,
+}: LogoProps) => {
    return (
-      <div className={cn('flex justify-center bg-white rounded-xl', className)}>
-         {/* <div className="grid grid-cols-2 gap-0.5">
-            {[...Array(4)].map((_, i) => (
-               <div
-                  key={i}
-                  className={cn("size-2 rounded-sm", white ? "bg-white" : "bg-primary")}
-               />
-            ))}
-         </div>
-         <span className={cn("font-heading text-xl font-bold", white ? "text-white" : "text-hero-foreground")}>
-            PORTAL
-         </span> */}
-         <Image className="transform scale-[1.01]" src="/assets/images/logo.png" alt="Tasis Logo" width={60} height={150} />
+      <div className={cn('flex justify-center', className)}>
+         <Image
+            src="/assets/images/logo.png"
+            alt="Tasis Logo"
+            width={width}
+            height={height}
+            priority={priority}
+         />
       </div>
    )
 }
