@@ -59,6 +59,7 @@ type RowStatus =
    | "no_change"
    | "duplicate_in_file"
    | "missing_required"
+   | "unknown_industry_group"
 
 type FieldChange = {
    field: string
@@ -86,6 +87,23 @@ type PreviewRow = {
    changes?: FieldChange[]
    status: RowStatus
    errorDetail?: string
+}
+
+type ImportResultRow = {
+   prowessId: string
+   companyName: string
+   action: "Inserted" | "Updated"
+}
+
+type ImportResultFailure = {
+   prowessId: string
+   companyName: string
+   reason: string
+}
+
+type ImportResult = {
+   successful: ImportResultRow[]
+   failed: ImportResultFailure[]
 }
 
 // ---------------------------------------------------------------------------
@@ -119,6 +137,12 @@ const STATUS_CONFIG: Record<RowStatus, { label: string; className: string; icon:
    },
    missing_required: {
       label: "Missing fields",
+      className:
+         "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400",
+      icon: <XCircleIcon className="size-3" />,
+   },
+   unknown_industry_group: {
+      label: "Unknown industry group",
       className:
          "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400",
       icon: <XCircleIcon className="size-3" />,
@@ -188,6 +212,7 @@ function norm(v: string | null | undefined): string {
 //   "YYYY-MM-DDTHH:mm:ss..."  — ISO timestamp, strip time
 //   "DD-MM-YYYY"              — CSV input format, reorder parts
 //   "DD-Mon-YY"               — e.g. "06-Oct-08" → "2008-10-06"
+//   "NA" / "N/A"              — treated as empty (→ null in DB)
 //   empty / null              — return ""
 const MONTH_MAP: Record<string, string> = {
    jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
@@ -197,6 +222,9 @@ const MONTH_MAP: Record<string, string> = {
 function normDate(v: string | null | undefined): string {
    const s = v?.trim()
    if (!s) return ""
+   // Treat explicit "not available" markers as empty (→ null in DB)
+   const lower = s.toLowerCase()
+   if (lower === "na" || lower === "n/a") return ""
    // DD-Mon-YY (e.g. "06-Oct-08")
    const monYY = s.match(/^(\d{2})-([A-Za-z]{3})-(\d{2})$/)
    if (monYY) {
@@ -304,6 +332,8 @@ function validateRows(
       const bseListingDate = normDate(col(row, "bse_listing_date", "bselistingdate")) || undefined
       const bseDelistingDate = normDate(col(row, "bse_delisting_date", "bsedelistingdate")) || undefined
       const industryGroupId = igName ? igByName.get(igName.toLowerCase()) : undefined
+      // Industry group name present in CSV but not found in our DB
+      const unknownIg = !!igName && industryGroupId === undefined
 
       const csvFields = {
          prowessId,
@@ -339,13 +369,18 @@ function validateRows(
          status = "duplicate_in_file"
       } else {
          seenInFile.add(prowessId.toLowerCase())
-         const existing = existingMap.get(prowessId)
-         if (existing) {
-            existingId = existing.id
-            changes = getChanges(existing, csvFields, igById)
-            status = changes.length > 0 ? "will_update" : "no_change"
+         if (unknownIg) {
+            status = "unknown_industry_group"
+            errorDetail = `Unknown industry group: ${igName}`
          } else {
-            status = "valid"
+            const existing = existingMap.get(prowessId)
+            if (existing) {
+               existingId = existing.id
+               changes = getChanges(existing, csvFields, igById)
+               status = changes.length > 0 ? "will_update" : "no_change"
+            } else {
+               status = "valid"
+            }
          }
       }
 
@@ -392,6 +427,8 @@ export function BulkUploadCompanyDialog({
    const [preview, setPreview] = React.useState<PreviewRow[] | null>(null)
    const [fileName, setFileName] = React.useState<string | null>(null)
    const [activeTab, setActiveTab] = React.useState("new")
+   const [importResult, setImportResult] = React.useState<ImportResult | null>(null)
+   const [resultTab, setResultTab] = React.useState("successful")
    const [existingData, setExistingData] = React.useState<ExistingCompany[]>([])
    const [isFetchingExisting, setIsFetchingExisting] = React.useState(false)
    const [isPending, startTransition] = React.useTransition()
@@ -416,6 +453,8 @@ export function BulkUploadCompanyDialog({
          setPreview(null)
          setFileName(null)
          setActiveTab("new")
+         setImportResult(null)
+         setResultTab("successful")
          setExistingData([])
          if (fileInputRef.current) fileInputRef.current.value = ""
       }
@@ -425,6 +464,7 @@ export function BulkUploadCompanyDialog({
    function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
       const file = e.target.files?.[0]
       if (!file) return
+      setImportResult(null)
       setFileName(file.name)
       const reader = new FileReader()
       reader.onload = (ev) => {
@@ -440,7 +480,9 @@ export function BulkUploadCompanyDialog({
    const updateRows = preview?.filter((r) => r.status === "will_update") ?? []
    const noChangeRows = preview?.filter((r) => r.status === "no_change") ?? []
    const skippedRows = preview?.filter((r) =>
-      r.status === "duplicate_in_file" || r.status === "missing_required"
+      r.status === "duplicate_in_file" ||
+      r.status === "missing_required" ||
+      r.status === "unknown_industry_group"
    ) ?? []
 
    const canImport = newRows.length > 0 || updateRows.length > 0
@@ -485,37 +527,59 @@ export function BulkUploadCompanyDialog({
       return out
    }
 
+   function resetForAnother() {
+      setPreview(null)
+      setFileName(null)
+      setActiveTab("new")
+      setImportResult(null)
+      setResultTab("successful")
+      if (fileInputRef.current) fileInputRef.current.value = ""
+   }
+
    function handleImport() {
       if (!canImport) return
       startTransition(async () => {
          const insertBatches = chunk(newRows.map(toInsertInput), BATCH_SIZE)
          const updateBatches = chunk(updateRows.map(toUpdateInput), BATCH_SIZE)
 
-         let totalInserted = 0
-         let totalUpdated = 0
-         let totalSkipped = 0
+         // Collect server-reported failures by prowessId
+         const failReasons = new Map<string, string>()
 
          // Process insert batches
          for (const batch of insertBatches) {
             const result = await bulkUpsertCompanies(batch, [])
-            totalInserted += result.inserted
-            totalSkipped += result.skipped.length
+            for (const s of result.skipped) failReasons.set(s.prowessId, s.reason)
          }
 
          // Process update batches
          for (const batch of updateBatches) {
             const result = await bulkUpsertCompanies([], batch)
-            totalUpdated += result.updated
-            totalSkipped += result.skipped.length
+            for (const s of result.skipped) failReasons.set(s.prowessId, s.reason)
          }
 
-         const parts: string[] = []
-         if (totalInserted > 0) parts.push(`${totalInserted} inserted`)
-         if (totalUpdated > 0) parts.push(`${totalUpdated} updated`)
-         toast.success(parts.join(", ") + ".", {
-            description: totalSkipped > 0 ? `${totalSkipped} skipped on server.` : undefined,
-         })
-         handleOpenChange(false)
+         // Build per-row results from what we attempted
+         const successful: ImportResultRow[] = []
+         const failed: ImportResultFailure[] = []
+
+         for (const row of newRows) {
+            const reason = failReasons.get(row.prowessId)
+            if (reason) failed.push({ prowessId: row.prowessId, companyName: row.companyName, reason })
+            else successful.push({ prowessId: row.prowessId, companyName: row.companyName, action: "Inserted" })
+         }
+         for (const row of updateRows) {
+            const reason = failReasons.get(row.prowessId)
+            if (reason) failed.push({ prowessId: row.prowessId, companyName: row.companyName, reason })
+            else successful.push({ prowessId: row.prowessId, companyName: row.companyName, action: "Updated" })
+         }
+
+         setImportResult({ successful, failed })
+         setResultTab(failed.length > 0 ? "failed" : "successful")
+
+         if (failed.length === 0) {
+            toast.success(`${successful.length} ${successful.length === 1 ? "company" : "companies"} imported.`)
+         } else {
+            toast.warning(`${successful.length} imported, ${failed.length} failed.`)
+         }
          router.refresh()
       })
    }
@@ -529,12 +593,17 @@ export function BulkUploadCompanyDialog({
             </Button>
          </DialogTrigger>
 
-         <DialogContent className="flex max-h-[90dvh] w-full flex-col overflow-hidden sm:max-w-4xl">
+         <DialogContent
+            className="flex max-h-[90dvh] w-full flex-col overflow-hidden sm:max-w-4xl"
+            onInteractOutside={(e) => e.preventDefault()}
+         >
             <DialogHeader>
                <DialogTitle>Bulk Upload Companies</DialogTitle>
             </DialogHeader>
 
             <div className="flex min-h-0 flex-1 flex-col gap-4">
+               {importResult === null ? (
+               <>
                {/* File picker */}
                <div className="flex flex-col gap-2">
                   <Empty
@@ -762,16 +831,133 @@ export function BulkUploadCompanyDialog({
                      </Tabs>
                   </div>
                )}
+               </>
+               ) : (
+                  <>
+                     {/* Result summary */}
+                     <div className="flex items-center gap-3 rounded-xl border p-4">
+                        {importResult.failed.length === 0 ? (
+                           <CheckCircle2Icon className="size-7 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        ) : (
+                           <AlertTriangleIcon className="size-7 shrink-0 text-amber-600 dark:text-amber-400" />
+                        )}
+                        <div className="min-w-0">
+                           <p className="text-sm font-medium">Import complete</p>
+                           <p className="text-xs text-muted-foreground">
+                              <span className="text-emerald-600 dark:text-emerald-400">{importResult.successful.length} succeeded</span>
+                              {" · "}
+                              <span className={importResult.failed.length > 0 ? "text-red-600 dark:text-red-400" : ""}>{importResult.failed.length} failed</span>
+                           </p>
+                        </div>
+                     </div>
+
+                     <Tabs value={resultTab} onValueChange={setResultTab} className="flex min-h-0 flex-1 flex-col">
+                        <TabsList className="w-fit shrink-0">
+                           <TabsTrigger value="successful" className="gap-1.5">
+                              Successful
+                              <span className="rounded-full bg-muted px-1.5 text-xs tabular-nums">{importResult.successful.length}</span>
+                           </TabsTrigger>
+                           <TabsTrigger value="failed" className="gap-1.5">
+                              Failed
+                              <span className="rounded-full bg-muted px-1.5 text-xs tabular-nums">{importResult.failed.length}</span>
+                           </TabsTrigger>
+                        </TabsList>
+
+                        {/* Successful */}
+                        <TabsContent value="successful" className="min-h-0 flex-1 overflow-auto rounded-xl border">
+                           <Table>
+                              <TableHeader className="bg-muted/60 sticky top-0 z-10">
+                                 <TableRow className="hover:bg-transparent">
+                                    <TableHead className="w-10 pl-4 text-muted-foreground">#</TableHead>
+                                    <TableHead className="pl-4 text-muted-foreground">Prowess ID</TableHead>
+                                    <TableHead className="pl-4 text-muted-foreground">Company</TableHead>
+                                    <TableHead className="pl-4 text-muted-foreground">Action</TableHead>
+                                 </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                 {importResult.successful.length === 0 ? (
+                                    <TableRow><TableCell colSpan={4} className="h-24 text-center text-sm text-muted-foreground">No successful changes.</TableCell></TableRow>
+                                 ) : importResult.successful.map((row, i) => (
+                                    <TableRow key={`${row.prowessId}-${i}`}>
+                                       <TableCell className="pl-4 text-xs text-muted-foreground tabular-nums">{i + 1}</TableCell>
+                                       <TableCell className="pl-4"><span className="font-mono text-xs">{row.prowessId}</span></TableCell>
+                                       <TableCell className="pl-4 max-w-44"><span className="text-sm font-medium truncate block">{row.companyName}</span></TableCell>
+                                       <TableCell className="pl-4">
+                                          <Badge
+                                             variant="outline"
+                                             className={cn(
+                                                "gap-1 text-xs font-medium w-fit",
+                                                row.action === "Inserted"
+                                                   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                                                   : "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400",
+                                             )}
+                                          >
+                                             {row.action === "Inserted" ? <PlusCircleIcon className="size-3.5" /> : <RefreshCwIcon className="size-3.5" />}
+                                             {row.action}
+                                          </Badge>
+                                       </TableCell>
+                                    </TableRow>
+                                 ))}
+                              </TableBody>
+                           </Table>
+                        </TabsContent>
+
+                        {/* Failed */}
+                        <TabsContent value="failed" className="min-h-0 flex-1 overflow-auto rounded-xl border">
+                           <Table>
+                              <TableHeader className="bg-muted/60 sticky top-0 z-10">
+                                 <TableRow className="hover:bg-transparent">
+                                    <TableHead className="w-10 pl-4 text-muted-foreground">#</TableHead>
+                                    <TableHead className="pl-4 text-muted-foreground">Prowess ID</TableHead>
+                                    <TableHead className="pl-4 text-muted-foreground">Company</TableHead>
+                                    <TableHead className="pl-4 text-muted-foreground">Error</TableHead>
+                                 </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                 {importResult.failed.length === 0 ? (
+                                    <TableRow><TableCell colSpan={4} className="h-24 text-center text-sm text-muted-foreground">No failed changes.</TableCell></TableRow>
+                                 ) : importResult.failed.map((row, i) => (
+                                    <TableRow key={`${row.prowessId}-${i}`}>
+                                       <TableCell className="pl-4 text-xs text-muted-foreground tabular-nums">{i + 1}</TableCell>
+                                       <TableCell className="pl-4"><span className="font-mono text-xs">{row.prowessId || <span className="italic">—</span>}</span></TableCell>
+                                       <TableCell className="pl-4 max-w-44"><span className="text-sm font-medium truncate block">{row.companyName || <span className="italic">—</span>}</span></TableCell>
+                                       <TableCell className="pl-4">
+                                          <span className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
+                                             <XCircleIcon className="size-3.5 shrink-0" />
+                                             {row.reason}
+                                          </span>
+                                       </TableCell>
+                                    </TableRow>
+                                 ))}
+                              </TableBody>
+                           </Table>
+                        </TabsContent>
+                     </Tabs>
+                  </>
+               )}
             </div>
 
             <DialogFooter className="shrink-0">
-               <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isPending}>
-                  Cancel
-               </Button>
-               <Button onClick={handleImport} disabled={!preview || !canImport || isPending}>
-                  {isPending ? "Importing…" : importLabel()}
-                  {isPending && <Spinner className="ml-2" />}
-               </Button>
+               {importResult === null ? (
+                  <>
+                     <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isPending}>
+                        Cancel
+                     </Button>
+                     <Button onClick={handleImport} disabled={!preview || !canImport || isPending}>
+                        {isPending ? "Importing…" : importLabel()}
+                        {isPending && <Spinner className="ml-2" />}
+                     </Button>
+                  </>
+               ) : (
+                  <>
+                     <Button variant="outline" onClick={resetForAnother}>
+                        Upload another
+                     </Button>
+                     <Button onClick={() => handleOpenChange(false)}>
+                        Done
+                     </Button>
+                  </>
+               )}
             </DialogFooter>
          </DialogContent>
       </Dialog>
