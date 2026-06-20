@@ -48,6 +48,7 @@ type FormValues = {
    name: string
    type: PlanType
    indexId: string
+   category: string
    // one-time
    oneTimePrice: string
    oneTimeStocksPerDay: string
@@ -73,6 +74,7 @@ export type PricingPlanRow = {
    isActive: boolean
    indexId: string | null
    indexName: string | null
+   category: string | null
    oneTimePrice: string | null
    monthlyPrice: string | null
    quarterlyPrice: string | null
@@ -130,6 +132,7 @@ function PricingPlanForm({
    serverError,
    submitLabel,
    indexes,
+   categories,
    lockType,
 }: {
    defaultValues?: Partial<FormValues>
@@ -138,6 +141,7 @@ function PricingPlanForm({
    serverError: string | null
    submitLabel: string
    indexes: IndexOption[]
+   categories: string[]
    lockType?: PlanType
 }) {
    const {
@@ -154,6 +158,7 @@ function PricingPlanForm({
          name: "",
          type: "snapshot",
          indexId: "",
+         category: "",
          oneTimePrice: "", oneTimeStocksPerDay: "", oneTimeStocksInDuration: "",
          monthlyPrice: "", monthlyStocksPerDay: "", monthlyStocksInDuration: "",
          quarterlyPrice: "", quarterlyStocksPerDay: "", quarterlyStocksInDuration: "",
@@ -177,6 +182,7 @@ function PricingPlanForm({
          name: data.name.trim(),
          type: planType,
          indexId: !isSnapshot ? data.indexId : null,
+         category: !isSnapshot ? data.category : null,
          oneTimePrice: data.oneTimePrice,
          monthlyPrice: isSnapshot ? data.monthlyPrice : null,
          quarterlyPrice: data.quarterlyPrice,
@@ -267,6 +273,32 @@ function PricingPlanForm({
             </div>
          )}
 
+         {/* Category (list only) — pick existing or type a new one */}
+         {planType === "list" && (
+            <div className="flex flex-col gap-1.5">
+               <Label htmlFor="pp-category">Category</Label>
+               <Input
+                  id="pp-category"
+                  list="pp-category-options"
+                  placeholder="e.g. Nifty Indices"
+                  autoComplete="off"
+                  className={errors.category ? "border-destructive" : ""}
+                  {...register("category", {
+                     validate: (v) => !!v?.trim() || "Category is required",
+                  })}
+               />
+               <datalist id="pp-category-options">
+                  {categories.map((c) => (
+                     <option key={c} value={c} />
+                  ))}
+               </datalist>
+               <p className="text-xs text-muted-foreground">
+                  Used to group list plans on the Plans page. Choose an existing category or type a new one.
+               </p>
+               {errors.category && <p className="text-xs text-destructive">{errors.category.message}</p>}
+            </div>
+         )}
+
          {/* Duration rows */}
          <div className="flex flex-col gap-2">
             <Label>Durations &amp; Pricing</Label>
@@ -348,7 +380,7 @@ function PricingPlanForm({
 // Add dialog
 // ---------------------------------------------------------------------------
 
-export function AddPricingPlanDialog({ indexes }: { indexes: IndexOption[] }) {
+export function AddPricingPlanDialog({ indexes, categories }: { indexes: IndexOption[]; categories: string[] }) {
    const [open, setOpen] = React.useState(false)
    const [serverError, setServerError] = React.useState<string | null>(null)
    const [isPending, startTransition] = React.useTransition()
@@ -391,6 +423,7 @@ export function AddPricingPlanDialog({ indexes }: { indexes: IndexOption[] }) {
                serverError={serverError}
                submitLabel="Create Plan"
                indexes={indexes}
+               categories={categories}
             />
          </DialogContent>
       </Dialog>
@@ -404,9 +437,11 @@ export function AddPricingPlanDialog({ indexes }: { indexes: IndexOption[] }) {
 export function EditPricingPlanDialog({
    plan,
    indexes,
+   categories,
 }: {
    plan: PricingPlanRow
    indexes: IndexOption[]
+   categories: string[]
 }) {
    const [open, setOpen] = React.useState(false)
    const [serverError, setServerError] = React.useState<string | null>(null)
@@ -419,6 +454,7 @@ export function EditPricingPlanDialog({
       name: plan.name,
       type: planType,
       indexId: plan.indexId ?? "",
+      category: plan.category ?? "",
       oneTimePrice: plan.oneTimePrice ?? "",
       oneTimeStocksPerDay: plan.oneTimeStocksPerDay != null ? String(plan.oneTimeStocksPerDay) : "",
       oneTimeStocksInDuration: plan.oneTimeStocksInDuration != null ? String(plan.oneTimeStocksInDuration) : "",
@@ -470,6 +506,7 @@ export function EditPricingPlanDialog({
                serverError={serverError}
                submitLabel="Save Changes"
                indexes={indexes}
+               categories={categories}
                lockType={planType}
             />
          </DialogContent>

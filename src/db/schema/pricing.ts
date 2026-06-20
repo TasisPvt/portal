@@ -29,6 +29,7 @@ export const pricingPlan = pgTable(
       annualStocksInDuration: integer("annual_stocks_in_duration"),
       // list-only
       indexId: varchar("index_id", { length: 36 }).references(() => indexMaster.id, { onDelete: "set null" }),
+      category: varchar("category", { length: 100 }),
       // prices (monthlyPrice is snapshot-only; null for list)
       oneTimePrice: numeric("one_time_price", { precision: 12, scale: 2 }),
       monthlyPrice: numeric("monthly_price", { precision: 12, scale: 2 }),
@@ -45,6 +46,7 @@ export const pricingPlan = pgTable(
    (table) => [
       index("pricing_plan_type_idx").on(table.type),
       index("pricing_plan_index_idx").on(table.indexId),
+      index("pricing_plan_category_idx").on(table.category),
       index("pricing_plan_created_by_idx").on(table.createdById),
    ],
 )

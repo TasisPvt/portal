@@ -120,6 +120,13 @@
       "when": 1780602819996,
       "tag": "0016_payment_table",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1781984819140,
+      "tag": "0017_heavy_paper_doll",
+      "breakpoints": true
     }
   ]
 }

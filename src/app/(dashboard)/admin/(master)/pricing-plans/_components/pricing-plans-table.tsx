@@ -108,9 +108,11 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50]
 export function PricingPlansTable({
    data,
    indexes,
+   categories,
 }: {
    data: PricingPlanRow[]
    indexes: { id: string; name: string }[]
+   categories: string[]
 }) {
    const [sorting, setSorting] = React.useState<SortingState>([])
    const [globalFilter, setGlobalFilter] = React.useState("")
@@ -159,6 +161,18 @@ export function PricingPlansTable({
          },
       },
       {
+         id: "category",
+         accessorFn: (r) => r.category ?? "",
+         header: ({ column }) => <SortableHeader column={column} label="Category" />,
+         cell: ({ row }) => {
+            const r = row.original
+            if (r.type !== "list") return <span className="text-muted-foreground opacity-40 text-xs">—</span>
+            return r.category
+               ? <Badge variant="outline" className="text-xs font-normal">{r.category}</Badge>
+               : <span className="text-xs italic text-muted-foreground opacity-60">Uncategorized</span>
+         },
+      },
+      {
          id: "oneTimePrice",
          accessorFn: (r) => r.oneTimePrice ? parseFloat(r.oneTimePrice) : -1,
          header: ({ column }) => <SortableHeader column={column} label="One-time" />,
@@ -204,13 +218,13 @@ export function PricingPlansTable({
          header: () => null,
          cell: ({ row }) => (
             <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-               <EditPricingPlanDialog plan={row.original} indexes={indexes} />
+               <EditPricingPlanDialog plan={row.original} indexes={indexes} categories={categories} />
                <PlanStatusToggle id={row.original.id} name={row.original.name} isActive={row.original.isActive} />
                <DeletePricingPlanButton id={row.original.id} name={row.original.name} />
             </div>
          ),
       },
-   ], [indexes])
+   ], [indexes, categories])
 
    const table = useReactTable({
       data: preFiltered,

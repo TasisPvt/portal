@@ -62,6 +62,7 @@ export async function getActivePlans() {
          type: pricingPlan.type,
          indexId: pricingPlan.indexId,
          indexName: indexMaster.name,
+         category: pricingPlan.category,
          oneTimePrice: pricingPlan.oneTimePrice,
          monthlyPrice: pricingPlan.monthlyPrice,
          quarterlyPrice: pricingPlan.quarterlyPrice,
