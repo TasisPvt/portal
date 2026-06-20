@@ -773,9 +773,6 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
                {/* Disclaimer */}
                {effectiveTab === "disclaimer" && (
                   <div className="rounded-2xl border bg-card p-5 c-box-shadow">
-                     <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                        Disclaimer note on Screening (Final)
-                     </p>
                      <div className="flex flex-col gap-3">
                         <p className="text-sm leading-relaxed text-muted-foreground">
                            TASIS acts as a Shariah advisor, conducting screening of companies based on established
