@@ -95,7 +95,7 @@ function PlanCard({ plan, isSubscribed }: { plan: PlanRow; isSubscribed: boolean
    }
 
    return (
-      <div className="relative flex flex-col rounded-2xl border bg-card p-6 shadow-sm">
+     <div className="relative row-span-5 grid grid-rows-subgrid gap-y-0 rounded-2xl border bg-card p-4 c-box-shadow transition-transform duration-200 ease-out hover:-translate-y-1 hover:border-primary/50">
          {/* Already Subscribed banner */}
          {isSubscribed && (
             <div className="absolute -top-px left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
@@ -107,15 +107,15 @@ function PlanCard({ plan, isSubscribed }: { plan: PlanRow; isSubscribed: boolean
          )}
 
          {/* Header */}
-         <div className={cn("flex items-start justify-between gap-2", isSubscribed && "mt-2")}>
-            <h3 className="text-base font-bold leading-tight text-foreground">{plan.name}</h3>
-            <div className="flex items-center gap-1.5 shrink-0">
-               <PlanTypeBadge type={plan.type} className="shrink-0" />
-            </div>
+         <div className={cn("flex flex-col gap-2", isSubscribed && "mt-2")}>
+            <PlanTypeBadge type={plan.type} className="w-fit shrink-0" />
+            <h3 className="text-base font-bold leading-tight text-foreground">
+               {plan.name}
+            </h3>
          </div>
 
          {/* Duration selector */}
-         <div className="mt-4">
+         <div className="mt-3">
             <Select
                value={selectedDuration}
                onValueChange={(v) => setSelectedDuration(v as DurationType)}
@@ -135,7 +135,7 @@ function PlanCard({ plan, isSubscribed }: { plan: PlanRow; isSubscribed: boolean
          </div>
 
          {/* Price */}
-         <div className="mt-5">
+         <div className="mt-3">
             <div className="">
                <span className="text-4xl font-bold tracking-tight text-foreground">
                   ₹{fmtNum(price)}
@@ -145,7 +145,7 @@ function PlanCard({ plan, isSubscribed }: { plan: PlanRow; isSubscribed: boolean
          </div>
 
          {/* CTA */}
-         <div className="mt-5">
+         <div className="mt-1">
             {isSubscribed ? (
                <button
                   disabled
@@ -176,11 +176,11 @@ function PlanCard({ plan, isSubscribed }: { plan: PlanRow; isSubscribed: boolean
          </div>
 
          {/* What's included */}
-         <div className="mt-6 border-t pt-5">
+         <div className="mt-3 border-t pt-3">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                What&apos;s Included
             </p>
-            <ul className="mt-3 space-y-2.5">
+            <ul className="mt-2 space-y-2.5">
                {features.map((f, i) => (
                   <li key={i} className="flex items-center gap-2.5 text-sm">
                      <CheckCircle2Icon className="size-4 shrink-0 text-emerald-500" />
@@ -227,7 +227,7 @@ export function PlansClientView({ plans, subscribedPlanIds }: { plans: PlanRow[]
                No plans available.
             </div>
          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
                {filtered.map((plan) => (
                   <PlanCard key={plan.id} plan={plan} isSubscribed={subscribedPlanIds.includes(plan.id)} />
                ))}

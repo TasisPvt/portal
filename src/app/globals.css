@@ -212,6 +212,10 @@ h6 {
   animation: float 4s ease-in-out infinite;
 }
 
+@utility c-box-shadow {
+  box-shadow: 0 12px 32px -20px oklch(0.18 0.05 255 / 0.50);
+}
+
 /* ── Auth panel dot-grid pattern ── */
 .auth-dot-grid {
   background-image: radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px);
