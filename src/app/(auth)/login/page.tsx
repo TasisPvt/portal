@@ -64,7 +64,7 @@ export default function LoginPage() {
                </div>
 
                <div className="w-full max-w-sm">
-                  <div className="rounded-2xl border border-white/40 bg-white/85 px-8 py-9 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-card/80">
+                  <div className="rounded-2xl border border-white/40 bg-white/85 px-8 py-9 c-box-shadow backdrop-blur-xl dark:border-white/10 dark:bg-card/80">
                      <Suspense>
                         <LoginForm />
                      </Suspense>

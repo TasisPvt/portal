@@ -227,10 +227,7 @@ function RemarkPanel({ remark }: { remark: ScreeningRemark | null | undefined })
             : null
 
    return (
-      <div className="rounded-2xl border bg-card p-5"
-         style={{
-            boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.50)"
-         }}>
+      <div className="rounded-2xl border bg-card p-5 c-box-shadow">
          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">Remarks</p>
          {remark ? (
             <div className="flex flex-col gap-4">
@@ -488,10 +485,7 @@ function QuantitativeRatiosPanel({
    ]
 
    return (
-      <div className="rounded-2xl border bg-card p-5"
-         style={{
-            boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.50)"
-         }}>
+      <div className="rounded-2xl border bg-card p-5 c-box-shadow">
          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-6">
             Quantitative Parameters
          </p>
@@ -619,10 +613,7 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
 
          {/* ── Compliance Verdict ── */}
          {shariah && (
-            <div className="rounded-2xl border bg-card p-5"
-               style={{
-                  boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.50)"
-               }}>
+            <div className="rounded-2xl border bg-card p-5 c-box-shadow">
                <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
                      <Image
@@ -684,10 +675,7 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
                {effectiveTab === "business" && (
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                      {/* Left: Qualitative Parameters */}
-                     <div className="rounded-2xl border bg-card p-5"
-                        style={{
-                           boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.50)"
-                        }}>
+                     <div className="rounded-2xl border bg-card p-5 c-box-shadow">
                         <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                            Qualitative Parameters
                         </p>
@@ -752,10 +740,7 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
 
                {/* Historical */}
                {effectiveTab === "historical" && (
-                  <div className="rounded-2xl border bg-card p-5"
-                     style={{
-                        boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.50)"
-                     }}>
+                  <div className="rounded-2xl border bg-card p-5 c-box-shadow">
                      <div className="mb-4 flex items-center justify-between">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                            Last 12 Months
@@ -767,10 +752,7 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
 
                {/* Legends */}
                {effectiveTab === "legends" && (
-                  <div className="rounded-2xl border bg-card p-5"
-                     style={{
-                        boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.50)"
-                     }}>
+                  <div className="rounded-2xl border bg-card p-5 c-box-shadow">
                      <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                         Status Color Legend
                      </p>
@@ -790,10 +772,7 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
 
                {/* Disclaimer */}
                {effectiveTab === "disclaimer" && (
-                  <div className="rounded-2xl border bg-card p-5"
-                     style={{
-                        boxShadow: "0 12px 32px -20px oklch(0.18 0.05 255 / 0.50)"
-                     }}>
+                  <div className="rounded-2xl border bg-card p-5 c-box-shadow">
                      <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                         Disclaimer note on Screening (Final)
                      </p>
@@ -889,7 +868,7 @@ function RecentlyViewedSection({
                className="relative text-muted-foreground"
                aria-label={`Recently viewed (${items.length})`}
             >
-               <ClockIcon className="size-3.5" color="black" />
+               <ClockIcon className="size-3.5 text-foreground" />
                <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground tabular-nums">
                   {items.length}
                </span>
@@ -1073,7 +1052,7 @@ export function SnapshotClient({ access, commonRemark, thresholds }: { access: S
                <Dialog>
                   <DialogTrigger asChild>
                      <Button variant="outline" size="icon" className="text-muted-foreground">
-                        <Info className="size-3.5" color="black" />
+                        <Info className="size-3.5 text-foreground" />
                      </Button>
                   </DialogTrigger>
                   <DialogContent className="flex max-h-[85vh] w-[90vw] sm:max-w-3xl flex-col">
