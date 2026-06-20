@@ -88,10 +88,6 @@ function PlanCard({ plan, isSubscribed }: { plan: PlanRow; isSubscribed: boolean
    const features: { label: string }[] = []
    if (isSnapshot) {
       if (sid != null) features.push({ label: `${sid} Stock(s) total` })
-      if (spd != null && sid != null && spd > 0) {
-         const days = Math.round(sid / spd)
-         if (days > 0) features.push({ label: `${days} Day(s)` })
-      }
       if (spd != null) features.push({ label: `${spd} stock(s) per day` })
    } else {
       features.push({ label: "Unlimited Stock(s)" })
