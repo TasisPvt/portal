@@ -1,7 +1,7 @@
 "use server"
 
 import { randomUUID } from "crypto"
-import { eq } from "drizzle-orm"
+import { and, eq, isNotNull } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
 
@@ -22,6 +22,7 @@ export type PlanInput = {
    type: PlanType
    // list-only
    indexId?: string | null
+   category?: string | null
    // prices
    oneTimePrice: string
    monthlyPrice?: string | null      // snapshot only
@@ -51,6 +52,7 @@ export async function getPricingPlans() {
          isActive: pricingPlan.isActive,
          indexId: pricingPlan.indexId,
          indexName: indexMaster.name,
+         category: pricingPlan.category,
          oneTimePrice: pricingPlan.oneTimePrice,
          monthlyPrice: pricingPlan.monthlyPrice,
          quarterlyPrice: pricingPlan.quarterlyPrice,
@@ -82,6 +84,17 @@ export async function getAvailableIndexes() {
       .orderBy(indexMaster.name)
 }
 
+// Distinct, existing category names (list plans only) — used to power the
+// "pick existing or type new" combobox in the create/edit dialog.
+export async function getPricingPlanCategories(): Promise<string[]> {
+   const rows = await db
+      .selectDistinct({ category: pricingPlan.category })
+      .from(pricingPlan)
+      .where(and(eq(pricingPlan.type, "list"), isNotNull(pricingPlan.category)))
+      .orderBy(pricingPlan.category)
+   return rows.map((r) => r.category!).filter(Boolean)
+}
+
 // ---------------------------------------------------------------------------
 // Shared values builder
 // ---------------------------------------------------------------------------
@@ -92,6 +105,7 @@ function buildValues(input: PlanInput) {
       name: input.name.trim(),
       type: input.type,
       indexId: !isSnapshot ? (input.indexId ?? null) : null,
+      category: !isSnapshot ? (input.category?.trim() || null) : null,
       oneTimePrice: input.oneTimePrice,
       monthlyPrice: isSnapshot ? (input.monthlyPrice ?? null) : null,
       quarterlyPrice: input.quarterlyPrice,

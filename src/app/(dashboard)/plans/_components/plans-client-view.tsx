@@ -20,6 +20,7 @@ type PlanRow = {
    type: string
    indexId: string | null
    indexName: string | null
+   category: string | null
    oneTimePrice: string | null
    monthlyPrice: string | null
    quarterlyPrice: string | null
@@ -193,10 +194,30 @@ function PlanCard({ plan, isSubscribed }: { plan: PlanRow; isSubscribed: boolean
    )
 }
 
+const UNCATEGORIZED = "Uncategorized"
+
+function planCategory(p: PlanRow): string {
+   return p.category?.trim() || UNCATEGORIZED
+}
+
 export function PlansClientView({ plans, subscribedPlanIds }: { plans: PlanRow[]; subscribedPlanIds: string[] }) {
    const [filter, setFilter] = React.useState<FilterType>("all")
+   const [listCategory, setListCategory] = React.useState<string>("all")
 
-   const filtered = filter === "all" ? plans : plans.filter((p) => p.type === filter)
+   // Distinct categories across list plans (for the List-tab chips)
+   const listCategories = React.useMemo(() => {
+      const set = new Set<string>()
+      for (const p of plans) if (p.type === "list") set.add(planCategory(p))
+      return Array.from(set).sort((a, b) =>
+         a === UNCATEGORIZED ? 1 : b === UNCATEGORIZED ? -1 : a.localeCompare(b),
+      )
+   }, [plans])
+
+   const byType = filter === "all" ? plans : plans.filter((p) => p.type === filter)
+   const visible =
+      filter === "list" && listCategory !== "all"
+         ? byType.filter((p) => planCategory(p) === listCategory)
+         : byType
 
    return (
       <div className="flex flex-col gap-6">
@@ -205,7 +226,10 @@ export function PlansClientView({ plans, subscribedPlanIds }: { plans: PlanRow[]
             {(["all", "snapshot", "list"] as FilterType[]).map((f) => (
                <button
                   key={f}
-                  onClick={() => setFilter(f)}
+                  onClick={() => {
+                     setFilter(f)
+                     setListCategory("all")
+                  }}
                   className={cn(
                      "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
                      filter === f
@@ -217,18 +241,38 @@ export function PlansClientView({ plans, subscribedPlanIds }: { plans: PlanRow[]
                </button>
             ))}
             <span className="ml-auto text-sm text-muted-foreground">
-               {filtered.length} plan{filtered.length !== 1 ? "s" : ""}
+               {visible.length} plan{visible.length !== 1 ? "s" : ""}
             </span>
          </div>
 
+         {/* Category chips (List tab only) */}
+         {filter === "list" && listCategories.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+               {["all", ...listCategories].map((c) => (
+                  <button
+                     key={c}
+                     onClick={() => setListCategory(c)}
+                     className={cn(
+                        "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                        listCategory === c
+                           ? "border-primary bg-primary/10 text-primary"
+                           : "border-border text-muted-foreground hover:bg-muted",
+                     )}
+                  >
+                     {c === "all" ? "All Categories" : c}
+                  </button>
+               ))}
+            </div>
+         )}
+
          {/* Grid */}
-         {filtered.length === 0 ? (
+         {visible.length === 0 ? (
             <div className="rounded-xl border border-dashed py-16 text-center text-sm text-muted-foreground">
                No plans available.
             </div>
          ) : (
             <div className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
-               {filtered.map((plan) => (
+               {visible.map((plan) => (
                   <PlanCard key={plan.id} plan={plan} isSubscribed={subscribedPlanIds.includes(plan.id)} />
                ))}
             </div>

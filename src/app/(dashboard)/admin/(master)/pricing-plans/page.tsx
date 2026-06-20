@@ -2,12 +2,16 @@ import { TagIcon, CameraIcon, ListIcon, ZapIcon } from "lucide-react"
 
 import { SiteHeader } from "@/src/components/site-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { getPricingPlans, getAvailableIndexes } from "./_actions"
+import { getPricingPlans, getAvailableIndexes, getPricingPlanCategories } from "./_actions"
 import { PricingPlansTable } from "./_components/pricing-plans-table"
 import { AddPricingPlanDialog } from "./_components/pricing-plan-dialogs"
 
 export default async function PricingPlansPage() {
-   const [plans, indexes] = await Promise.all([getPricingPlans(), getAvailableIndexes()])
+   const [plans, indexes, categories] = await Promise.all([
+      getPricingPlans(),
+      getAvailableIndexes(),
+      getPricingPlanCategories(),
+   ])
 
    const total = plans.length
    const active = plans.filter((p) => p.isActive).length
@@ -50,7 +54,7 @@ export default async function PricingPlansPage() {
 
                   <div className="flex items-center justify-between px-4 lg:px-6">
                      <h2 className="text-xl font-semibold tracking-tight">Pricing Plans</h2>
-                     <AddPricingPlanDialog indexes={indexes} />
+                     <AddPricingPlanDialog indexes={indexes} categories={categories} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 px-4 sm:grid-cols-4 lg:px-6">
@@ -72,7 +76,7 @@ export default async function PricingPlansPage() {
                   </div>
 
                   <div className="px-4 lg:px-6">
-                     <PricingPlansTable data={plans} indexes={indexes} />
+                     <PricingPlansTable data={plans} indexes={indexes} categories={categories} />
                   </div>
 
                </div>
