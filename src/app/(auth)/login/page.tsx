@@ -22,11 +22,11 @@ export default function LoginPage() {
             {/* ── Brand panel (desktop only) ── */}
             <aside className="hidden flex-col justify-between p-12 lg:flex">
                {/* Logo */}
-               <Logo white priority width={88} height={100} className="justify-start" />
 
                {/* Headline + messaging */}
-               <div className="max-w-md animate-slide-up">
-                  <h1 className="font-heading text-4xl font-bold leading-tight text-white">
+               <div className="my-auto max-w-md animate-slide-up">
+                 <Logo white priority width={88} height={100} className="justify-start" />
+                  <h1 className="mt-5 font-heading text-4xl font-bold leading-tight text-white">
                      Halal Investing,
                      <br />
                      made simple.
