@@ -212,7 +212,6 @@ function norm(v: string | null | undefined): string {
 //   "YYYY-MM-DDTHH:mm:ss..."  — ISO timestamp, strip time
 //   "DD-MM-YYYY"              — CSV input format, reorder parts
 //   "DD-Mon-YY"               — e.g. "06-Oct-08" → "2008-10-06"
-//   "NA" / "N/A"              — treated as empty (→ null in DB)
 //   empty / null              — return ""
 const MONTH_MAP: Record<string, string> = {
    jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
@@ -222,9 +221,6 @@ const MONTH_MAP: Record<string, string> = {
 function normDate(v: string | null | undefined): string {
    const s = v?.trim()
    if (!s) return ""
-   // Treat explicit "not available" markers as empty (→ null in DB)
-   const lower = s.toLowerCase()
-   if (lower === "na" || lower === "n/a") return ""
    // DD-Mon-YY (e.g. "06-Oct-08")
    const monYY = s.match(/^(\d{2})-([A-Za-z]{3})-(\d{2})$/)
    if (monYY) {
