@@ -12,6 +12,7 @@ import {
    Info,
    ShieldCheckIcon,
    ShieldXIcon,
+   ClockIcon,
 } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
 import { Spinner } from "@/src/components/ui/spinner"
@@ -35,6 +36,14 @@ import {
    type RecentlyViewedCompany,
 } from "../_actions"
 import { Button } from "@/src/components/ui/button"
+import {
+   Sheet,
+   SheetContent,
+   SheetDescription,
+   SheetHeader,
+   SheetTitle,
+   SheetTrigger,
+} from "@/src/components/ui/sheet"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -868,25 +877,49 @@ function RecentlyViewedSection({
    items: RecentlyViewedCompany[]
    onSelect: (c: CompanySearchResult) => void
 }) {
+   const [open, setOpen] = React.useState(false)
    if (items.length === 0) return null
+
    return (
-      <div className="mt-3 flex flex-col gap-2.5">
-         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Recently Viewed
-         </p>
-         <div className="flex flex-wrap gap-2">
-            {items.map((c) => (
-               <button
-                  key={c.id}
-                  onClick={() => onSelect(c)}
-                  className="flex flex-col items-start gap-0.5 rounded-xl border bg-card px-3 py-2 text-left transition-colors hover:bg-muted/40"
-               >
-                  <span className="max-w-48 truncate text-sm font-medium leading-tight">{c.companyName}</span>
-                  <span className="text-[10px] text-muted-foreground">{fmtLastViewed(c.lastViewed)}</span>
-               </button>
-            ))}
-         </div>
-      </div>
+      <Sheet open={open} onOpenChange={setOpen}>
+         <SheetTrigger asChild>
+            <Button
+               variant="outline"
+               size="icon"
+               className="relative text-muted-foreground"
+               aria-label={`Recently viewed (${items.length})`}
+            >
+               <ClockIcon className="size-3.5" color="black" />
+               <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground tabular-nums">
+                  {items.length}
+               </span>
+            </Button>
+         </SheetTrigger>
+         <SheetContent side="right" className="w-full sm:max-w-md">
+            <SheetHeader>
+               <SheetTitle>Recently Viewed</SheetTitle>
+               <SheetDescription>Companies you&apos;ve looked at recently.</SheetDescription>
+            </SheetHeader>
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-6 pb-6">
+               {items.map((c) => (
+                  <button
+                     key={c.id}
+                     onClick={() => {
+                        onSelect(c)
+                        setOpen(false)
+                     }}
+                     className="flex items-center justify-between gap-3 rounded-xl border bg-card px-3.5 py-3 text-left transition-colors hover:bg-muted/40"
+                  >
+                     <span className="flex min-w-0 flex-col gap-0.5">
+                        <span className="truncate text-sm font-medium leading-tight">{c.companyName}</span>
+                        <span className="text-[11px] text-muted-foreground">{fmtLastViewed(c.lastViewed)}</span>
+                     </span>
+                     <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
+                  </button>
+               ))}
+            </div>
+         </SheetContent>
+      </Sheet>
    )
 }
 
@@ -1056,6 +1089,9 @@ export function SnapshotClient({ access, commonRemark, thresholds }: { access: S
                   </DialogContent>
                </Dialog>
             )}
+
+            {/* Recently viewed — opens a sheet */}
+            <RecentlyViewedSection items={recentlyViewed} onSelect={handleSelectCompany} />
          </div>
 
          {/* Mobile quota bar */}
@@ -1066,10 +1102,7 @@ export function SnapshotClient({ access, commonRemark, thresholds }: { access: S
             totalLimit={quota.totalLimit}
          />
 
-         {/* Recently viewed / empty state */}
-         {/* {!isLoading && !snapshotData && (
-            <> */}
-         <RecentlyViewedSection items={recentlyViewed} onSelect={handleSelectCompany} />
+         {/* Empty state */}
          {recentlyViewed.length === 0 && (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed py-20 text-center">
                <SearchIcon className="mb-3 size-8 text-muted-foreground/30" />
