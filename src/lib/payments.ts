@@ -87,6 +87,12 @@ async function createSubscriptionRecord(
       price: string
       stocksPerDay: number | null
       stocksInDuration: number | null
+      taxableAmount: string
+      cgst: string
+      sgst: string
+      igst: string
+      gstRate: string
+      placeOfSupply: string
    },
 ): Promise<string> {
    const startDate = new Date()
@@ -102,6 +108,12 @@ async function createSubscriptionRecord(
       startDate,
       endDate,
       priceSnapshot: args.price,
+      taxableAmount: args.taxableAmount,
+      cgst: args.cgst,
+      sgst: args.sgst,
+      igst: args.igst,
+      gstRate: args.gstRate,
+      placeOfSupply: args.placeOfSupply,
       stocksPerDaySnapshot: args.stocksPerDay,
       stocksInDurationSnapshot: args.stocksInDuration,
       createdAt: startDate,
@@ -169,6 +181,12 @@ export async function finalizePaidOrder(args: {
               price: pay.priceSnapshot,
               stocksPerDay: pay.stocksPerDaySnapshot,
               stocksInDuration: pay.stocksInDurationSnapshot,
+              taxableAmount: pay.taxableAmount,
+              cgst: pay.cgst,
+              sgst: pay.sgst,
+              igst: pay.igst,
+              gstRate: pay.gstRate,
+              placeOfSupply: pay.placeOfSupply,
            })
 
       await tx

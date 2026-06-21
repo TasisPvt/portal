@@ -70,7 +70,10 @@ function PaidContent({ details }: { details: PaymentDetails }) {
          <dl className="w-full space-y-2.5 rounded-xl border bg-muted/30 p-4 text-sm">
             <Row label="Plan" value={details.planName ?? "—"} />
             <Row label="Duration" value={DURATION_LABELS[details.durationType] ?? details.durationType} />
-            <Row label="Amount paid" value={formatPrice(details.priceSnapshot)} strong />
+            <GstRows details={details} />
+            <div className="border-t pt-2.5">
+               <Row label="Amount paid" value={formatPrice(details.priceSnapshot)} strong />
+            </div>
             {details.startDate && <Row label="Valid from" value={formatDate(details.startDate)} />}
             {details.endDate && <Row label="Valid until" value={formatDate(details.endDate)} />}
          </dl>
@@ -160,6 +163,24 @@ function ProcessingContent() {
                <Link href="/plans">Back to plans</Link>
             </Button>
          </div>
+      </div>
+   )
+}
+
+function GstRows({ details }: { details: PaymentDetails }) {
+   const half = Number(details.gstRate || "18") / 2
+   const isInterState = Number(details.igst || "0") > 0
+   return (
+      <div className="space-y-2.5 border-t pt-2.5 text-xs text-muted-foreground">
+         <Row label="Base price" value={formatPrice(details.taxableAmount)} />
+         {isInterState ? (
+            <Row label={`IGST (${details.gstRate || "18"}%)`} value={formatPrice(details.igst)} />
+         ) : (
+            <>
+               <Row label={`CGST (${half}%)`} value={formatPrice(details.cgst)} />
+               <Row label={`SGST (${half}%)`} value={formatPrice(details.sgst)} />
+            </>
+         )}
       </div>
    )
 }

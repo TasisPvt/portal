@@ -20,6 +20,13 @@ export const subscription = pgTable(
       endDate: timestamp("end_date", { precision: 3 }).notNull(),
       // Snapshots taken at the time of subscription
       priceSnapshot: numeric("price_snapshot", { precision: 12, scale: 2 }).notNull(),
+      // GST breakdown (price is GST-inclusive; GST is 18% of the gross price)
+      taxableAmount: numeric("taxable_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+      cgst: numeric("cgst", { precision: 12, scale: 2 }).notNull().default("0"),
+      sgst: numeric("sgst", { precision: 12, scale: 2 }).notNull().default("0"),
+      igst: numeric("igst", { precision: 12, scale: 2 }).notNull().default("0"),
+      gstRate: numeric("gst_rate", { precision: 5, scale: 2 }).notNull().default("18"),
+      placeOfSupply: varchar("place_of_supply", { length: 100 }).notNull().default(""),
       stocksPerDaySnapshot: integer("stocks_per_day_snapshot"),
       stocksInDurationSnapshot: integer("stocks_in_duration_snapshot"),
       createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
@@ -88,6 +95,13 @@ export const payment = pgTable(
       currency: varchar("currency", { length: 3 }).notNull().default("INR"),
       // Price/limits locked at order time, mirrored onto the subscription on success.
       priceSnapshot: numeric("price_snapshot", { precision: 12, scale: 2 }).notNull(),
+      // GST breakdown (price is GST-inclusive; GST is 18% of the gross price)
+      taxableAmount: numeric("taxable_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+      cgst: numeric("cgst", { precision: 12, scale: 2 }).notNull().default("0"),
+      sgst: numeric("sgst", { precision: 12, scale: 2 }).notNull().default("0"),
+      igst: numeric("igst", { precision: 12, scale: 2 }).notNull().default("0"),
+      gstRate: numeric("gst_rate", { precision: 5, scale: 2 }).notNull().default("18"),
+      placeOfSupply: varchar("place_of_supply", { length: 100 }).notNull().default(""),
       stocksPerDaySnapshot: integer("stocks_per_day_snapshot"),
       stocksInDurationSnapshot: integer("stocks_in_duration_snapshot"),
       razorpayOrderId: varchar("razorpay_order_id", { length: 255 }).notNull().unique(),
