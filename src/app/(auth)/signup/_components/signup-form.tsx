@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { useMutation } from "@tanstack/react-query"
 import Link from "next/link"
-import { MailCheckIcon, ChevronsUpDown, Check } from "lucide-react"
+import { MailCheckIcon, ChevronsUpDown, Check, ArrowLeft, CheckIcon } from "lucide-react"
 import {
    Field,
    FieldDescription,
@@ -34,13 +34,28 @@ import { cn } from "@/src/lib/utils"
 
 type SignupType = {
    name: string
-   username: string
-   state: string
    email: string
    phone: string
    aadharNumber: string
    panNumber: string
+   state: string
+   address: string
+   gstNumber: string
 }
+
+const STEPS = [
+   { id: 1, label: "User Details" },
+   { id: 2, label: "Tax Details" },
+] as const
+
+// Fields validated before leaving step 1
+const STEP_1_FIELDS: (keyof SignupType)[] = [
+   "name",
+   "email",
+   "phone",
+   "aadharNumber",
+   "panNumber",
+]
 
 // ─── Success screen ───────────────────────────────────────────────────────────
 
@@ -65,9 +80,53 @@ function SuccessScreen({ email }: { email: string }) {
    )
 }
 
+// ─── Stepper indicator ──────────────────────────────────────────────────────────
+
+function Stepper({ current }: { current: number }) {
+   return (
+      <div className="mb-6 flex items-center">
+         {STEPS.map((s, i) => {
+            const done = current > s.id
+            const active = current === s.id
+            return (
+               <div key={s.id} className="flex flex-1 items-center last:flex-none">
+                  <div className="flex items-center gap-2">
+                     <span
+                        className={cn(
+                           "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors",
+                           done && "bg-primary text-primary-foreground",
+                           active && "bg-primary text-primary-foreground ring-4 ring-primary/15",
+                           !done && !active && "bg-muted text-muted-foreground",
+                        )}
+                     >
+                        {done ? <CheckIcon className="size-3.5" /> : s.id}
+                     </span>
+                     <span
+                        className={cn(
+                           "text-xs font-medium",
+                           active || done ? "text-foreground" : "text-muted-foreground",
+                        )}
+                     >
+                        {s.label}
+                     </span>
+                  </div>
+                  {i < STEPS.length - 1 && (
+                     <div className={cn("mx-3 h-px flex-1", done ? "bg-primary" : "bg-border")} />
+                  )}
+               </div>
+            )
+         })}
+      </div>
+   )
+}
+
 // ─── Form ─────────────────────────────────────────────────────────────────────
 
 export function SignupForm() {
+   const [step, setStep] = useState(1)
+   const [direction, setDirection] = useState<"forward" | "back">("forward")
+   // Only animate after the first step transition — not on initial page load.
+   const [animate, setAnimate] = useState(false)
    const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
    const [formError, setFormError] = useState<string | null>(null)
    const [statePopoverOpen, setStatePopoverOpen] = useState(false)
@@ -76,8 +135,9 @@ export function SignupForm() {
       register,
       handleSubmit,
       control,
+      trigger,
       formState: { errors },
-   } = useForm<SignupType>()
+   } = useForm<SignupType>({ mode: "onTouched" })
 
    const signupMutation = useMutation({
       mutationFn: async (data: SignupType) => {
@@ -100,9 +160,36 @@ export function SignupForm() {
 
    if (submittedEmail) return <SuccessScreen email={submittedEmail} />
 
+   async function goNext() {
+      setFormError(null)
+      const valid = await trigger(STEP_1_FIELDS)
+      if (valid) {
+         setDirection("forward")
+         setAnimate(true)
+         setStep(2)
+      }
+   }
+
+   function goBack() {
+      setFormError(null)
+      setDirection("back")
+      setAnimate(true)
+      setStep(1)
+   }
+
    const onSubmit = (data: SignupType) => {
       setFormError(null)
       signupMutation.mutate(data)
+   }
+
+   // Step-aware submit: Enter / submit on step 1 advances instead of submitting.
+   function handleFormSubmit(e: React.FormEvent) {
+      e.preventDefault()
+      if (step === 1) {
+         goNext()
+      } else {
+         handleSubmit(onSubmit)()
+      }
    }
 
    return (
@@ -114,19 +201,27 @@ export function SignupForm() {
             </p>
          </div>
 
-         {formError && (
-            <AlertDestructive className="mb-6" title={formError} />
-         )}
+         <Stepper current={step} />
 
-         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+         {formError && <AlertDestructive className="mb-6" title={formError} />}
+
+         <form onSubmit={handleFormSubmit} className="space-y-5" noValidate>
             <FieldGroup className="gap-5">
 
-               {/* Row 1: Name + Username */}
-               <div className="">
+           {/*<div className="overflow-hidden">*/}
+              <div
+                 key={step}
+                 className={cn(
+                    animate && "animate-in fade-in-0 duration-300 ease-out",
+                    animate && (direction === "back" ? "slide-in-from-left-10" : "slide-in-from-right-10"),
+                 )}
+              >
+
+               {/* ── Step 1: User details ── */}
+               <div className={cn("flex flex-col gap-5", step !== 1 && "hidden")}>
                   <Field className="gap-2">
                      <FieldLabel>Full Name</FieldLabel>
                      <Input
-                        placeholder=""
                         className={errors.name ? "border-red-500" : ""}
                         {...register("name", {
                            required: "Full name is required",
@@ -134,37 +229,95 @@ export function SignupForm() {
                         })}
                      />
                      {errors.name && (
-                        <FieldDescription className="text-xs text-red-500">
-                           {errors.name.message}
-                        </FieldDescription>
+                        <FieldDescription className="text-xs text-red-500">{errors.name.message}</FieldDescription>
                      )}
                   </Field>
-               </div>
 
-               {/* Row 2: State + Email */}
-               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <Field className="gap-2">
-                     <FieldLabel>Username</FieldLabel>
+                     <FieldLabel>Email</FieldLabel>
                      <Input
-                        placeholder=""
-                        className={errors.username ? "border-red-500" : ""}
-                        {...register("username", {
-                           required: "Username is required",
-                           minLength: { value: 3, message: "Min. 3 characters" },
-                           maxLength: { value: 30, message: "Max. 30 characters" },
+                        type="email"
+                        className={errors.email ? "border-red-500" : ""}
+                        {...register("email", {
+                           required: "Email is required",
                            pattern: {
-                              value: /^[a-z0-9_]+$/,
-                              message: "Lowercase letters, numbers and underscores only",
+                              value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                              message: "Invalid email format",
                            },
                         })}
                      />
-                     {errors.username && (
-                        <FieldDescription className="text-xs text-red-500">
-                           {errors.username.message}
-                        </FieldDescription>
+                     {errors.email && (
+                        <FieldDescription className="text-xs text-red-500">{errors.email.message}</FieldDescription>
                      )}
                   </Field>
 
+                  <Field className="gap-2">
+                     <FieldLabel>Phone Number</FieldLabel>
+                     <Controller
+                        name="phone"
+                        control={control}
+                        rules={{ validate: validatePhone }}
+                        render={({ field, fieldState }) => (
+                           <>
+                              <PhoneInput
+                                 value={field.value}
+                                 onChange={field.onChange}
+                                 error={fieldState.error?.message}
+                              />
+                              {fieldState.error && (
+                                 <FieldDescription className="text-xs text-red-500">
+                                    {fieldState.error.message}
+                                 </FieldDescription>
+                              )}
+                           </>
+                        )}
+                     />
+                  </Field>
+
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                     <Field className="gap-2">
+                        <FieldLabel>Aadhar Number</FieldLabel>
+                        <Input
+                           placeholder="234567890123"
+                           maxLength={12}
+                           className={errors.aadharNumber ? "border-red-500" : ""}
+                           {...register("aadharNumber", {
+                              required: "Aadhar number is required",
+                              pattern: { value: /^\d{12}$/, message: "Must be exactly 12 digits" },
+                           })}
+                        />
+                        {errors.aadharNumber && (
+                           <FieldDescription className="text-xs text-red-500">{errors.aadharNumber.message}</FieldDescription>
+                        )}
+                     </Field>
+
+                     <Field className="gap-2">
+                        <FieldLabel>PAN Number</FieldLabel>
+                        <Input
+                           placeholder="ABCDE1234F"
+                           maxLength={10}
+                           className={errors.panNumber ? "border-red-500" : ""}
+                           {...register("panNumber", {
+                              required: "PAN number is required",
+                              pattern: { value: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, message: "Invalid PAN (e.g. ABCDE1234F)" },
+                              setValueAs: (v: string) => v.toUpperCase(),
+                           })}
+                        />
+                        {errors.panNumber && (
+                           <FieldDescription className="text-xs text-red-500">{errors.panNumber.message}</FieldDescription>
+                        )}
+                     </Field>
+                  </div>
+
+                  <Field>
+                     <Button type="submit" className="w-full cursor-pointer font-semibold">
+                        Continue
+                     </Button>
+                  </Field>
+               </div>
+
+               {/* ── Step 2: Tax details ── */}
+               <div className={cn("flex flex-col gap-5", step !== 2 && "hidden")}>
                   <Field className="gap-2">
                      <FieldLabel>State</FieldLabel>
                      <Controller
@@ -175,6 +328,7 @@ export function SignupForm() {
                            <Popover open={statePopoverOpen} onOpenChange={setStatePopoverOpen}>
                               <PopoverTrigger asChild>
                                  <Button
+                                    type="button"
                                     variant="outline"
                                     role="combobox"
                                     aria-expanded={statePopoverOpen}
@@ -224,117 +378,70 @@ export function SignupForm() {
                         )}
                      />
                      {errors.state && (
-                        <FieldDescription className="text-xs text-red-500">
-                           {errors.state.message}
-                        </FieldDescription>
+                        <FieldDescription className="text-xs text-red-500">{errors.state.message}</FieldDescription>
                      )}
                   </Field>
-               </div>
 
-               {/* Row 3: Phone */}
-               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <Field className="gap-2">
-                     <FieldLabel>Email</FieldLabel>
+                     <FieldLabel>Address</FieldLabel>
                      <Input
-                        type="email"
-                        placeholder=""
-                        className={errors.email ? "border-red-500" : ""}
-                        {...register("email", {
-                           required: "Email is required",
-                           pattern: {
-                              value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                              message: "Invalid email format",
-                           },
+                        placeholder="Building, street, city, PIN"
+                        className={errors.address ? "border-red-500" : ""}
+                        {...register("address", {
+                           required: "Address is required",
+                           minLength: { value: 5, message: "Min. 5 characters" },
                         })}
                      />
-                     {errors.email && (
-                        <FieldDescription className="text-xs text-red-500">
-                           {errors.email.message}
-                        </FieldDescription>
+                     {errors.address && (
+                        <FieldDescription className="text-xs text-red-500">{errors.address.message}</FieldDescription>
                      )}
                   </Field>
 
                   <Field className="gap-2">
-                     <FieldLabel>Phone Number</FieldLabel>
-                     <Controller
-                        name="phone"
-                        control={control}
-                        rules={{ validate: validatePhone }}
-                        render={({ field, fieldState }) => (
-                           <>
-                              <PhoneInput
-                                 value={field.value}
-                                 onChange={field.onChange}
-                                 error={fieldState.error?.message}
-                              />
-                              {fieldState.error && (
-                                 <FieldDescription className="text-xs text-red-500">
-                                    {fieldState.error.message}
-                                 </FieldDescription>
-                              )}
-                           </>
-                        )}
-                     />
-                  </Field>
-               </div>
-
-               {/* Row 4: Aadhar + PAN */}
-               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  <Field className="gap-2">
-                     <FieldLabel>Aadhar Number</FieldLabel>
+                     <FieldLabel>
+                        GST Number <span className="font-normal text-muted-foreground">(optional)</span>
+                     </FieldLabel>
                      <Input
-                        placeholder="234567890123"
-                        maxLength={12}
-                        className={errors.aadharNumber ? "border-red-500" : ""}
-                        {...register("aadharNumber", {
-                           required: "Aadhar number is required",
-                           pattern: {
-                              value: /^\d{12}$/,
-                              message: "Must be exactly 12 digits",
-                           },
-                        })}
-                     />
-                     {errors.aadharNumber && (
-                        <FieldDescription className="text-xs text-red-500">
-                           {errors.aadharNumber.message}
-                        </FieldDescription>
-                     )}
-                  </Field>
-
-                  <Field className="gap-2">
-                     <FieldLabel>PAN Number</FieldLabel>
-                     <Input
-                        placeholder="ABCDE1234F"
-                        maxLength={10}
-                        className={errors.panNumber ? "border-red-500" : ""}
-                        {...register("panNumber", {
-                           required: "PAN number is required",
-                           pattern: {
-                              value: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
-                              message: "Invalid PAN (e.g. ABCDE1234F)",
-                           },
+                        placeholder="22AAAAA0000A1Z5"
+                        maxLength={15}
+                        className={errors.gstNumber ? "border-red-500" : ""}
+                        {...register("gstNumber", {
                            setValueAs: (v: string) => v.toUpperCase(),
+                           validate: (v) =>
+                              !v ||
+                              /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(v) ||
+                              "Invalid GST number",
                         })}
                      />
-                     {errors.panNumber && (
-                        <FieldDescription className="text-xs text-red-500">
-                           {errors.panNumber.message}
-                        </FieldDescription>
+                     {errors.gstNumber && (
+                        <FieldDescription className="text-xs text-red-500">{errors.gstNumber.message}</FieldDescription>
                      )}
                   </Field>
+
+                  <div className="flex gap-3">
+                     <Button
+                        type="button"
+                        variant="outline"
+                        className="cursor-pointer"
+                        onClick={goBack}
+                        disabled={signupMutation.isPending}
+                     >
+                        <ArrowLeft className="mr-1.5 size-4" />
+                        Back
+                     </Button>
+                     <Button
+                        type="submit"
+                        className="flex-1 cursor-pointer font-semibold"
+                        disabled={signupMutation.isPending}
+                     >
+                        {signupMutation.isPending ? "Creating account…" : "Create Account"}
+                        {signupMutation.isPending && <Spinner className="ml-2" />}
+                     </Button>
+                  </div>
                </div>
 
-               {/* Submit */}
-               <Field>
-                  <Button
-                     type="submit"
-                     className="w-full cursor-pointer"
-                     disabled={signupMutation.isPending}
-                  >
-                     {signupMutation.isPending ? "Creating account…" : "Create Account"}
-                     {signupMutation.isPending && <Spinner className="ml-2" />}
-                  </Button>
-               </Field>
+              </div>
+            {/* </div>*/}
 
                <p className="text-center text-sm text-muted-foreground">
                   Already have an account?{" "}

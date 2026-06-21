@@ -55,7 +55,6 @@ export type ClientRow = {
   email: string
   emailVerified: boolean
   createdAt: Date
-  username: string | null
   phone: string | null
   phoneVerified: boolean | null
   state: string | null
@@ -150,16 +149,6 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
             <span className="text-xs text-muted-foreground">{row.original.email}</span>
           </div>
         </div>
-      ),
-    },
-    {
-      id: "username",
-      accessorFn: (row) => row.username ?? "",
-      header: ({ column }) => <SortableHeader column={column} label="Username" />,
-      cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground">
-          {row.original.username ?? <span className="opacity-40">—</span>}
-        </span>
       ),
     },
     {
@@ -289,12 +278,11 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
 
   function exportCSV() {
     const rows = table.getSortedRowModel().rows
-    const headers = ["Name", "Email", "Username", "Phone", "Phone Verified", "State", "PAN", "Email Verified", "Status", "Joined"]
+    const headers = ["Name", "Email", "Phone", "Phone Verified", "State", "PAN", "Email Verified", "Status", "Joined"]
     const lines = rows.map(({ original: c }) =>
       [
         c.name,
         c.email,
-        c.username ?? "",
         c.phone ?? "",
         c.phoneVerified ? "Yes" : "No",
         c.state ?? "",
@@ -343,7 +331,7 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
         <div className="relative w-full max-w-sm">
           <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search client or username..."
+            placeholder="Search client..."
             className="pl-9"
             value={globalFilter}
             onChange={(e) => {

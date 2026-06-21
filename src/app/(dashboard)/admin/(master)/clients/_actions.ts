@@ -11,11 +11,12 @@ import { generatePassword, sendWelcomeEmail } from "@/src/lib/mailer"
 type CreateClientInput = {
    name: string
    email: string
-   username: string
    phone: string
    aadharNumber: string
    panNumber: string
    state: string
+   address: string
+   gstNumber?: string
 }
 
 type ActionResult =
@@ -23,12 +24,11 @@ type ActionResult =
    | { success: false; message: string; field?: string }
 
 export async function createClient(input: CreateClientInput): Promise<ActionResult> {
-   const { name, email, username, phone, aadharNumber, panNumber, state } = input
+   const { name, email, phone, aadharNumber, panNumber, state, address, gstNumber } = input
 
    // ── Check clientProfile-level unique fields ────────────────────────────────
    const duplicate = await db
       .select({
-         username: clientProfile.username,
          phone: clientProfile.phone,
          aadharNumber: clientProfile.aadharNumber,
          panNumber: clientProfile.panNumber,
@@ -36,7 +36,6 @@ export async function createClient(input: CreateClientInput): Promise<ActionResu
       .from(clientProfile)
       .where(
          or(
-            eq(clientProfile.username, username),
             eq(clientProfile.phone, phone),
             eq(clientProfile.aadharNumber, aadharNumber),
             eq(clientProfile.panNumber, panNumber),
@@ -47,12 +46,10 @@ export async function createClient(input: CreateClientInput): Promise<ActionResu
    if (duplicate.length > 0) {
       const taken = duplicate[0]
       const field =
-         taken.username === username ? "username" :
          taken.phone === phone ? "phone" :
          taken.aadharNumber === aadharNumber ? "aadharNumber" :
          "panNumber"
       const label =
-         field === "username" ? "Username" :
          field === "phone" ? "Phone number" :
          field === "aadharNumber" ? "Aadhar number" :
          "PAN number"
@@ -105,8 +102,9 @@ export async function createClient(input: CreateClientInput): Promise<ActionResu
       await db.insert(clientProfile).values({
          id: randomUUID(),
          userId,
-         username,
          state,
+         address,
+         gstNumber: gstNumber || null,
          phone,
          aadharNumber,
          panNumber,

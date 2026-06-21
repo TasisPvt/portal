@@ -28,8 +28,8 @@ async function seedClient() {
    await db.insert(clientProfile).values({
       id: randomUUID(),
       userId: created.id,
-      username: "democlient",
       state: "Maharashtra",
+      address: "123 Demo Street, Mumbai",
       phone: "9000000001",
       aadharNumber: "234567890123",
       panNumber: "BCDFE2345G",

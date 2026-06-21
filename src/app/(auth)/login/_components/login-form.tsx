@@ -66,7 +66,7 @@ export function LoginForm() {
       <div className="w-full animate-fade-in">
          {/* Heading */}
          <div className="mb-7 text-center">
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-primary">
                Welcome back
             </h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
@@ -94,7 +94,6 @@ export function LoginForm() {
                      type="email"
                      placeholder="you@example.com"
                      autoComplete="email"
-                     autoFocus
                      className="h-11 border-2 border-slate-300 dark:border-slate-700"
                      aria-invalid={!!errors.email}
                      {...register("email", {

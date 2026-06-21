@@ -8,12 +8,12 @@ import { user, clientProfile } from "@/src/db/schema"
 import { generatePassword, sendWelcomeEmail } from "@/src/lib/mailer"
 
 export async function POST(req: Request) {
-   const { name, username, state, email, phone, aadharNumber, panNumber } =
+   const { name, state, address, gstNumber, email, phone, aadharNumber, panNumber } =
       await req.json()
 
-   if (!name || !username || !state || !email || !phone || !aadharNumber || !panNumber) {
+   if (!name || !state || !address || !email || !phone || !aadharNumber || !panNumber) {
       return NextResponse.json(
-         { message: "All fields are required" },
+         { message: "All required fields must be filled" },
          { status: 400 },
       )
    }
@@ -22,7 +22,6 @@ export async function POST(req: Request) {
    // This prevents orphaned user/account rows when a profile field is a duplicate.
    const duplicate = await db
       .select({
-         username: clientProfile.username,
          phone: clientProfile.phone,
          aadharNumber: clientProfile.aadharNumber,
          panNumber: clientProfile.panNumber,
@@ -30,7 +29,6 @@ export async function POST(req: Request) {
       .from(clientProfile)
       .where(
          or(
-            eq(clientProfile.username, username),
             eq(clientProfile.phone, phone),
             eq(clientProfile.aadharNumber, aadharNumber),
             eq(clientProfile.panNumber, panNumber),
@@ -41,7 +39,6 @@ export async function POST(req: Request) {
    if (duplicate.length > 0) {
       const taken = duplicate[0]
       const field =
-         taken.username === username ? "Username" :
          taken.phone === phone ? "Phone number" :
          taken.aadharNumber === aadharNumber ? "Aadhar number" :
          "PAN number"
@@ -70,8 +67,9 @@ export async function POST(req: Request) {
       await db.insert(clientProfile).values({
          id: randomUUID(),
          userId: createdUserId,
-         username,
          state,
+         address,
+         gstNumber: gstNumber || null,
          phone,
          aadharNumber,
          panNumber,

@@ -42,11 +42,12 @@ import { Spinner } from "@/src/components/ui/spinner"
 type CreateClientInput = {
    name: string
    email: string
-   username: string
    phone: string
    aadharNumber: string
    panNumber: string
    state: string
+   address: string
+   gstNumber: string
 }
 
 function FormField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
@@ -121,19 +122,6 @@ export function AddClientDialog() {
                            placeholder=""
                            {...register("name", { required: "Full name is required", minLength: { value: 2, message: "Min. 2 characters" } })}
                            className={errors.name ? "border-destructive" : ""}
-                        />
-                     </FormField>
-
-                     <FormField label="Username" error={errors.username?.message}>
-                        <Input
-                           placeholder=""
-                           {...register("username", {
-                              required: "Username is required",
-                              minLength: { value: 3, message: "Min. 3 characters" },
-                              maxLength: { value: 30, message: "Max. 30 characters" },
-                              pattern: { value: /^[a-z0-9_]+$/, message: "Lowercase, digits and underscores only" },
-                           })}
-                           className={errors.username ? "border-destructive" : ""}
                         />
                      </FormField>
 
@@ -242,6 +230,33 @@ export function AddClientDialog() {
                            )}
                         />
                      </FormField>
+
+                     <FormField label="GST Number (optional)" error={errors.gstNumber?.message}>
+                        <Input
+                           placeholder="22AAAAA0000A1Z5"
+                           maxLength={15}
+                           {...register("gstNumber", {
+                              setValueAs: (v: string) => v.toUpperCase(),
+                              validate: (v) =>
+                                 !v || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(v) ||
+                                 "Invalid GST number",
+                           })}
+                           className={errors.gstNumber ? "border-destructive" : ""}
+                        />
+                     </FormField>
+
+                     <div className="sm:col-span-2">
+                        <FormField label="Address" error={errors.address?.message}>
+                           <Input
+                              placeholder="Building, street, city, PIN"
+                              {...register("address", {
+                                 required: "Address is required",
+                                 minLength: { value: 5, message: "Min. 5 characters" },
+                              })}
+                              className={errors.address ? "border-destructive" : ""}
+                           />
+                        </FormField>
+                     </div>
 
                   </div>
                </div>
