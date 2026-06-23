@@ -16,6 +16,8 @@ import {
 import { auth } from "@/src/lib/auth"
 import { getRazorpay, RAZORPAY_KEY_ID, verifyRazorpaySignature } from "@/src/lib/razorpay"
 import { finalizePaidOrder } from "@/src/lib/payments"
+import { computeGstPaise, paiseToAmount, GST_RATE } from "@/src/lib/gst"
+import { sendInvoiceForPayment } from "@/src/lib/invoice/generate"
 
 export type DurationType = "one_time" | "monthly" | "quarterly" | "annual"
 
@@ -42,6 +44,18 @@ function snapshotFromPlan(
       case "annual":
          return { price: plan.annualPrice!, stocksPerDay: plan.annualStocksPerDay, stocksInDuration: plan.annualStocksInDuration }
    }
+}
+
+// Logged-in client's state — drives the GST place-of-supply split in the UI.
+export async function getCurrentClientState(): Promise<string | null> {
+   const session = await auth.api.getSession({ headers: await headers() })
+   if (!session?.user?.id) return null
+   const [row] = await db
+      .select({ state: clientProfile.state })
+      .from(clientProfile)
+      .where(eq(clientProfile.userId, session.user.id))
+      .limit(1)
+   return row?.state ?? null
 }
 
 export async function getSubscribedPlanIds(): Promise<string[]> {
@@ -147,6 +161,16 @@ export async function createPaymentOrder(
       return { success: false, message: "This plan option is not available for purchase" }
    }
 
+   // Client profile — used for the GST place of supply + Razorpay prefill.
+   const [profile] = await db
+      .select({ phone: clientProfile.phone, state: clientProfile.state })
+      .from(clientProfile)
+      .where(eq(clientProfile.userId, userId))
+      .limit(1)
+
+   // GST is included in the gross price (18% of gross); split by place of supply.
+   const gst = computeGstPaise(amountPaise, profile?.state)
+
    const paymentId = randomUUID()
 
    let order: { id: string }
@@ -170,17 +194,17 @@ export async function createPaymentOrder(
       amount: amountPaise,
       currency: "INR",
       priceSnapshot: price!,
+      taxableAmount: paiseToAmount(gst.taxable),
+      cgst: paiseToAmount(gst.cgst),
+      sgst: paiseToAmount(gst.sgst),
+      igst: paiseToAmount(gst.igst),
+      gstRate: String(GST_RATE),
+      placeOfSupply: profile?.state ?? "",
       stocksPerDaySnapshot: stocksPerDay,
       stocksInDurationSnapshot: stocksInDuration,
       razorpayOrderId: order.id,
       status: "created",
    })
-
-   const [profile] = await db
-      .select({ phone: clientProfile.phone })
-      .from(clientProfile)
-      .where(eq(clientProfile.userId, userId))
-      .limit(1)
 
    return {
       success: true,
@@ -237,6 +261,16 @@ export async function verifyPayment(args: {
       return { success: false, message: "Payment succeeded but activating the subscription failed. Please contact support." }
    }
 
+   // Email the GST invoice once (only on first successful finalization).
+   // Never let invoice/email failures fail the payment.
+   if (!result.alreadyPaid) {
+      try {
+         await sendInvoiceForPayment(args.razorpayOrderId)
+      } catch (err) {
+         console.error("[verifyPayment] invoice email failed", err)
+      }
+   }
+
    revalidatePath("/plans")
    revalidatePath("/subscriptions")
    revalidatePath("/stock/list")
@@ -285,6 +319,12 @@ export type PaymentDetails = {
    amount: number
    currency: string
    priceSnapshot: string
+   taxableAmount: string
+   cgst: string
+   sgst: string
+   igst: string
+   gstRate: string
+   placeOfSupply: string
    startDate: Date | null
    endDate: Date | null
    subscriptionId: string | null
@@ -302,6 +342,12 @@ export async function getPaymentDetails(razorpayOrderId: string): Promise<Paymen
          amount: payment.amount,
          currency: payment.currency,
          priceSnapshot: payment.priceSnapshot,
+         taxableAmount: payment.taxableAmount,
+         cgst: payment.cgst,
+         sgst: payment.sgst,
+         igst: payment.igst,
+         gstRate: payment.gstRate,
+         placeOfSupply: payment.placeOfSupply,
          planName: pricingPlan.name,
          planType: pricingPlan.type,
          startDate: subscription.startDate,

@@ -77,7 +77,7 @@ function fmtNum(n: string | null | undefined): string {
    return isNaN(v) ? "0" : new Intl.NumberFormat("en-IN").format(v)
 }
 
-function PlanCard({ plan, isSubscribed }: { plan: PlanRow; isSubscribed: boolean }) {
+function PlanCard({ plan, isSubscribed, customerState }: { plan: PlanRow; isSubscribed: boolean; customerState: string | null }) {
    const isSnapshot = plan.type === "snapshot"
    const availableDurations = isSnapshot ? SNAPSHOT_DURATIONS : LIST_DURATIONS
    const [selectedDuration, setSelectedDuration] = React.useState<DurationType>(availableDurations[0].key)
@@ -165,6 +165,7 @@ function PlanCard({ plan, isSubscribed }: { plan: PlanRow; isSubscribed: boolean
                   stocksInDuration={sid}
                   triggerLabel="Select"
                   triggerClassName="w-full h-11"
+                  customerState={customerState}
                />
             ) : (
                <button
@@ -200,7 +201,7 @@ function planCategory(p: PlanRow): string {
    return p.category?.trim() || UNCATEGORIZED
 }
 
-export function PlansClientView({ plans, subscribedPlanIds }: { plans: PlanRow[]; subscribedPlanIds: string[] }) {
+export function PlansClientView({ plans, subscribedPlanIds, customerState }: { plans: PlanRow[]; subscribedPlanIds: string[]; customerState: string | null }) {
    const [filter, setFilter] = React.useState<FilterType>("all")
    const [listCategory, setListCategory] = React.useState<string>("all")
 
@@ -273,7 +274,7 @@ export function PlansClientView({ plans, subscribedPlanIds }: { plans: PlanRow[]
          ) : (
             <div className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
                {visible.map((plan) => (
-                  <PlanCard key={plan.id} plan={plan} isSubscribed={subscribedPlanIds.includes(plan.id)} />
+                  <PlanCard key={plan.id} plan={plan} isSubscribed={subscribedPlanIds.includes(plan.id)} customerState={customerState} />
                ))}
             </div>
          )}

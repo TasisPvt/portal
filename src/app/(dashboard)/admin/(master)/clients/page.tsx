@@ -15,7 +15,6 @@ export default async function ClientsPage() {
       email: user.email,
       emailVerified: user.emailVerified,
       createdAt: user.createdAt,
-      username: clientProfile.username,
       phone: clientProfile.phone,
       phoneVerified: clientProfile.phoneVerified,
       state: clientProfile.state,

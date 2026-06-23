@@ -107,12 +107,13 @@ export const clientProfile = pgTable("client_profile", {
     .notNull()
     .unique()
     .references(() => user.id, { onDelete: "cascade" }),
-  username: varchar("username", { length: 30 }).notNull().unique(),
   phone: varchar("phone", { length: 20 }).notNull().unique(),
   phoneVerified: boolean("phone_verified").default(false).notNull(),
   aadharNumber: varchar("aadhar_number", { length: 12 }).notNull().unique(),
   panNumber: varchar("pan_number", { length: 10 }).notNull().unique(),
   state: varchar("state", { length: 100 }).notNull(),
+  address: text("address").notNull().default(""),
+  gstNumber: varchar("gst_number", { length: 15 }),
   createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { precision: 3 })
     .defaultNow()

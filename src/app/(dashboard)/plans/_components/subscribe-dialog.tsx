@@ -17,6 +17,7 @@ import {
 import { cn } from "@/src/lib/utils"
 import { formatPrice as fmtPrice } from "@/src/lib/format"
 import { DURATION_LABELS } from "@/src/lib/constants"
+import { computeGstFromPrice, paiseToAmount, GST_RATE } from "@/src/lib/gst"
 
 interface SubscribeButtonProps {
    planId: string
@@ -25,6 +26,7 @@ interface SubscribeButtonProps {
    price: string
    stocksPerDay?: number | null
    stocksInDuration?: number | null
+   customerState?: string | null
    triggerLabel?: string
    triggerClassName?: string
 }
@@ -32,6 +34,10 @@ interface SubscribeButtonProps {
 export function SubscribeButton(props: SubscribeButtonProps) {
    const [open, setOpen] = React.useState(false)
    const [isPending, startTransition] = React.useTransition()
+
+   // GST is included in the gross price (18% of gross), split by place of supply.
+   const gst = computeGstFromPrice(props.price, props.customerState)
+   const halfRate = GST_RATE / 2
 
    function handleSubscribe() {
       startTransition(async () => {
@@ -127,8 +133,33 @@ export function SubscribeButton(props: SubscribeButtonProps) {
                         <span>{props.stocksInDuration}</span>
                      </div>
                   )}
+                  {/* GST breakdown (price is inclusive of GST) */}
+                  <div className="flex flex-col gap-2 border-t pt-2.5 text-xs text-muted-foreground">
+                     <div className="flex justify-between">
+                        <span>Base price</span>
+                        <span>{fmtPrice(paiseToAmount(gst.taxable))}</span>
+                     </div>
+                     {gst.isIntraState ? (
+                        <>
+                           <div className="flex justify-between">
+                              <span>CGST ({halfRate}%)</span>
+                              <span>{fmtPrice(paiseToAmount(gst.cgst))}</span>
+                           </div>
+                           <div className="flex justify-between">
+                              <span>SGST ({halfRate}%)</span>
+                              <span>{fmtPrice(paiseToAmount(gst.sgst))}</span>
+                           </div>
+                        </>
+                     ) : (
+                        <div className="flex justify-between">
+                           <span>IGST ({GST_RATE}%)</span>
+                           <span>{fmtPrice(paiseToAmount(gst.igst))}</span>
+                        </div>
+                     )}
+                  </div>
+
                   <div className="flex justify-between border-t pt-2.5">
-                     <span className="font-medium">Price</span>
+                     <span className="font-medium">Total <span className="font-normal text-muted-foreground">(incl. GST)</span></span>
                      <span className="font-semibold text-base">{fmtPrice(props.price)}</span>
                   </div>
                </div>

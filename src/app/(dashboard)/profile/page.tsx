@@ -23,7 +23,8 @@ export default async function ProfilePage() {
         adminRole: user.adminRole,
         phone: clientProfile.phone,
         state: clientProfile.state,
-        username: clientProfile.username,
+        address: clientProfile.address,
+        gstNumber: clientProfile.gstNumber,
         aadharNumber: clientProfile.aadharNumber,
         panNumber: clientProfile.panNumber,
       })

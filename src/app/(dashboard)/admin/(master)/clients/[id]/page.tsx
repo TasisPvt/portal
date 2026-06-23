@@ -21,6 +21,8 @@ import {
    ShieldCheckIcon,
    CheckCircle2Icon,
    ClockIcon,
+   HomeIcon,
+   ReceiptIcon,
 } from "lucide-react"
 import { cn } from "@/src/lib/utils"
 
@@ -67,12 +69,13 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
          emailVerified: user.emailVerified,
          createdAt: user.createdAt,
          isActive: user.isActive,
-         username: clientProfile.username,
          phone: clientProfile.phone,
          phoneVerified: clientProfile.phoneVerified,
          aadharNumber: clientProfile.aadharNumber,
          panNumber: clientProfile.panNumber,
          state: clientProfile.state,
+         address: clientProfile.address,
+         gstNumber: clientProfile.gstNumber,
       })
       .from(user)
       .leftJoin(clientProfile, eq(user.id, clientProfile.userId))
@@ -134,9 +137,6 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                         </Avatar>
                         <div className="flex flex-col items-center gap-1 text-center">
                            <p className="text-base font-semibold">{client.name}</p>
-                           {client.username && (
-                              <p className="text-xs text-muted-foreground">@{client.username}</p>
-                           )}
                         </div>
                         <div className="flex flex-col items-center gap-1.5 text-xs text-muted-foreground">
                            <span className="flex items-center gap-1">
@@ -188,6 +188,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                                     icon={MapPinIcon}
                                     value={client.state ?? <span className="text-muted-foreground/50">—</span>}
                                  />
+                                 <Field
+                                    label="Address"
+                                    icon={HomeIcon}
+                                    value={client.address ? client.address : <span className="text-muted-foreground/50">—</span>}
+                                 />
                               </div>
                            </CardContent>
                         </Card>
@@ -217,6 +222,15 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                                     value={
                                        client.aadharNumber
                                           ? <span className="font-mono">{client.aadharNumber.replace(/(\d{4})(\d{4})(\d{4})/, "$1 $2 $3")}</span>
+                                          : <span className="text-muted-foreground/50">—</span>
+                                    }
+                                 />
+                                 <Field
+                                    label="GST Number"
+                                    icon={ReceiptIcon}
+                                    value={
+                                       client.gstNumber
+                                          ? <span className="font-mono">{client.gstNumber}</span>
                                           : <span className="text-muted-foreground/50">—</span>
                                     }
                                  />

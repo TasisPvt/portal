@@ -73,7 +73,8 @@ export interface ProfileData {
   adminRole: string | null
   phone: string | null
   state: string | null
-  username: string | null
+  address: string | null
+  gstNumber: string | null
   aadharNumber: string | null
   panNumber: string | null
 }
@@ -256,11 +257,14 @@ export function ProfileForm({
 
                   {isClient ? (
                     <>
-                      {/* Username */}
-                      <ReadOnlyField label="Username" value={profile.username ? `@${profile.username}` : null} />
-
                       {/* State */}
                       <ReadOnlyField label="State" value={profile.state} />
+
+                      {/* Address */}
+                      <ReadOnlyField label="Address" value={profile.address || null} />
+
+                      {/* GST Number */}
+                      <ReadOnlyField label="GST Number" value={profile.gstNumber} />
 
                       {/* Mobile */}
                       <div className="flex flex-col gap-1.5">
