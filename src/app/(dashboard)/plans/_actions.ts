@@ -17,6 +17,7 @@ import { auth } from "@/src/lib/auth"
 import { getRazorpay, RAZORPAY_KEY_ID, verifyRazorpaySignature } from "@/src/lib/razorpay"
 import { finalizePaidOrder } from "@/src/lib/payments"
 import { computeGstPaise, paiseToAmount, GST_RATE } from "@/src/lib/gst"
+import { sendInvoiceForPayment } from "@/src/lib/invoice/generate"
 
 export type DurationType = "one_time" | "monthly" | "quarterly" | "annual"
 
@@ -258,6 +259,16 @@ export async function verifyPayment(args: {
    if (!result.ok) {
       console.error("[verifyPayment] finalize failed", result.reason)
       return { success: false, message: "Payment succeeded but activating the subscription failed. Please contact support." }
+   }
+
+   // Email the GST invoice once (only on first successful finalization).
+   // Never let invoice/email failures fail the payment.
+   if (!result.alreadyPaid) {
+      try {
+         await sendInvoiceForPayment(args.razorpayOrderId)
+      } catch (err) {
+         console.error("[verifyPayment] invoice email failed", err)
+      }
    }
 
    revalidatePath("/plans")

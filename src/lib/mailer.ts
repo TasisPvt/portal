@@ -213,3 +213,87 @@ export async function sendOtpEmail({
       html,
    })
 }
+
+export async function sendInvoiceEmail({
+   to,
+   name,
+   invoiceNumber,
+   planName,
+   pdf,
+}: {
+   to: string
+   name: string
+   invoiceNumber: string
+   planName: string
+   pdf: Buffer
+}) {
+   const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+         <meta charset="UTF-8" />
+         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+         <title>Your Tasis Invoice</title>
+      </head>
+      <body style="margin:0;padding:0;background:#f4f4f5;font-family:Inter,Arial,sans-serif;">
+         <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
+            <tr>
+               <td align="center">
+                  <table width="560" cellpadding="0" cellspacing="0"
+                     style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                     <tr>
+                        <td style="background:#18181b;padding:32px 40px;text-align:center;">
+                           <span style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">Tasis Portal</span>
+                        </td>
+                     </tr>
+                     <tr>
+                        <td style="padding:40px 40px 24px;">
+                           <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#18181b;">
+                              Thank you${name ? `, ${name}` : ""}!
+                           </p>
+                           <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.6;">
+                              Your payment for <strong>${planName}</strong> was successful and your subscription is now active.
+                              Your tax invoice <strong>${invoiceNumber}</strong> is attached to this email as a PDF.
+                           </p>
+                           <table cellpadding="0" cellspacing="0" style="margin:0 auto 8px;">
+                              <tr>
+                                 <td style="background:#18181b;border-radius:8px;">
+                                    <a href="${process.env.BETTER_AUTH_URL}/subscriptions"
+                                       style="display:inline-block;padding:12px 28px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">
+                                       View my subscriptions →
+                                    </a>
+                                 </td>
+                              </tr>
+                           </table>
+                        </td>
+                     </tr>
+                     <tr>
+                        <td style="border-top:1px solid #f4f4f5;padding:20px 40px;text-align:center;">
+                           <p style="margin:0;font-size:12px;color:#a1a1aa;">
+                              © ${new Date().getFullYear()} Tasis Pvt Ltd. · This is a computer-generated invoice.
+                           </p>
+                        </td>
+                     </tr>
+                  </table>
+               </td>
+            </tr>
+         </table>
+      </body>
+      </html>
+   `
+
+   await transporter.sendMail({
+      from: `"Tasis Portal" <${process.env.DEFAULT_REPLY_TO_EMAIL}>`,
+      replyTo: process.env.DEFAULT_REPLY_TO_EMAIL,
+      to,
+      subject: `Your TASIS invoice ${invoiceNumber}`,
+      html,
+      attachments: [
+         {
+            filename: `Invoice-${invoiceNumber}.pdf`,
+            content: pdf,
+            contentType: "application/pdf",
+         },
+      ],
+   })
+}
