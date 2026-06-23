@@ -17,7 +17,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
          <div className="absolute -left-24 top-12 size-96 rounded-full bg-white/5 blur-3xl" />
          <div className="absolute -right-20 bottom-12 size-80 rounded-full bg-indigo-400/15 blur-3xl" />
 
-         <div className="relative z-10 grid min-h-dvh lg:grid-cols-2">
+         <div className="container relative z-10 mx-auto grid min-h-dvh lg:grid-cols-2">
             {/* ── Brand panel (desktop only) ── */}
             <aside className="hidden flex-col justify-between p-12 lg:flex">
                {/* Headline + messaging */}
