@@ -1,7 +1,3 @@
-// State list for selectors. `code` is the GST/TIN state code (first two digits),
-// per public/assets/List of State Code.pdf. Single source for the code used on
-// tax invoices. Note: Andhra Pradesh uses 37 (current); Ladakh (38) post-dates
-// the PDF.
 export const stateData = [
    { label: 'Andhra Pradesh', value: 'Andhra Pradesh', code: '37' },
    { label: 'Arunachal Pradesh', value: 'Arunachal Pradesh', code: '12' },

@@ -4,7 +4,7 @@ import {
    Page,
    View,
    Text,
-   Image,
+   Image as PdfImage,
    StyleSheet,
 } from "@react-pdf/renderer"
 import { SELLER } from "./seller"
@@ -101,7 +101,7 @@ export function InvoiceDocument({ data }: { data: InvoiceData }) {
                {/* ── Header ── */}
                <View style={s.row}>
                   <View style={s.headerLeft}>
-                     {data.logoSrc ? <Image src={data.logoSrc} style={s.logo} /> : null}
+                     {data.logoSrc ? <PdfImage src={data.logoSrc} style={s.logo} /> : null}
                      <View style={{ flex: 1 }}>
                         <Text style={s.sellerName}>{SELLER.name}</Text>
                         {SELLER.addressLines.map((l) => (
@@ -255,7 +255,7 @@ export function InvoiceDocument({ data }: { data: InvoiceData }) {
                      <Text style={s.muted}>Branch & IFS Code : {SELLER.bank.branchIfsc}</Text>
                   </View>
                   <View style={s.signBox}>
-                     {data.logoSrc ? <Image src={data.logoSrc} style={{ width: 38, height: 42, objectFit: "contain" }} /> : <Text> </Text>}
+                     {data.logoSrc ? <PdfImage src={data.logoSrc} style={{ width: 38, height: 42, objectFit: "contain" }} /> : <Text> </Text>}
                      <Text style={[s.muted, { fontSize: 8, textAlign: "right" }]}>For {SELLER.name}</Text>
                   </View>
                </View>
