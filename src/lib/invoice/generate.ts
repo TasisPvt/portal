@@ -10,7 +10,8 @@ import { payment, pricingPlan, user, clientProfile } from "@/src/db/schema"
 import { DURATION_LABELS } from "@/src/lib/constants"
 import { sendInvoiceEmail } from "@/src/lib/mailer"
 import { InvoiceDocument, type InvoiceData } from "./document"
-import { SELLER, HSN_SAC, stateCode } from "./seller"
+import { SELLER, HSN_SAC } from "./seller"
+import { getStateCode } from "@/src/lib/data/stateData"
 import { rupeesInWords } from "./words"
 
 // ─── Financial year (India: Apr 1 – Mar 31) ──────────────────────────────────
@@ -113,7 +114,7 @@ export async function sendInvoiceForPayment(razorpayOrderId: string): Promise<vo
          addressLines: row.address ? [row.address] : [],
          gstin: row.gstNumber,
          stateName: placeOfSupply || "—",
-         stateCode: stateCode(placeOfSupply),
+         stateCode: getStateCode(placeOfSupply),
          placeOfSupply: placeOfSupply || "—",
       },
       item: {
