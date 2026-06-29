@@ -14,12 +14,11 @@ export default async function AdminDashboardPage() {
          <div className="flex flex-1 flex-col">
             <div className="@container/main flex flex-1 flex-col gap-2">
                <div className="px-4 py-4 md:py-6 lg:px-6">
-                  {/* 12-column grid: desktop widths 6 / 3 / 3 / 12 */}
-                  <div className="grid grid-cols-12 gap-4 md:gap-6">
-                     <div className="col-span-12 lg:col-span-6">
+                  <div className="@container grid grid-cols-12 gap-4 md:gap-6">
+                     <div className="col-span-12 @4xl:col-span-6">
                         <RevenueWidget monthly={data.revenueMonthly} />
                      </div>
-                     <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+                     <div className="col-span-12 @2xl:col-span-6 @4xl:col-span-3">
                         <CustomersCard
                            total={data.totalClients}
                            thisMonth={data.customersThisMonth}
@@ -27,7 +26,7 @@ export default async function AdminDashboardPage() {
                            trend={data.clientsTrend}
                         />
                      </div>
-                     <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+                     <div className="col-span-12 @2xl:col-span-6 @4xl:col-span-3">
                         <PlansDonut
                            data={data.subscriptionsThisMonth}
                            lastMonthTotal={data.subscriptionsLastMonthTotal}

@@ -129,7 +129,7 @@ export function RevenueWidget({ monthly }: { monthly: MonthlyRevenue[] }) {
                </div>
             ) : (
                <>
-                  <ChartContainer config={config} className="aspect-auto h-[220px] w-full">
+                  <ChartContainer config={config} className="aspect-auto h-35 w-full">
                      <BarChart data={view.data} margin={{ top: 8, left: 8, right: 8 }}>
                         <CartesianGrid vertical={false} />
                         <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
