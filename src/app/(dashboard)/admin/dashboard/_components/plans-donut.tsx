@@ -17,6 +17,8 @@ import {
    ChartTooltipContent,
    type ChartConfig,
 } from "@/src/components/ui/chart"
+import type { ByPlanType } from "../_actions"
+import { DeltaBadge } from "./delta-badge"
 
 const config = {
    value: { label: "Subscriptions" },
@@ -24,62 +26,72 @@ const config = {
    snapshot: { label: "Snapshot", color: "var(--chart-2)" },
 } satisfies ChartConfig
 
-export function PlansDonut({ data }: { data: { list: number; snapshot: number } }) {
+export function PlansDonut({
+   data,
+   lastMonthTotal,
+}: {
+   data: ByPlanType
+   lastMonthTotal: number
+}) {
    const total = data.list + data.snapshot
+   const pct = lastMonthTotal === 0 ? null : ((total - lastMonthTotal) / lastMonthTotal) * 100
+   const diff = total - lastMonthTotal
+
    const chartData = [
       { key: "list", label: "List", value: data.list, fill: "var(--color-list)" },
       { key: "snapshot", label: "Snapshot", value: data.snapshot, fill: "var(--color-snapshot)" },
    ]
 
    return (
-      <Card className="flex flex-col">
+      <Card className="h-full">
          <CardHeader>
-            <CardTitle className="text-base">Plans Subscribed</CardTitle>
-            <CardDescription>This month · List vs Snapshot</CardDescription>
+            <div className="flex items-start justify-between gap-2">
+               <div className="space-y-1">
+                  <CardTitle className="text-base">Plans Subscribed</CardTitle>
+                  <CardDescription>This month</CardDescription>
+               </div>
+               <div className="flex flex-col items-end gap-1">
+                  <span className="text-2xl font-bold tracking-tight tabular-nums">{total}</span>
+                  <DeltaBadge pct={pct} title="this month vs last month" emptyLabel={total > 0 ? "New" : undefined} />
+               </div>
+            </div>
          </CardHeader>
-         <CardContent className="flex flex-1 flex-col">
+
+         <CardContent className="flex flex-1 flex-col items-center gap-3">
             {total === 0 ? (
-               <EmptyChart label="No subscriptions this month" />
+               <div className="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-center">
+                  <PieChartIcon className="size-8 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground">No subscriptions this month</p>
+               </div>
             ) : (
                <>
-                  <div className="relative">
-                     <ChartContainer config={config} className="mx-auto aspect-square max-h-[220px]">
-                        <PieChart>
-                           <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel nameKey="key" />} />
-                           <Pie data={chartData} dataKey="value" nameKey="key" innerRadius={62} strokeWidth={3} />
-                        </PieChart>
-                     </ChartContainer>
-                     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-3xl font-bold tabular-nums">{total}</span>
-                        <span className="text-xs text-muted-foreground">subscriptions</span>
-                     </div>
-                  </div>
+                  <ChartContainer config={config} className="mx-auto aspect-square w-full max-w-[170px]">
+                     <PieChart>
+                        <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel nameKey="key" />} />
+                        <Pie data={chartData} dataKey="value" nameKey="key" innerRadius={48} strokeWidth={3} />
+                     </PieChart>
+                  </ChartContainer>
 
-                  {/* Legend */}
-                  <div className="mt-2 flex items-center justify-center gap-6 text-sm">
+                  <div className="flex items-center justify-center gap-5 text-sm">
                      {chartData.map((d) => (
-                        <div key={d.key} className="flex items-center gap-2">
-                           <span className="size-2.5 rounded-[3px]" style={{ backgroundColor: d.fill }} />
+                        <div key={d.key} className="flex items-center gap-1.5">
+                           <span className="size-2.5 rounded-full" style={{ backgroundColor: d.fill }} />
                            <span className="text-muted-foreground">{d.label}</span>
                            <span className="font-semibold tabular-nums">{d.value}</span>
-                           <span className="text-xs text-muted-foreground">
-                              ({Math.round((d.value / total) * 100)}%)
-                           </span>
                         </div>
                      ))}
                   </div>
                </>
             )}
+
+            <p className="mt-auto pt-2 text-center text-xs text-muted-foreground">
+               {diff > 0
+                  ? `${diff} more than last month`
+                  : diff < 0
+                     ? `${-diff} fewer than last month`
+                     : "Same as last month"}
+            </p>
          </CardContent>
       </Card>
-   )
-}
-
-function EmptyChart({ label }: { label: string }) {
-   return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 py-12 text-center">
-         <PieChartIcon className="size-8 text-muted-foreground/30" />
-         <p className="text-sm text-muted-foreground">{label}</p>
-      </div>
    )
 }
