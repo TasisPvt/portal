@@ -94,7 +94,7 @@ export function LoginForm() {
                      type="email"
                      placeholder="you@example.com"
                      autoComplete="email"
-                     className="h-11 border-2 border-slate-300 dark:border-slate-700"
+                     className="h-11"
                      aria-invalid={!!errors.email}
                      {...register("email", {
                         required: "Email address is required",
@@ -126,7 +126,7 @@ export function LoginForm() {
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
                         autoComplete="current-password"
-                        className="h-11 pr-11 border-2 border-slate-300 dark:border-slate-700"
+                        className="h-11 pr-11"
                         aria-invalid={!!errors.password}
                         {...register("password", {
                            required: "Password is required",
