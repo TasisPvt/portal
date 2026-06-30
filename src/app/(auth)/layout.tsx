@@ -1,16 +1,23 @@
 import { Suspense } from "react"
-import { ShieldCheck, Scale, BarChart3 } from "lucide-react"
+import { ShieldCheck, Microscope, BadgeCheck, Check } from "lucide-react"
 import Logo from "@/src/components/logo"
 
 const trustPills = [
    { icon: ShieldCheck, label: "Rooted in Faith" },
-   { icon: Scale, label: "Shariah-Compliant" },
-   { icon: BarChart3, label: "Data-Driven" },
+   { icon: Microscope, label: "Powered by Research" },
+   { icon: BadgeCheck, label: "Committed to Integrity" },
+]
+
+const features = [
+   "Trusted Shariah Compliance Screening for Stocks, Mutual Funds, ETFs, FOFs and IPOs across India's Capital Market.",
+   "Research-driven screening",
+   "Compliance monitoring",
+   "Purging Solutions",
 ]
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
    return (
-      <div className="relative min-h-dvh overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800">
+      <div className="relative min-h-dvh overflow-hidden bg-linear-to-br from-blue-600 via-blue-700 to-indigo-800">
          {/* Dot grid overlay */}
          <div className="auth-dot-grid absolute inset-0" />
          {/* Glow blobs */}
@@ -23,16 +30,20 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                {/* Headline + messaging */}
                <div className="my-auto max-w-md animate-slide-up">
                   <Logo white priority width={88} height={100} className="justify-start" />
-                  <h1 className="mt-5 font-heading text-4xl font-bold leading-tight text-white">
-                     Halal Investing,
+                  <h1 className="mt-5 font-heading text-2xl font-bold leading-tight text-white">
+                     Where Ethical Investing Meets ,
                      <br />
-                     made simple.
+                     Intelligent Research.
                   </h1>
-                  <p className="mt-4 text-base leading-relaxed text-blue-100/80">
-                     Invest with confidence in a curated universe of
-                     Shariah-compliant opportunities — transparent, ethical,
-                     and built around your values.
-                  </p>
+
+                  <ul className="mt-5 flex flex-col gap-2.5">
+                     {features.map((f) => (
+                        <li key={f} className="flex items-center gap-2.5 text-sm text-blue-50">
+                           <Check className="size-4 shrink-0 text-emerald-300" aria-hidden />
+                           <span>{f}</span>
+                        </li>
+                     ))}
+                  </ul>
 
                   <div className="mt-8 flex flex-wrap gap-2.5">
                      {trustPills.map(({ icon: Icon, label }) => (
