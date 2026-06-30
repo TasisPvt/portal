@@ -86,10 +86,10 @@ export default async function CompanyDetailPage({
                   <p className="text-sm text-muted-foreground font-mono">Prowess ID: {company.prowessId}</p>
                </div>
 
-               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+               <div className="grid grid-cols-1 gap-4 @4xl/main:grid-cols-3">
 
                   {/* Identifiers */}
-                  <Card className="lg:col-span-2">
+                  <Card className="@4xl/main:col-span-2">
                      <CardHeader className="pb-2">
                         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                            <HashIcon className="size-4 text-muted-foreground" />
@@ -133,15 +133,15 @@ export default async function CompanyDetailPage({
                   </Card>
 
                   {/* Exchange Details */}
-                  <Card className="lg:col-span-2">
+                  <Card className="@4xl/main:col-span-2">
                      <CardHeader className="pb-2">
                         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                            <TrendingUpIcon className="size-4 text-muted-foreground" />
                            Exchange Details
                         </CardTitle>
                      </CardHeader>
-                     <CardContent className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border/60 px-4 pb-4">
-                        <div className="divide-y divide-border/60 sm:pr-4">
+                     <CardContent className="grid grid-cols-1 @2xl/main:grid-cols-2 divide-y @2xl/main:divide-y-0 @2xl/main:divide-x divide-border/60 px-4 pb-4">
+                        <div className="divide-y divide-border/60 @2xl/main:pr-4">
                            <div className="pb-1 pt-1">
                               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">BSE</span>
                            </div>
@@ -157,7 +157,7 @@ export default async function CompanyDetailPage({
                            <DetailRow label="Listing Date" value={formatDate(company.bseListingDate)} />
                            <DetailRow label="Delisting Date" value={formatDate(company.bseDelistingDate)} />
                         </div>
-                        <div className="divide-y divide-border/60 sm:pl-4 pt-2 sm:pt-0">
+                        <div className="divide-y divide-border/60 @2xl/main:pl-4 pt-2 @2xl/main:pt-0">
                            <div className="pb-1 pt-1">
                               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">NSE</span>
                            </div>

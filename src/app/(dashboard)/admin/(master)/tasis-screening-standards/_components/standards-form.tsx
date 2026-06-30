@@ -123,7 +123,7 @@ function ParameterRow({ row }: { row: ScreeningStandardRow }) {
    }
 
    return (
-      <div className="flex flex-col gap-3 rounded-xl border p-4">
+      <div className="@container/row flex flex-col gap-3 rounded-xl border p-4">
          <div className="flex items-center justify-between gap-3">
             <span className="text-sm font-medium">{row.label}</span>
             {!editing && (
@@ -141,7 +141,7 @@ function ParameterRow({ row }: { row: ScreeningStandardRow }) {
 
          {editing ? (
             <div className="flex flex-col gap-3">
-               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+               <div className="grid grid-cols-1 gap-3 @xl/row:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                      <label className="text-xs font-medium text-emerald-600">PASS Remark</label>
                      <RichTextEditor
@@ -182,7 +182,7 @@ function ParameterRow({ row }: { row: ScreeningStandardRow }) {
                </div>
             </div>
          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 @xl/row:grid-cols-2">
                <div className="flex flex-col gap-1">
                   <span className="text-xs font-medium text-emerald-600">PASS</span>
                   <RemarkPreview html={row.passRemark ? row.passRemark.replaceAll("<p></p>", "<br/>") : ""} />

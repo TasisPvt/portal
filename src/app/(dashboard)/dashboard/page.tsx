@@ -111,7 +111,7 @@ export default function ClientDashboardPage() {
       <>
          <SiteHeader title="Dashboard" />
 
-         <div className="flex flex-1 flex-col gap-6 py-4 md:py-6">
+         <div className="@container/main flex flex-1 flex-col gap-6 py-4 md:py-6">
             {/* Greeting */}
             <Greeting />
 
@@ -120,7 +120,7 @@ export default function ClientDashboardPage() {
                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                   Quick Actions
                </h3>
-               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+               <div className="grid grid-cols-1 gap-3 @2xl/main:grid-cols-3">
                   {quickActions.map((action) => (
                      <a
                         key={action.label}
@@ -141,9 +141,9 @@ export default function ClientDashboardPage() {
             </div>
 
             {/* Main content row */}
-            <div className="grid grid-cols-1 gap-4 px-4 lg:grid-cols-3 lg:px-6">
+            <div className="grid grid-cols-1 gap-4 px-4 @4xl/main:grid-cols-3 lg:px-6">
                {/* Recent activity */}
-               <Card className="lg:col-span-2">
+               <Card className="@4xl/main:col-span-2">
                   <CardHeader className="pb-3">
                      <div className="flex items-center justify-between">
                         <div>

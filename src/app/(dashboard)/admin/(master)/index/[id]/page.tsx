@@ -61,7 +61,7 @@ export default async function IndexDetailPage({
                   </div>
 
                   {/* Stats */}
-                  <div className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-3 lg:px-6">
+                  <div className="grid grid-cols-1 gap-4 px-4 @2xl/main:grid-cols-3 lg:px-6">
                      <Card size="sm">
                         <CardHeader>
                            <div className="flex items-center justify-between">

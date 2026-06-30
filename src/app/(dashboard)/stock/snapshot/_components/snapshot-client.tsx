@@ -15,6 +15,7 @@ import {
    ClockIcon,
 } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
+import { Progress } from "@/src/components/ui/progress"
 import { Spinner } from "@/src/components/ui/spinner"
 import {
    Dialog,
@@ -115,7 +116,7 @@ function CompactQuotaBar({
       pct >= 0.9 ? "bg-red-500" : pct >= 0.7 ? "bg-amber-500" : "bg-emerald-500"
 
    return (
-      <div className="hidden md:flex items-center gap-2 shrink-0">
+      <div className="hidden @2xl/main:flex items-center gap-2 shrink-0">
          {[
             { label: "Today", used: dailyUsed, limit: dailyLimit, pct: dailyPct },
             { label: "Total", used: totalUsed, limit: totalLimit, pct: totalPct },
@@ -127,16 +128,11 @@ function CompactQuotaBar({
                      {used}{limit !== null ? `/${limit}` : ""}
                   </span>
                </div>
-               {pct !== null ? (
-                  <div className="h-0.5 overflow-hidden rounded-full bg-muted">
-                     <div
-                        className={cn("h-full rounded-full transition-all", barColor(pct))}
-                        style={{ width: `${pct * 100}%` }}
-                     />
-                  </div>
-               ) : (
-                  <div className="h-0.5 rounded-full bg-muted" />
-               )}
+               <Progress
+                  value={pct !== null ? pct * 100 : 0}
+                  className="h-0.5"
+                  indicatorClassName={pct !== null ? barColor(pct) : undefined}
+               />
             </div>
          ))}
       </div>
@@ -162,7 +158,7 @@ function FullQuotaBar({
       pct >= 0.9 ? "bg-red-500" : pct >= 0.7 ? "bg-amber-500" : "bg-emerald-500"
 
    return (
-      <div className="flex md:hidden flex-wrap items-center gap-6 rounded-xl border bg-muted/20 px-4 py-2">
+      <div className="flex @2xl/main:hidden flex-wrap items-center gap-6 rounded-xl border bg-muted/20 px-4 py-2">
          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Usage</span>
          <div className="flex flex-wrap gap-5">
             {[
@@ -177,12 +173,7 @@ function FullQuotaBar({
                      </span>
                   </div>
                   {pct !== null && (
-                     <div className="h-1 overflow-hidden rounded-full bg-muted">
-                        <div
-                           className={cn("h-full rounded-full transition-all duration-300", barColor(pct))}
-                           style={{ width: `${pct * 100}%` }}
-                        />
-                     </div>
+                     <Progress value={pct * 100} className="h-1" indicatorClassName={barColor(pct)} />
                   )}
                </div>
             ))}
@@ -307,14 +298,21 @@ function RatioChart({
    const barWidth = Math.abs(valuePos - zeroPos)
    const showThresholdLine = isOver && thresholdPos > 0 && thresholdPos < 100
 
+   const limitLabelStyle: React.CSSProperties =
+      thresholdPos >= 88
+         ? { right: `${Math.max(0, 100 - thresholdPos)}%` }
+         : thresholdPos <= 12
+            ? { left: `${thresholdPos}%` }
+            : { left: `${thresholdPos}%`, transform: "translateX(-50%)" }
+
    return (
-      <div className="flex flex-col gap-2">
+      <div className="@container/bar flex flex-col gap-2">
          {/* Header: status pill (left) + centered title */}
          <div className="relative flex min-h-6 flex-wrap items-center justify-center gap-2">
             {!isNull && (
                <span
                   className={cn(
-                     "static rounded-full px-2.5 py-0.5 text-[10px] font-semibold sm:absolute sm:left-0",
+                     "static rounded-full px-2.5 py-0.5 text-[10px] font-semibold @sm/bar:absolute @sm/bar:left-0",
                      isPass
                         ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
                         : "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400",
@@ -331,7 +329,7 @@ function RatioChart({
          </div>
 
          {/* Card: icon + value (left) · 0–100% scale bar (right) */}
-         <div className="flex flex-col md:flex-row items-center gap-4 rounded-2xl border bg-card px-4 py-3.5 shadow-sm">
+         <div className="flex flex-col @sm/bar:flex-row items-center gap-4 rounded-2xl border bg-card px-4 py-3.5 shadow-sm">
             {/* Left: icon + value + limit status */}
             <div className="flex w-44 shrink-0 items-center gap-3">
                <div
@@ -383,7 +381,26 @@ function RatioChart({
             </div>
 
             {/* Right: threshold-relative scale bar */}
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 w-full @sm/bar:w-auto @sm/bar:flex-1">
+               {(isOver || hasNegative) && (
+                  <div
+                     className={cn(
+                        "mb-1 flex text-[10px] leading-none",
+                        hasNegative ? "justify-start" : "justify-end",
+                     )}
+                  >
+                     <span
+                        className={cn(
+                           "font-semibold tabular-nums",
+                           isPass
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-red-600 dark:text-red-400",
+                        )}
+                     >
+                        {numericValue!.toFixed(2)}%
+                     </span>
+                  </div>
+               )}
                {/* Track */}
                <div className="relative h-4 rounded-full overflow-hidden">
                   {/* Tinted background — gives context for tiny values */}
@@ -425,29 +442,19 @@ function RatioChart({
                   )}
                </div>
 
-               {/* Scale labels */}
-               <div className="mt-1.5 flex items-center text-[10px] text-muted-foreground">
-                  <span className="font-medium">{hasNegative ? `${numericValue!.toFixed(2)}%` : "0%"}</span>
-                  <div className="relative mx-1 h-4 flex-1">
-                     {hasNegative && (
-                        <span
-                           className="absolute -translate-x-1/2 font-medium"
-                           style={{ left: `${zeroPos}%` }}
-                        >
-                           0%
-                        </span>
-                     )}
-                     {isOver && (
-                        <span
-                           className="absolute -translate-x-1/2 whitespace-nowrap font-medium text-red-500/80"
-                           style={{ left: `${thresholdPos}%` }}
-                        >
-                           Limit: {fmtPct(thresholdPct)}
-                        </span>
-                     )}
-                  </div>
-                  <span className="font-medium">
-                     {isOver ? `${numericValue!.toFixed(2)}%` : `Limit: ${fmtPct(thresholdPct)}`}
+               <div className="relative mt-1.5 h-3.5 text-[10px] text-muted-foreground">
+                  {hasNegative ? (
+                     <span
+                        className="absolute -translate-x-1/2 font-medium"
+                        style={{ left: `${zeroPos}%` }}
+                     >
+                        0%
+                     </span>
+                  ) : (
+                     <span className="absolute left-0 font-medium">0%</span>
+                  )}
+                  <span className="absolute whitespace-nowrap font-medium" style={limitLabelStyle}>
+                     Limit: {fmtPct(thresholdPct)}
                   </span>
                </div>
             </div>
@@ -546,7 +553,7 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
          >
             {/* Company name + codes */}
             <div className="px-6 py-6">
-               <div className="flex flex-col justify-between md:flex-row md:items-start">
+               <div className="flex flex-col justify-between @2xl/main:flex-row @2xl/main:items-start">
                   <h2 className="text-2xl font-bold text-white sm:text-3xl">{company.companyName}</h2>
                   <div className="flex items-center gap-1.5 rounded-full self-start border border-white/20 bg-white/10 px-3 py-1">
                      <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" />
@@ -577,7 +584,7 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
 
             {/* Data columns */}
             {shariah && (
-               <div className="grid grid-cols-2 border-t border-white/10 lg:grid-cols-4">
+               <div className="grid grid-cols-2 border-t border-white/10 @4xl/main:grid-cols-4">
                   {[
                      { label: "Industry", value: company.industryGroup, sub: null },
                      {
@@ -595,7 +602,7 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
                         sub: null,
                      },
                   ].map(({ label, value, sub }) => (
-                     <div key={label} className="flex flex-col gap-0.5 px-5 py-4 border-b border-r border-white/10 [&:nth-child(2n)]:border-r-0 last:border-r-0 sm:[&:nth-child(2n)]:border-r  lg:[&:nth-child(3n)]:border-r lg:border-b-0">
+                     <div key={label} className="flex flex-col gap-0.5 px-5 py-4 border-b border-r border-white/10 [&:nth-child(2n)]:border-r-0 last:border-r-0 @2xl/main:[&:nth-child(2n)]:border-r  @4xl/main:[&:nth-child(3n)]:border-r @4xl/main:border-b-0">
                         <span className="text-xs font-semibold uppercase tracking-widest text-blue-300/60">
                            {label}
                         </span>
@@ -673,7 +680,7 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
 
                {/* Business & Data */}
                {effectiveTab === "business" && (
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 @2xl/main:grid-cols-2">
                      {/* Left: Qualitative Parameters */}
                      <div className="rounded-2xl border bg-card p-5 c-box-shadow">
                         <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -1013,7 +1020,7 @@ export function SnapshotClient({ access, commonRemark, thresholds }: { access: S
    }
 
    return (
-      <div className="flex flex-col gap-4 p-6">
+      <div className="@container/main flex flex-col gap-4 p-6">
 
          {/* ── Search + Compact Quota (desktop inline) ── */}
          <div className="flex items-center gap-3">
