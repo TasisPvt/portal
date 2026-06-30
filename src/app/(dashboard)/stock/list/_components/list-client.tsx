@@ -250,7 +250,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
                   >
                      {/* List name + window badge */}
                      <div className="px-6 py-6">
-                        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+                        <div className="flex flex-col justify-between gap-3 @2xl/main:flex-row @2xl/main:items-start">
                            <h1 className="text-2xl font-bold text-white sm:text-3xl">{selectedSub.indexName}</h1>
                            <div className="flex items-center gap-1.5 self-start rounded-full border border-white/20 bg-white/10 px-3 py-1">
                               <span className="size-1.5 shrink-0 rounded-full bg-emerald-400" />
@@ -295,7 +295,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
                )}
 
                {/* ── Filter & Search ── */}
-               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+               <div className="flex flex-col gap-3 @2xl/main:flex-row @2xl/main:items-center @2xl/main:gap-3">
                   {/* Filter Button */}
                   <DropdownMenu>
                      <DropdownMenuTrigger asChild>
@@ -405,7 +405,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
                )}
 
                {/* ── Company list (2-column grid - adaptive to available space) ── */}
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+               <div className="grid grid-cols-1 @4xl/main:grid-cols-2 gap-3">
                   {loading ? (
                      <>
                         {Array.from({ length: 6 }).map((_, i) => (
@@ -424,7 +424,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
                         ))}
                      </>
                   ) : filtered.length === 0 ? (
-                     <div className="col-span-1 lg:col-span-2 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-12 px-4 text-center">
+                     <div className="col-span-1 @4xl/main:col-span-2 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-12 px-4 text-center">
                         <p className="text-sm font-medium text-foreground">No companies found</p>
                         <p className="text-xs text-muted-foreground">
                            {search ? `No matches for "${search}"` : "Try adjusting your filters or search"}
@@ -491,7 +491,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
 
                {/* ── Pagination ── */}
                {!loading && filtered.length > 0 && (
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-4 @2xl/main:flex-row @2xl/main:items-center @2xl/main:justify-between">
                      {/* Page size selector */}
                      <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground whitespace-nowrap">Companies per page</span>

@@ -126,10 +126,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                      </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 px-4 lg:grid-cols-3 lg:px-6">
+                  <div className="grid grid-cols-1 gap-4 px-4 @4xl/main:grid-cols-3 lg:px-6">
 
                      {/* Avatar card */}
-                     <Card size="sm" className="flex flex-col items-center gap-4 py-10! lg:col-span-1">
+                     <Card size="sm" className="flex flex-col items-center gap-4 py-10! @4xl/main:col-span-1">
                         <Avatar className="size-20 text-2xl">
                            <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl">
                               {getInitials(client.name)}
@@ -147,7 +147,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                      </Card>
 
                      {/* Details cards */}
-                     <div className="flex flex-col gap-4 lg:col-span-2">
+                     <div className="flex flex-col gap-4 @4xl/main:col-span-2">
 
                         {/* Contact */}
                         <Card size="sm">
@@ -158,7 +158,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                               </CardTitle>
                            </CardHeader>
                            <CardContent>
-                              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                              <div className="grid grid-cols-1 gap-4 @2xl/main:grid-cols-2">
                                  <Field
                                     label="Email Address"
                                     icon={MailIcon}
@@ -206,7 +206,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                               </CardTitle>
                            </CardHeader>
                            <CardContent>
-                              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                              <div className="grid grid-cols-1 gap-4 @2xl/main:grid-cols-2">
                                  <Field
                                     label="PAN Number"
                                     icon={CreditCardIcon}

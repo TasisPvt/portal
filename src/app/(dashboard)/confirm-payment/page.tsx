@@ -19,7 +19,7 @@ export default async function ConfirmPaymentPage({
       <>
          <SiteHeader title="Payment" />
          <div className="flex flex-1 flex-col items-center justify-center p-4 md:p-6">
-            <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
+            <div className="@container/card w-full max-w-md rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
                {details ? <StatusContent details={details} /> : <NotFound />}
             </div>
          </div>
@@ -78,7 +78,7 @@ function PaidContent({ details }: { details: PaymentDetails }) {
             {details.endDate && <Row label="Valid until" value={formatDate(details.endDate)} />}
          </dl>
 
-         <div className="flex w-full flex-col gap-2 sm:flex-row">
+         <div className="flex w-full flex-col gap-2 @xs/card:flex-row">
             <Button asChild className="flex-1">
                <Link href={listPlan ? "/stock/list" : "/stock/snapshot"}>
                   {listPlan ? "View companies" : "Open snapshot"}
@@ -105,7 +105,7 @@ function FailedContent() {
                page.
             </p>
          </div>
-         <div className="flex w-full flex-col gap-2 sm:flex-row">
+         <div className="flex w-full flex-col gap-2 @xs/card:flex-row">
             <Button asChild className="flex-1">
                <Link href="/plans">Try again</Link>
             </Button>
@@ -130,7 +130,7 @@ function CancelledContent() {
                whenever you&apos;re ready.
             </p>
          </div>
-         <div className="flex w-full flex-col gap-2 sm:flex-row">
+         <div className="flex w-full flex-col gap-2 @xs/card:flex-row">
             <Button asChild className="flex-1">
                <Link href="/plans">Back to plans</Link>
             </Button>
@@ -155,7 +155,7 @@ function ProcessingContent() {
                shortly.
             </p>
          </div>
-         <div className="flex w-full flex-col gap-2 sm:flex-row">
+         <div className="flex w-full flex-col gap-2 @xs/card:flex-row">
             <Button asChild className="flex-1">
                <Link href="/subscriptions">My subscriptions</Link>
             </Button>

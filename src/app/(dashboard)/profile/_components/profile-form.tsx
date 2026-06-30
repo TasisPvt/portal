@@ -170,9 +170,9 @@ export function ProfileForm({
   })
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row">
+    <div className="flex flex-col gap-6 @3xl/main:flex-row">
       {/* ════════════ Left panel ════════════ */}
-      <Card size="sm" className="flex shrink-0 flex-col items-center gap-4 py-10! lg:w-64">
+      <Card size="sm" className="flex shrink-0 flex-col items-center gap-4 py-10! @3xl/main:w-64">
 
         {/* Avatar with camera button */}
         <div className="relative">
@@ -209,7 +209,7 @@ export function ProfileForm({
       </Card>
 
       {/* ════════════ Right panel ════════════ */}
-      <Card size="sm" className="min-w-0 flex-1 py-0">
+      <Card size="sm" className="@container/pcard min-w-0 flex-1 py-0">
         <Tabs defaultValue="personal" className="gap-0">
 
           {/* Tab list */}
@@ -237,7 +237,7 @@ export function ProfileForm({
           <TabsContent value="personal">
             <form onSubmit={handlePersonal((data) => saveMutation.mutate(data))} noValidate>
               <CardContent className="pt-6">
-                <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-x-6 gap-y-5 @md/pcard:grid-cols-2">
 
                   {/* Name — editable for both */}
                   <div className="flex flex-col gap-1.5">
@@ -322,7 +322,7 @@ export function ProfileForm({
               noValidate
             >
               <CardContent className="pt-6">
-                <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-x-6 gap-y-5 @xl/pcard:grid-cols-3">
 
                   {/* Old Password */}
                   <div className="flex flex-col gap-1.5">

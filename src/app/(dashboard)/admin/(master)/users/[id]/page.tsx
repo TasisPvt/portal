@@ -139,10 +139,10 @@ export default async function UserDetailPage({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 px-4 lg:grid-cols-3 lg:px-6">
+            <div className="grid grid-cols-1 gap-4 px-4 @4xl/main:grid-cols-3 lg:px-6">
 
               {/* Avatar card */}
-              <Card size="sm" className="flex flex-col items-center gap-4 py-8! lg:col-span-1">
+              <Card size="sm" className="flex flex-col items-center gap-4 py-8! @4xl/main:col-span-1">
                 <Avatar className="size-20">
                   <AvatarFallback className="bg-primary/10 text-2xl font-bold text-primary">
                     {getInitials(u.name)}
@@ -166,7 +166,7 @@ export default async function UserDetailPage({
               </Card>
 
               {/* Details */}
-              <div className="flex flex-col gap-4 lg:col-span-2">
+              <div className="flex flex-col gap-4 @4xl/main:col-span-2">
 
                 {/* Contact */}
                 <Card size="sm">
@@ -177,7 +177,7 @@ export default async function UserDetailPage({
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 @2xl/main:grid-cols-2">
                       <Field
                         label="Email Address"
                         icon={MailIcon}
@@ -201,7 +201,7 @@ export default async function UserDetailPage({
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 @2xl/main:grid-cols-2">
                       <div className="flex flex-col gap-1">
                         <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                           <ShieldCheckIcon className="size-3.5" />

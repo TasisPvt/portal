@@ -49,7 +49,7 @@ export default async function AdminSubscriptionsPage() {
                      <h2 className="text-xl font-semibold tracking-tight">Subscriptions</h2>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 px-4 sm:grid-cols-4 lg:px-6">
+                  <div className="grid grid-cols-2 gap-4 px-4 @3xl/main:grid-cols-4 lg:px-6">
                      {stats.map(({ label, value, icon: Icon, iconClass }) => (
                         <Card key={label} size="sm">
                            <CardHeader>

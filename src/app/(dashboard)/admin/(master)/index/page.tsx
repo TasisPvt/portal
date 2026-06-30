@@ -46,7 +46,7 @@ export default async function IndexPage() {
                      <AddIndexDialog />
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-3 lg:px-6">
+                  <div className="grid grid-cols-1 gap-4 px-4 @2xl/main:grid-cols-3 lg:px-6">
                      {stats.map(({ label, value, icon: Icon, iconClass }) => (
                         <Card key={label} size="sm">
                            <CardHeader>

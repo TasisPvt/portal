@@ -150,7 +150,7 @@ export function IndexTable({ data }: { data: IndexRow[] }) {
    return (
       <div className="flex w-full min-w-0 flex-col gap-4">
          {/* Toolbar */}
-         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+         <div className="flex flex-col gap-3 @2xl/main:flex-row @2xl/main:items-center @2xl/main:justify-between">
             <div className="relative w-full max-w-sm">
                <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                <Input
