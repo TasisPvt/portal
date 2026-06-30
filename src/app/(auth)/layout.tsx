@@ -9,7 +9,7 @@ const trustPills = [
 ]
 
 const features = [
-  "Trusted Shariah Compliance Screening for Stocks, Mutual Funds,  ETFs, FOFs and IPOs across India&apos;s Capital Market.",
+   "Trusted Shariah Compliance Screening for Stocks, Mutual Funds, ETFs, FOFs and IPOs across India's Capital Market.",
    "Research-driven screening",
    "Compliance monitoring",
    "Purging Solutions",
@@ -17,7 +17,7 @@ const features = [
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
    return (
-      <div className="relative min-h-dvh overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800">
+      <div className="relative min-h-dvh overflow-hidden bg-linear-to-br from-blue-600 via-blue-700 to-indigo-800">
          {/* Dot grid overlay */}
          <div className="auth-dot-grid absolute inset-0" />
          {/* Glow blobs */}
@@ -35,16 +35,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                      <br />
                      Intelligent Research.
                   </h1>
-                  {/*<p className="mt-4 text-base leading-relaxed text-blue-100/85">
-                     Trusted Shariah Compliance Screening for Stocks, Mutual Funds,
-                     ETFs, FOFs and IPOs across India&apos;s Capital Market.
-                  </p>*/}
 
                   <ul className="mt-5 flex flex-col gap-2.5">
                      {features.map((f) => (
                         <li key={f} className="flex items-center gap-2.5 text-sm text-blue-50">
                            <Check className="size-4 shrink-0 text-emerald-300" aria-hidden />
-                           {f}
+                           <span>{f}</span>
                         </li>
                      ))}
                   </ul>
