@@ -99,9 +99,14 @@ export function RevenueWidget({ monthly }: { monthly: MonthlyRevenue[] }) {
       <Card className="h-full">
          <CardHeader>
             <div className="flex items-start justify-between gap-3">
-               <div className="space-y-1">
-                  <CardTitle className="text-base">Revenue</CardTitle>
-                  <CardDescription>{PERIOD_LABEL[period]}</CardDescription>
+               <div className="flex items-center gap-2.5">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+                     <BarChart3Icon className="size-4" />
+                  </span>
+                  <div className="space-y-0.5">
+                     <CardTitle className="text-base">Revenue</CardTitle>
+                     <CardDescription>{PERIOD_LABEL[period]}</CardDescription>
+                  </div>
                </div>
                <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
                   <SelectTrigger size="sm" className="w-36">

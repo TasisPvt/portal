@@ -15,10 +15,16 @@ export default async function AdminDashboardPage() {
             <div className="@container/main flex flex-1 flex-col gap-2">
                <div className="px-4 py-4 md:py-6 lg:px-6">
                   <div className="@container grid grid-cols-12 gap-4 md:gap-6">
-                     <div className="col-span-12 @4xl:col-span-6">
+                     <div
+                        className="col-span-12 animate-slide-up motion-reduce:animate-none @4xl:col-span-6"
+                        style={{ animationDelay: "0ms" }}
+                     >
                         <RevenueWidget monthly={data.revenueMonthly} />
                      </div>
-                     <div className="col-span-12 @2xl:col-span-6 @4xl:col-span-3">
+                     <div
+                        className="col-span-12 animate-slide-up motion-reduce:animate-none @2xl:col-span-6 @4xl:col-span-3"
+                        style={{ animationDelay: "80ms" }}
+                     >
                         <CustomersCard
                            total={data.totalClients}
                            thisMonth={data.customersThisMonth}
@@ -26,13 +32,19 @@ export default async function AdminDashboardPage() {
                            trend={data.clientsTrend}
                         />
                      </div>
-                     <div className="col-span-12 @2xl:col-span-6 @4xl:col-span-3">
+                     <div
+                        className="col-span-12 animate-slide-up motion-reduce:animate-none @2xl:col-span-6 @4xl:col-span-3"
+                        style={{ animationDelay: "160ms" }}
+                     >
                         <PlansDonut
                            data={data.subscriptionsThisMonth}
                            lastMonthTotal={data.subscriptionsLastMonthTotal}
                         />
                      </div>
-                     <div className="col-span-12">
+                     <div
+                        className="col-span-12 animate-slide-up motion-reduce:animate-none"
+                        style={{ animationDelay: "240ms" }}
+                     >
                         <TopClients data={data.topClients} />
                      </div>
                   </div>

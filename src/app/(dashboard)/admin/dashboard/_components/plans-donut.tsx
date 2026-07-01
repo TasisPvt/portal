@@ -45,12 +45,17 @@ export function PlansDonut({
    return (
       <Card className="h-full">
          <CardHeader>
-            <div className="flex items-start justify-between gap-2">
-               <div className="space-y-1">
-                  <CardTitle className="text-base">Plans Subscribed</CardTitle>
-                  <CardDescription>This month</CardDescription>
+            <div className="flex flex-col items-start justify-between gap-2">
+               <div className="flex gap-2.5">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400">
+                     <PieChartIcon className="size-4" />
+                  </span>
+                  <div className="space-y-0.5">
+                     <CardTitle className="text-base">Subscriptions</CardTitle>
+                     <CardDescription>This month</CardDescription>
+                  </div>
                </div>
-               <div className="flex flex-col items-end gap-1">
+               <div className="flex flex-row items-center gap-1">
                   <span className="text-2xl font-bold tracking-tight tabular-nums">{total}</span>
                   <DeltaBadge pct={pct} title="this month vs last month" emptyLabel={total > 0 ? "New" : undefined} />
                </div>

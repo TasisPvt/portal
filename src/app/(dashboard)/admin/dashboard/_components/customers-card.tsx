@@ -3,11 +3,13 @@
 import * as React from "react"
 import Link from "next/link"
 import { Area, AreaChart, XAxis } from "recharts"
-import { ArrowUpRightIcon } from "lucide-react"
+import { ArrowUpRightIcon, UsersIcon } from "lucide-react"
 
 import {
    Card,
    CardContent,
+  CardTitle,
+  CardDescription
 } from "@/src/components/ui/card"
 import {
    ChartContainer,
@@ -37,19 +39,27 @@ export function CustomersCard({
 
    return (
       <Link href="/admin/clients" className="group block h-full focus-visible:outline-none">
-         <Card className="h-full transition-colors group-hover:bg-muted/30">
+         <Card className="h-full transition-transform duration-200 ease-out group-hover:-translate-y-1 group-hover:c-box-shadow group-hover:border">
             <CardContent className="flex h-full flex-col gap-3">
-               <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-1">
-                     <p className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
-                        Customers
-                        <ArrowUpRightIcon className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
-                     </p>
-                     <p className="text-2xl font-bold tracking-tight tabular-nums text-foreground">
-                        {total.toLocaleString("en-IN")}
-                     </p>
+               <div className="flex flex-col items-start justify-between gap-2">
+                  <div className="flex gap-2.5">
+                     <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-cyan-100 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400">
+                        <UsersIcon className="size-4" />
+                     </span>
+                     <div className="space-y-0.5">
+                        <CardTitle className="flex items-center gap-1 text-base">
+                           Customers
+                           <ArrowUpRightIcon className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+                        </CardTitle>
+                        <CardDescription>Overall</CardDescription>
+                     </div>
                   </div>
-                  <DeltaBadge pct={pct} title="this month vs last month" emptyLabel={thisMonth > 0 ? "New" : undefined} />
+                  <div className="flex flex-row items-center gap-1">
+                     <span className="text-2xl font-bold tracking-tight tabular-nums text-foreground">
+                        {total.toLocaleString("en-IN")}
+                     </span>
+                     <DeltaBadge pct={pct} title="this month vs last month" emptyLabel={thisMonth > 0 ? "New" : undefined} />
+                  </div>
                </div>
 
                <ChartContainer config={config} className="aspect-auto h-16 w-full">

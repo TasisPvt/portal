@@ -46,9 +46,14 @@ export function TopClients({ data }: { data: TopClientsByPeriod }) {
       <Card>
          <CardHeader>
             <div className="flex items-center justify-between gap-3">
-               <div className="space-y-1">
-                  <CardTitle className="text-base">Top Clients</CardTitle>
-                  <CardDescription>Revenue contribution</CardDescription>
+               <div className="flex items-center gap-2.5">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
+                     <TrophyIcon className="size-4" />
+                  </span>
+                  <div className="space-y-0.5">
+                     <CardTitle className="text-base">Top Clients</CardTitle>
+                     <CardDescription>Revenue contribution</CardDescription>
+                  </div>
                </div>
                <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
                   <SelectTrigger size="sm" className="w-36">
