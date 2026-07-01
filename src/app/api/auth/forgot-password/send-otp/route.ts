@@ -22,33 +22,36 @@ export async function POST(req: Request) {
       .where(eq(user.email, email))
       .limit(1)
 
-   if (!found) {
-      return NextResponse.json(
-         { message: "No account found with this email address." },
-         { status: 404 }
-      )
-   }
+   // if (!found) {
+   //    return NextResponse.json(
+   //       { message: "No account found with this email address." },
+   //       { status: 404 }
+   //    )
+   // }
 
-   if (!found.isActive) {
+   if (found && !found.isActive) {
       return NextResponse.json(
          { message: "Your account has been blocked. Contact the admin for further details." },
          { status: 403 }
       )
    }
 
-   const otp = generateOtp()
-   const identifier = `forgot-password:${email}`
+   // Only generate and send an OTP for an existing, active account; otherwise
+   if (found) {
+      const otp = generateOtp()
+      const identifier = `forgot-password:${email}`
 
-   await db.delete(verification).where(eq(verification.identifier, identifier))
+      await db.delete(verification).where(eq(verification.identifier, identifier))
 
-   await db.insert(verification).values({
-      id: randomUUID(),
-      identifier,
-      value: otp,
-      expiresAt: new Date(Date.now() + OTP_TTL_MS),
-   })
+      await db.insert(verification).values({
+         id: randomUUID(),
+         identifier,
+         value: otp,
+         expiresAt: new Date(Date.now() + OTP_TTL_MS),
+      })
 
-   await sendOtpEmail({ to: found.email, name: found.name, otp })
+      await sendOtpEmail({ to: found.email, name: found.name, otp })
+   }
 
    return NextResponse.json({ success: true })
 }
