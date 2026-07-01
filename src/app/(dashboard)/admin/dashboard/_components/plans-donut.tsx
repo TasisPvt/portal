@@ -17,6 +17,7 @@ import {
    ChartTooltipContent,
    type ChartConfig,
 } from "@/src/components/ui/chart"
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/src/components/ui/empty"
 import type { ByPlanType } from "../_actions"
 import { DeltaBadge } from "./delta-badge"
 
@@ -64,10 +65,14 @@ export function PlansDonut({
 
          <CardContent className="flex flex-1 flex-col items-center gap-3">
             {total === 0 ? (
-               <div className="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-center">
-                  <PieChartIcon className="size-8 text-muted-foreground/30" />
-                  <p className="text-sm text-muted-foreground">No subscriptions this month</p>
-               </div>
+               <Empty className="flex-1 border-0 p-0 py-8">
+                  <EmptyHeader>
+                     <EmptyMedia variant="icon">
+                        <PieChartIcon />
+                     </EmptyMedia>
+                     <EmptyTitle className="text-base">No subscriptions this month</EmptyTitle>
+                  </EmptyHeader>
+               </Empty>
             ) : (
                <>
                   <ChartContainer config={config} className="mx-auto aspect-square w-full max-w-[170px]">
