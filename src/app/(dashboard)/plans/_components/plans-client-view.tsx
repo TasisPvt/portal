@@ -96,7 +96,7 @@ function PlanCard({ plan, isSubscribed, customerState }: { plan: PlanRow; isSubs
    }
 
    return (
-     <div className="relative row-span-5 grid grid-rows-subgrid gap-y-0 rounded-2xl border bg-card p-4 c-box-shadow transition-transform duration-200 ease-out hover:-translate-y-1 hover:border-primary/50">
+     <div className="relative row-span-5 grid grid-rows-subgrid gap-y-0 rounded-2xl border bg-card p-4 shadow-md hover:c-box-shadow transition-transform duration-200 ease-out hover:-translate-y-1 hover:border-primary/50">
          {/* Already Subscribed banner */}
          {isSubscribed && (
             <div className="absolute -top-px left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">

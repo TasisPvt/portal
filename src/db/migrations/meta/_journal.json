@@ -127,6 +127,13 @@
       "when": 1781984819140,
       "tag": "0017_heavy_paper_doll",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1782932700471,
+      "tag": "0018_flat_valeria_richards",
+      "breakpoints": true
     }
   ]
 }

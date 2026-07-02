@@ -18,8 +18,19 @@ export type DurationType = "one_time" | "monthly" | "quarterly" | "annual"
 type PlanRow = typeof pricingPlan.$inferSelect
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
-export function computeEndDate(durationType: DurationType, startDate: Date): Date {
+export type PlanType = "list" | "snapshot"
+
+export function computeEndDate(
+   durationType: DurationType,
+   startDate: Date,
+   planType: PlanType,
+): Date {
    if (durationType === "one_time") {
+      // A one-time snapshot plan is valid for the day only. A one-time list plan
+      // stays valid for a full month (its frozen company list is usable that long).
+      if (planType === "list") {
+         return new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000)
+      }
       const end = new Date(startDate)
       end.setHours(23, 59, 59, 999)
       return end
@@ -96,7 +107,7 @@ async function createSubscriptionRecord(
    },
 ): Promise<string> {
    const startDate = new Date()
-   const endDate = computeEndDate(args.durationType, startDate)
+   const endDate = computeEndDate(args.durationType, startDate, args.plan.type as PlanType)
    const subscriptionId = randomUUID()
 
    await tx.insert(subscription).values({

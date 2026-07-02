@@ -7,16 +7,23 @@ import {
    CheckCircle2Icon,
    XCircleIcon,
    MinusCircleIcon,
-   InfoIcon,
    ChevronRightIcon,
    Info,
    ShieldCheckIcon,
    ShieldXIcon,
    ClockIcon,
+   BookmarkIcon,
 } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
 import { Progress } from "@/src/components/ui/progress"
 import { Spinner } from "@/src/components/ui/spinner"
+import {
+   Empty,
+   EmptyHeader,
+   EmptyMedia,
+   EmptyTitle,
+   EmptyDescription,
+} from "@/src/components/ui/empty"
 import {
    Dialog,
    DialogContent,
@@ -36,6 +43,7 @@ import {
    type CompanySnapshotResult,
    type RecentlyViewedCompany,
 } from "../_actions"
+import { toggleWatchlist, getWatchlistedCompanyIds } from "../../watchlist/_actions"
 import { Button } from "@/src/components/ui/button"
 import {
    Sheet,
@@ -515,7 +523,7 @@ function QuantitativeRatiosPanel({
 
 export type SnapshotSuccess = Extract<CompanySnapshotResult, { company: unknown }>
 
-export function SnapshotCard({ data, commonRemark, thresholds }: { data: SnapshotSuccess; commonRemark: string | null; thresholds: Record<string, number> }) {
+export function SnapshotCard({ data, commonRemark, thresholds, watchlist }: { data: SnapshotSuccess; commonRemark: string | null; thresholds: Record<string, number>; watchlist?: { active: boolean; pending: boolean; onToggle: () => void } }) {
    const { company, shariah, complianceHistory, screeningRemarks, quota } = data
 
    const [activeTab, setActiveTab] = React.useState<TabKey>("business")
@@ -555,9 +563,24 @@ export function SnapshotCard({ data, commonRemark, thresholds }: { data: Snapsho
             <div className="px-6 py-6">
                <div className="flex flex-col justify-between @2xl/main:flex-row @2xl/main:items-start">
                   <h2 className="text-2xl font-bold text-white sm:text-3xl">{company.companyName}</h2>
-                  <div className="flex items-center gap-1.5 rounded-full self-start border border-white/20 bg-white/10 px-3 py-1">
-                     <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" />
-                     <span className="text-sm font-medium text-white">Updated • {snapshotDate}</span>
+                  <div className="flex items-center gap-2 self-start">
+                     {watchlist && (
+                        <button
+                           type="button"
+                           onClick={watchlist.onToggle}
+                           disabled={watchlist.pending}
+                           aria-pressed={watchlist.active}
+                           aria-label={watchlist.active ? "Remove from watchlist" : "Add to watchlist"}
+                           title={watchlist.active ? "Remove from watchlist" : "Add to watchlist"}
+                           className="flex size-8 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20 disabled:opacity-50"
+                        >
+                           <BookmarkIcon className={cn("size-4", watchlist.active && "fill-current")} />
+                        </button>
+                     )}
+                     <div className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1">
+                        <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" />
+                        <span className="text-sm font-medium text-white">Updated • {snapshotDate}</span>
+                     </div>
                   </div>
                </div>
                <div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
@@ -937,7 +960,7 @@ function SearchDropdown({
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
-export function SnapshotClient({ access, commonRemark, thresholds }: { access: SnapshotAccess; commonRemark: string | null; thresholds: Record<string, number> }) {
+export function SnapshotClient({ access, commonRemark, thresholds, initialCompanyId }: { access: SnapshotAccess; commonRemark: string | null; thresholds: Record<string, number>; initialCompanyId?: string }) {
    const [query, setQuery] = React.useState("")
    const [searchResults, setSearchResults] = React.useState<CompanySearchResult[]>([])
    const [isSearching, setIsSearching] = React.useState(false)
@@ -951,13 +974,22 @@ export function SnapshotClient({ access, commonRemark, thresholds }: { access: S
       totalUsed: access.totalUsed,
       totalLimit: access.stocksInDuration,
    })
+   const [watchlistedIds, setWatchlistedIds] = React.useState<Set<string>>(new Set())
+   const [togglingWatchlist, setTogglingWatchlist] = React.useState(false)
 
    const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
    const containerRef = React.useRef<HTMLDivElement>(null)
 
    React.useEffect(() => {
       getRecentlyViewed().then(setRecentlyViewed)
+      getWatchlistedCompanyIds().then((ids) => setWatchlistedIds(new Set(ids)))
    }, [])
+
+   // Deep-link: open a specific company on mount (e.g. from the watchlist).
+   React.useEffect(() => {
+      if (initialCompanyId) loadCompanyById(initialCompanyId)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [initialCompanyId])
 
    React.useEffect(() => {
       function handleClick(e: MouseEvent) {
@@ -990,15 +1022,11 @@ export function SnapshotClient({ access, commonRemark, thresholds }: { access: S
       }, 300)
    }
 
-   async function handleSelectCompany(company: CompanySearchResult) {
-      setQuery(company.companyName)
-      setShowDropdown(false)
-      setSearchResults([])
+   async function loadCompanyById(companyId: string) {
       setSnapshotData(null)
       setIsLoading(true)
       try {
-         const result = await getCompanySnapshot(company.id)
-         console.log({ result })
+         const result = await getCompanySnapshot(companyId)
          if ("error" in result) {
             if (result.error === "daily_quota_exceeded") {
                toast.error("Daily quota reached. You've viewed the maximum companies for today.")
@@ -1013,9 +1041,49 @@ export function SnapshotClient({ access, commonRemark, thresholds }: { access: S
          }
          setSnapshotData(result)
          setQuota(result.quota)
+         setQuery(result.company.companyName)
          getRecentlyViewed().then(setRecentlyViewed)
       } finally {
          setIsLoading(false)
+      }
+   }
+
+   async function handleSelectCompany(company: CompanySearchResult) {
+      setQuery(company.companyName)
+      setShowDropdown(false)
+      setSearchResults([])
+      await loadCompanyById(company.id)
+   }
+
+   // Toggle the currently-shown company in the watchlist (optimistic).
+   async function handleToggleWatchlist() {
+      if (!snapshotData) return
+      const id = snapshotData.company.id
+      const wasActive = watchlistedIds.has(id)
+      setTogglingWatchlist(true)
+      setWatchlistedIds((prev) => {
+         const next = new Set(prev)
+         if (wasActive) next.delete(id)
+         else next.add(id)
+         return next
+      })
+      const res = await toggleWatchlist(id)
+      setTogglingWatchlist(false)
+      if (!res.ok) {
+         // revert
+         setWatchlistedIds((prev) => {
+            const next = new Set(prev)
+            if (wasActive) next.add(id)
+            else next.delete(id)
+            return next
+         })
+         toast.error(
+            res.error === "no_active_subscription"
+               ? "An active subscription is required to use the watchlist."
+               : "Couldn't update watchlist. Please try again.",
+         )
+      } else {
+         toast.success(res.watchlisted ? "Added to watchlist" : "Removed from watchlist")
       }
    }
 
@@ -1087,13 +1155,15 @@ export function SnapshotClient({ access, commonRemark, thresholds }: { access: S
 
          {/* Empty state */}
          {recentlyViewed.length === 0 && (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed py-20 text-center">
-               <SearchIcon className="mb-3 size-8 text-muted-foreground/30" />
-               <p className="text-sm font-medium text-muted-foreground">Search for a company above</p>
-               <p className="mt-1 text-sm text-muted-foreground/70">
-                  Enter a company name, ISIN, or exchange symbol
-               </p>
-            </div>
+            <Empty className="border py-20">
+               <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                     <SearchIcon />
+                  </EmptyMedia>
+                  <EmptyTitle>Search for a company above</EmptyTitle>
+                  <EmptyDescription>Enter a company name, ISIN, or exchange symbol</EmptyDescription>
+               </EmptyHeader>
+            </Empty>
          )}
          {/* </>
          )} */}
@@ -1105,7 +1175,16 @@ export function SnapshotClient({ access, commonRemark, thresholds }: { access: S
          )}
 
          {!isLoading && snapshotData && (
-            <SnapshotCard data={snapshotData} commonRemark={commonRemark} thresholds={thresholds} />
+            <SnapshotCard
+               data={snapshotData}
+               commonRemark={commonRemark}
+               thresholds={thresholds}
+               watchlist={{
+                  active: watchlistedIds.has(snapshotData.company.id),
+                  pending: togglingWatchlist,
+                  onToggle: handleToggleWatchlist,
+               }}
+            />
          )}
       </div>
    )
