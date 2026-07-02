@@ -22,6 +22,7 @@ import {
    ReceiptIcon,
    BookTextIcon,
    PercentIcon,
+   BookmarkIcon,
 } from "lucide-react"
 import { NavCollapsible } from "@/src/components/sidebar/nav-collapsible"
 import { NavMain } from "@/src/components/sidebar/nav-main"
@@ -44,6 +45,7 @@ import { NavUser } from "@/src/components/sidebar/nav-user"
 const clientNav = {
    navMain: [
       { title: "Dashboard", url: "/dashboard", icon: <LayoutDashboardIcon /> },
+      { title: "Watchlist", url: "/stock/watchlist", icon: <BookmarkIcon /> },
       { title: "Plans", url: "/plans", icon: <PackageIcon /> },
       { title: "My Subscriptions", url: "/subscriptions", icon: <CreditCardIcon /> },
    ],

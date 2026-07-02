@@ -5,8 +5,13 @@ import { SiteHeader } from "@/src/components/site-header"
 import { getSnapshotAccess, getCommonRemark, getFinancialRatioThresholds } from "./_actions"
 import { SnapshotClient } from "./_components/snapshot-client"
 
-export default async function SnapshotPage() {
-   const [access, commonRemark, thresholds] = await Promise.all([
+export default async function SnapshotPage({
+   searchParams,
+}: {
+   searchParams: Promise<{ company?: string }>
+}) {
+   const [{ company: initialCompanyId }, access, commonRemark, thresholds] = await Promise.all([
+      searchParams,
       getSnapshotAccess(),
       getCommonRemark(),
       getFinancialRatioThresholds(),
@@ -37,7 +42,7 @@ export default async function SnapshotPage() {
    return (
       <>
          <SiteHeader breadcrumb="Stocks" title="Snapshot" />
-         <SnapshotClient access={access} commonRemark={commonRemark} thresholds={thresholds} />
+         <SnapshotClient access={access} commonRemark={commonRemark} thresholds={thresholds} initialCompanyId={initialCompanyId} />
       </>
    )
 }

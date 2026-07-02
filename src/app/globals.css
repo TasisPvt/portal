@@ -6,6 +6,7 @@
 
 :root {
   --background: #ffffff;
+  --dashboard: #f6f8fa;
   --foreground: #1a1a2e;
   --hero-foreground: #1a1a2e;
   --card: #ffffff;
@@ -30,7 +31,7 @@
   --chart-3: #0891b2;
   --chart-4: #059669;
   --chart-5: #d97706;
-  --sidebar: #f8fafc;
+  --sidebar: #eff1f3;
   --sidebar-foreground: #1a1a2e;
   --sidebar-primary: #2563eb;
   --sidebar-primary-foreground: #ffffff;
@@ -60,6 +61,7 @@
 
 .dark {
   --background: #0f172a;
+  --dashboard: #0f172a;
   --foreground: #e2e8f0;
   --hero-foreground: #e2e8f0;
   --card: #1e293b;
@@ -112,6 +114,7 @@
 
 @theme inline {
   --color-background: var(--background);
+  --color-dashboard: var(--dashboard);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);

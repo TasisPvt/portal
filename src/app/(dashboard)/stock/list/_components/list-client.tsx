@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { SearchIcon, BuildingIcon, FilterIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import { toast } from "sonner"
+import { SearchIcon, BuildingIcon, FilterIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, BookmarkIcon } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
 import { Skeleton } from "@/src/components/ui/skeleton"
 import { Spinner } from "@/src/components/ui/spinner"
@@ -20,6 +21,13 @@ import {
 } from "@/src/components/ui/dialog"
 import { Button } from "@/src/components/ui/button"
 import {
+   Empty,
+   EmptyHeader,
+   EmptyMedia,
+   EmptyTitle,
+   EmptyDescription,
+} from "@/src/components/ui/empty"
+import {
    DropdownMenu,
    DropdownMenuContent,
    DropdownMenuItem,
@@ -28,6 +36,7 @@ import {
 import { cn } from "@/src/lib/utils"
 import { formatMonth as fmtMonth } from "@/src/lib/format"
 import { getListCompanies, type ListSubscription, type ListCompany } from "../_actions"
+import { toggleWatchlist, getWatchlistedCompanyIds } from "../../watchlist/_actions"
 import { getCompanySnapshot, getFinancialRatioThresholds } from "../../snapshot/_actions"
 import { SnapshotCard, type SnapshotSuccess } from "../../snapshot/_components/snapshot-client"
 import { Badge } from "@/src/components/ui/badge"
@@ -117,10 +126,42 @@ export function ListClient({ subscriptions }: ListClientProps) {
    const [snapshotData, setSnapshotData] = React.useState<SnapshotSuccess | null>(null)
    const [snapshotError, setSnapshotError] = React.useState<string | null>(null)
    const [thresholds, setThresholds] = React.useState<Record<string, number>>({})
+   const [watchlistedIds, setWatchlistedIds] = React.useState<Set<string>>(new Set())
+   const [togglingId, setTogglingId] = React.useState<string | null>(null)
 
    React.useEffect(() => {
       getFinancialRatioThresholds().then(setThresholds)
+      getWatchlistedCompanyIds().then((ids) => setWatchlistedIds(new Set(ids)))
    }, [])
+
+   // Optimistic bookmark toggle for a company card.
+   async function handleToggleWatchlist(companyId: string) {
+      const wasActive = watchlistedIds.has(companyId)
+      setTogglingId(companyId)
+      setWatchlistedIds((prev) => {
+         const next = new Set(prev)
+         if (wasActive) next.delete(companyId)
+         else next.add(companyId)
+         return next
+      })
+      const res = await toggleWatchlist(companyId)
+      setTogglingId(null)
+      if (!res.ok) {
+         setWatchlistedIds((prev) => {
+            const next = new Set(prev)
+            if (wasActive) next.add(companyId)
+            else next.delete(companyId)
+            return next
+         })
+         toast.error(
+            res.error === "no_active_subscription"
+               ? "An active subscription is required to use the watchlist."
+               : "Couldn't update watchlist. Please try again.",
+         )
+      } else {
+         toast.success(res.watchlisted ? "Added to watchlist" : "Removed from watchlist")
+      }
+   }
 
    React.useEffect(() => {
       if (!selectedSubId) return
@@ -231,15 +272,15 @@ export function ListClient({ subscriptions }: ListClientProps) {
 
          {/* ── Empty state (no sub selected) ── */}
          {!selectedSubId ? (
-            <div className="flex flex-col items-center justify-center gap-4 p-6 py-24 text-center">
-               <div className="flex size-14 items-center justify-center rounded-full bg-muted">
-                  <BuildingIcon className="size-6 text-muted-foreground" />
-               </div>
-               <div>
-                  <h3 className="font-semibold text-foreground">No List Selected</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">Select a list above to view its companies</p>
-               </div>
-            </div>
+            <Empty className="py-24">
+               <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                     <BuildingIcon />
+                  </EmptyMedia>
+                  <EmptyTitle>No List Selected</EmptyTitle>
+                  <EmptyDescription>Select a list above to view its companies</EmptyDescription>
+               </EmptyHeader>
+            </Empty>
          ) : (
             <>
                {/* ── Index header card (gradient — matches snapshot header) ── */}
@@ -457,13 +498,32 @@ export function ListClient({ subscriptions }: ListClientProps) {
                            }}
                            className="group cursor-pointer rounded-xl border bg-card p-3 transition-all shadow-sm hover:border-primary/40 hover:shadow-md"
                         >
-                           {/* Header: Company name + Status badge */}
+                           {/* Header: Company name + Status badge + bookmark */}
                            <div className="flex items-start justify-between gap-2 mb-2.5">
                               <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors break-words flex-1 min-w-0">
                                  {company.companyName}
                               </h3>
-                              <div className="shrink-0">
+                              <div className="flex shrink-0 items-center gap-1.5">
                                  <StatusBadge status={company.shariahStatus} />
+                                 <button
+                                    type="button"
+                                    onClick={(e) => {
+                                       e.stopPropagation()
+                                       handleToggleWatchlist(company.id)
+                                    }}
+                                    disabled={togglingId === company.id}
+                                    aria-pressed={watchlistedIds.has(company.id)}
+                                    aria-label={watchlistedIds.has(company.id) ? "Remove from watchlist" : "Add to watchlist"}
+                                    title={watchlistedIds.has(company.id) ? "Remove from watchlist" : "Add to watchlist"}
+                                    className={cn(
+                                       "flex size-7 shrink-0 items-center justify-center rounded-lg border transition-colors disabled:opacity-50",
+                                       watchlistedIds.has(company.id)
+                                          ? "border-primary/30 bg-primary/10 text-primary"
+                                          : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
+                                    )}
+                                 >
+                                    <BookmarkIcon className={cn("size-3.5", watchlistedIds.has(company.id) && "fill-current")} />
+                                 </button>
                               </div>
                            </div>
                            <div className="flex flex-wrap gap-1 mt-1">
@@ -592,7 +652,16 @@ export function ListClient({ subscriptions }: ListClientProps) {
                   )}
                   {!snapshotLoading && snapshotData && (
                      <div className="p-1">
-                        <SnapshotCard data={snapshotData} commonRemark={null} thresholds={thresholds} />
+                        <SnapshotCard
+                           data={snapshotData}
+                           commonRemark={null}
+                           thresholds={thresholds}
+                           watchlist={{
+                              active: watchlistedIds.has(snapshotData.company.id),
+                              pending: togglingId === snapshotData.company.id,
+                              onToggle: () => handleToggleWatchlist(snapshotData.company.id),
+                           }}
+                        />
                      </div>
                   )}
                </div>
