@@ -2,25 +2,23 @@
 
 import * as React from "react"
 import {
-  flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-  type Column,
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table"
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/src/components/ui/table"
-import { Badge } from "@/src/components/ui/badge"
+  DataTableCard,
+  DataTableHead,
+  DataTableBody,
+  DataTablePagination,
+  SortableHeader,
+  DotBadge,
+} from "@/src/components/ui/data-table-parts"
 import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
 import { Avatar, AvatarFallback } from "@/src/components/ui/avatar"
@@ -33,20 +31,7 @@ import {
   SelectValue,
 } from "@/src/components/ui/select"
 import Link from "next/link"
-import {
-  SearchIcon,
-  XIcon,
-  ChevronRightIcon,
-  ChevronsLeftIcon,
-  ChevronLeftIcon,
-  ChevronsRightIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
-  ChevronsUpDownIcon,
-  CheckIcon,
-  ClockIcon,
-  DownloadIcon,
-} from "lucide-react"
+import { SearchIcon, XIcon, CheckIcon, ClockIcon, DownloadIcon } from "lucide-react"
 import { cn } from "@/src/lib/utils"
 
 export type ClientRow = {
@@ -87,27 +72,6 @@ function avatarColor(id: string) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
-function SortableHeader<T>({ column, label }: { column: Column<T, unknown>; label: string }) {
-  const sorted = column.getIsSorted()
-  return (
-    <button
-      className={cn(
-        "flex items-center gap-1 select-none transition-colors",
-        sorted ? "text-foreground" : "text-muted-foreground",
-        "hover:cursor-pointer hover:text-foreground",
-      )}
-      onClick={column.getToggleSortingHandler()}
-    >
-      {label}
-      {sorted === "asc" && <ArrowUpIcon className="size-3.5" />}
-      {sorted === "desc" && <ArrowDownIcon className="size-3.5" />}
-      {!sorted && <ChevronsUpDownIcon className="size-3.5 opacity-40" />}
-    </button>
-  )
-}
-
-const PAGE_SIZE_OPTIONS = [10, 20, 30, 50]
-
 export function ClientsTable({ data }: { data: ClientRow[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = React.useState("")
@@ -139,13 +103,18 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
       header: ({ column }) => <SortableHeader column={column} label="Client Name" />,
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
-          <Avatar>
+          <Avatar className="size-9">
             <AvatarFallback className={cn("text-white text-xs font-semibold", avatarColor(row.original.id))}>
               {getInitials(row.original.name)}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <span className="font-medium text-sm leading-tight">{row.original.name}</span>
+            <Link
+              href={`/admin/clients/${row.original.id}`}
+              className="font-semibold text-sm leading-tight hover:text-primary hover:underline"
+            >
+              {row.original.name}
+            </Link>
             <span className="text-xs text-muted-foreground">{row.original.email}</span>
           </div>
         </div>
@@ -191,7 +160,7 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
       id: "panNumber",
       accessorFn: (row) => row.panNumber ?? "",
       enableSorting: false,
-      header: () => <span className="text-muted-foreground">PAN</span>,
+      header: () => <span>PAN</span>,
       cell: ({ row }) => (
         <span className="font-mono text-xs text-muted-foreground">
           {row.original.panNumber ?? <span className="opacity-40">—</span>}
@@ -203,17 +172,15 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
       accessorFn: (row) => (row.emailVerified ? "Verified" : "Unverified"),
       header: ({ column }) => <SortableHeader column={column} label="Email" />,
       cell: ({ row }) => (
-        <Badge
-          variant="outline"
+        <DotBadge
           className={cn(
-            "text-xs font-medium",
             row.original.emailVerified
               ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400"
               : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
           )}
         >
           {row.original.emailVerified ? "Verified" : "Unverified"}
-        </Badge>
+        </DotBadge>
       ),
     },
     {
@@ -221,17 +188,15 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
       accessorFn: (row) => (row.isActive ? "Active" : "Inactive"),
       header: ({ column }) => <SortableHeader column={column} label="Status" />,
       cell: ({ row }) => (
-        <Badge
-          variant="outline"
+        <DotBadge
           className={cn(
-            "text-xs font-medium",
             row.original.isActive
               ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400"
               : "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400"
           )}
         >
           {row.original.isActive ? "Active" : "Inactive"}
-        </Badge>
+        </DotBadge>
       ),
     },
     {
@@ -247,18 +212,6 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
             year: "numeric",
           })}
         </span>
-      ),
-    },
-    {
-      id: "actions",
-      enableSorting: false,
-      header: () => null,
-      cell: ({ row }) => (
-        <Button variant="ghost" size="icon" className="size-7 opacity-0 group-hover:opacity-100 transition-opacity" asChild>
-          <Link href={`/admin/clients/${row.original.id}`}>
-            <ChevronRightIcon className="size-4 text-muted-foreground" />
-          </Link>
-        </Button>
       ),
     },
   ], [])
@@ -321,18 +274,15 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
     table.setPageIndex(0)
   }, [stateFilter, statusFilter])
 
-  const { pageIndex, pageSize } = table.getState().pagination
-  const pageCount = table.getPageCount()
-
   return (
-    <div className="flex w-full min-w-0 flex-col gap-4">
+    <DataTableCard>
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 @2xl/main:flex-row @2xl/main:items-center @2xl/main:justify-between">
-        <div className="relative w-full max-w-sm">
+      <div className="flex flex-col gap-3 border-b p-4 @2xl/main:flex-row @2xl/main:items-center @2xl/main:justify-between">
+        <div className="relative w-full @2xl/main:max-w-xs">
           <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search client..."
-            className="pl-9"
+            className="rounded-full border-transparent bg-muted/50 pl-9"
             value={globalFilter}
             onChange={(e) => {
               setGlobalFilter(e.target.value)
@@ -342,7 +292,7 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
         </div>
         <div className="flex items-center gap-2">
           <Select value={stateFilter} onValueChange={setStateFilter}>
-            <SelectTrigger className="w-36" size="sm">
+            <SelectTrigger className="w-36 rounded-full" size="sm">
               <SelectValue placeholder="State" />
             </SelectTrigger>
             <SelectContent>
@@ -355,7 +305,7 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32" size="sm">
+            <SelectTrigger className="w-32 rounded-full" size="sm">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -366,7 +316,7 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
               </SelectGroup>
             </SelectContent>
           </Select>
-          <Button size="sm" variant="outline" onClick={exportCSV} className="gap-1.5 hover:cursor-pointer">
+          <Button size="sm" variant="outline" onClick={exportCSV} className="rounded-full hover:cursor-pointer" aria-label="Export CSV">
             <DownloadIcon className="size-3.5" />
           </Button>
         </div>
@@ -374,7 +324,7 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
 
       {/* Active filter chips */}
       {activeFilters.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 border-b px-4 py-3">
           {activeFilters.map((f) => (
             <span
               key={f.key}
@@ -394,93 +344,13 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border">
-        <Table>
-          <TableHeader className="bg-muted/60">
-            {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id} className="hover:bg-transparent">
-                {hg.headers.map((header) => (
-                  <TableHead key={header.id} className="pl-4">
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
-                  No clients match your search.
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} className="group cursor-pointer transition-colors hover:bg-muted/40">
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="pl-4">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <Table>
+        <DataTableHead table={table} />
+        <DataTableBody table={table} colSpan={columns.length} emptyMessage="No clients match your search." />
+      </Table>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <span>Show</span>
-          <Select
-            value={String(pageSize)}
-            onValueChange={(v) => {
-              table.setPageSize(Number(v))
-              table.setPageIndex(0)
-            }}
-          >
-            <SelectTrigger className="h-7 w-16 text-xs" size="sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {PAGE_SIZE_OPTIONS.map((s) => (
-                  <SelectItem key={s} value={String(s)}>{s}</SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <span>per page &nbsp;·&nbsp; {table.getFilteredRowModel().rows.length} total</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" className="size-7" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
-            <ChevronsLeftIcon className="size-3.5" />
-          </Button>
-          <Button variant="outline" size="icon" className="size-7" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-            <ChevronLeftIcon className="size-3.5" />
-          </Button>
-          {Array.from({ length: pageCount }, (_, i) => i)
-            .filter((i) => Math.abs(i - pageIndex) <= 2)
-            .map((i) => (
-              <Button
-                key={i}
-                variant={i === pageIndex ? "default" : "outline"}
-                size="icon"
-                className="size-7 text-xs"
-                onClick={() => table.setPageIndex(i)}
-              >
-                {i + 1}
-              </Button>
-            ))}
-          <Button variant="outline" size="icon" className="size-7" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-            <ChevronRightIcon className="size-3.5" />
-          </Button>
-          <Button variant="outline" size="icon" className="size-7" onClick={() => table.setPageIndex(pageCount - 1)} disabled={!table.getCanNextPage()}>
-            <ChevronsRightIcon className="size-3.5" />
-          </Button>
-        </div>
-      </div>
-    </div>
+      <DataTablePagination table={table} />
+    </DataTableCard>
   )
 }

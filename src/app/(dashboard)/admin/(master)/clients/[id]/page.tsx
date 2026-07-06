@@ -4,10 +4,8 @@ import { db } from "@/src/db/client"
 import { user, clientProfile } from "@/src/db/schema"
 import { eq } from "drizzle-orm"
 import { SiteHeader } from "@/src/components/site-header"
-import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { Badge } from "@/src/components/ui/badge"
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card"
 import { Button } from "@/src/components/ui/button"
-import { Avatar, AvatarFallback } from "@/src/components/ui/avatar"
 import { StatusToggle } from "./_components/status-toggle"
 import {
    ArrowLeftIcon,
@@ -17,7 +15,6 @@ import {
    CalendarIcon,
    CreditCardIcon,
    BadgeIcon,
-   UserIcon,
    ShieldCheckIcon,
    CheckCircle2Icon,
    ClockIcon,
@@ -34,29 +31,61 @@ function getInitials(name: string) {
       .join("")
 }
 
+/** Small pill with a leading dot — green when positive, amber otherwise. */
+function StatusPill({ active, trueLabel = "Active", falseLabel = "Inactive" }: { active: boolean; trueLabel?: string; falseLabel?: string }) {
+   return (
+      <span
+         className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium",
+            active
+               ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400"
+               : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+         )}
+      >
+         <span className="size-1.5 rounded-full bg-current" />
+         {active ? trueLabel : falseLabel}
+      </span>
+   )
+}
+
+/** Inline verification pill for a field value. */
+function VerifiedPill({ verified }: { verified: boolean }) {
+   return verified ? (
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400">
+         <CheckCircle2Icon className="size-3" /> Verified
+      </span>
+   ) : (
+      <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400">
+         <ClockIcon className="size-3" /> Unverified
+      </span>
+   )
+}
+
 function Field({ label, value, icon: Icon }: { label: string; value: React.ReactNode; icon?: React.ElementType }) {
    return (
-      <div className="flex flex-col gap-1">
-         <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+      <div className="flex flex-col gap-1.5">
+         <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             {Icon && <Icon className="size-3.5" />}
             {label}
          </span>
-         <span className="text-sm font-medium">{value}</span>
+         <span className="text-sm font-semibold">{value}</span>
       </div>
    )
 }
 
-function VerifiedBadge({ verified, trueLabel = "Verified", falseLabel = "Unverified" }: { verified: boolean; trueLabel?: string; falseLabel?: string }) {
-   return verified ? (
-      <span className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 dark:text-emerald-400">
-         <CheckCircle2Icon className="size-4" /> {trueLabel}
-      </span>
-   ) : (
-      <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-600 dark:text-amber-400">
-         <ClockIcon className="size-4" /> {falseLabel}
-      </span>
+function StatRow({ label, value, icon: Icon }: { label: string; value: React.ReactNode; icon: React.ElementType }) {
+   return (
+      <div className="flex items-center justify-between gap-2 text-sm">
+         <span className="flex items-center gap-2 text-muted-foreground">
+            <Icon className="size-4" />
+            {label}
+         </span>
+         <span className="font-medium">{value}</span>
+      </div>
    )
 }
+
+const NOT_PROVIDED = <span className="font-normal text-muted-foreground/60">Not provided</span>
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
    const { id } = await params
@@ -91,6 +120,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       year: "numeric",
    })
 
+   // We have no explicit KYC flag — treat KYC as complete once PAN + Aadhaar are on file.
+   const kycComplete = !!(client.panNumber && client.aadharNumber)
+   const clientId = client.id.slice(0, 8).toUpperCase()
+
    return (
       <>
          <SiteHeader title="Client Detail" breadcrumb="Clients" />
@@ -98,28 +131,22 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <div className="@container/main flex flex-1 flex-col gap-2">
                <div className="flex flex-col gap-6 py-4 md:py-6">
 
-                  {/* Back + heading */}
-                  <div className="flex items-center gap-3 px-4 lg:px-6">
-                     <Button variant="ghost" size="icon" className="size-8 shrink-0" asChild>
+                  {/* Top action bar */}
+                  <div className="flex flex-wrap items-start gap-3 px-4 lg:px-6">
+                     <Button variant="outline" size="icon" className="size-9 shrink-0 rounded-full" asChild>
                         <Link href="/admin/clients">
                            <ArrowLeftIcon className="size-4" />
                         </Link>
                      </Button>
-                     <div>
-                        <h2 className="text-lg font-semibold leading-tight align-center flex items-center gap-2">
-                           {client.name}
-                           <Badge
-                              variant="outline"
-                              className={cn(
-                                 "ml-1",
-                                 client.isActive
-                                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400"
-                                    : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
-                              )}
-                           >
-                              {client.isActive ? "Active" : "Inactive"}
-                           </Badge></h2>
-                        <p className="text-xs text-muted-foreground">{client.email}</p>
+                     <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                           <h1 className="text-2xl font-bold leading-tight">{client.name}</h1>
+                           <StatusPill active={client.isActive} />
+                        </div>
+                        <p className="mt-0.5 text-sm text-muted-foreground">
+                           {client.email} · Client ID{" "}
+                           <span className="font-medium text-foreground/70">#{clientId}</span>
+                        </p>
                      </div>
                      <div className="ml-auto flex items-center gap-2">
                         <StatusToggle id={client.id} name={client.name} isActive={client.isActive} />
@@ -128,22 +155,27 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
                   <div className="grid grid-cols-1 gap-4 px-4 @4xl/main:grid-cols-3 lg:px-6">
 
-                     {/* Avatar card */}
-                     <Card size="sm" className="flex flex-col items-center gap-4 py-10! @4xl/main:col-span-1">
-                        <Avatar className="size-20 text-2xl">
-                           <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl">
+                     {/* Profile card */}
+                     <Card size="sm" className="h-fit @4xl/main:col-span-1">
+                        <CardContent className="flex flex-col gap-5">
+                           <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-2xl font-bold text-white">
                               {getInitials(client.name)}
-                           </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col items-center gap-1 text-center">
-                           <p className="text-base font-semibold">{client.name}</p>
-                        </div>
-                        <div className="flex flex-col items-center gap-1.5 text-xs text-muted-foreground">
-                           <span className="flex items-center gap-1">
-                              <CalendarIcon className="size-3.5" />
-                              Joined {joinedDate}
-                           </span>
-                        </div>
+                           </div>
+                           <p className="text-lg font-semibold">{client.name}</p>
+                           <div className="border-t" />
+                           <div className="flex flex-col gap-3.5">
+                              <StatRow icon={CalendarIcon} label="Joined" value={joinedDate} />
+                              <StatRow
+                                 icon={ShieldCheckIcon}
+                                 label="KYC"
+                                 value={
+                                    <span className={kycComplete ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
+                                       {kycComplete ? "Complete" : "Pending"}
+                                    </span>
+                                 }
+                              />
+                           </div>
+                        </CardContent>
                      </Card>
 
                      {/* Details cards */}
@@ -151,21 +183,23 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
                         {/* Contact */}
                         <Card size="sm">
-                           <CardHeader>
-                              <CardTitle className="flex items-center gap-2 text-sm">
-                                 <UserIcon className="size-4 text-muted-foreground" />
+                           <CardHeader className="border-b">
+                              <CardTitle className="flex items-center gap-2.5 text-sm">
+                                 <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                    <MailIcon className="size-4" />
+                                 </span>
                                  Contact Information
                               </CardTitle>
                            </CardHeader>
                            <CardContent>
-                              <div className="grid grid-cols-1 gap-4 @2xl/main:grid-cols-2">
+                              <div className="grid grid-cols-1 gap-5 @2xl/main:grid-cols-2">
                                  <Field
                                     label="Email Address"
                                     icon={MailIcon}
                                     value={
-                                       <span className="flex items-center gap-2">
+                                       <span className="flex flex-wrap items-center gap-2">
                                           {client.email}
-                                          <VerifiedBadge verified={client.emailVerified} />
+                                          <VerifiedPill verified={client.emailVerified} />
                                        </span>
                                     }
                                  />
@@ -174,24 +208,22 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                                     icon={PhoneIcon}
                                     value={
                                        client.phone ? (
-                                          <span className="flex items-center gap-2">
+                                          <span className="flex flex-wrap items-center gap-2">
                                              {client.phone}
-                                             <VerifiedBadge verified={!!client.phoneVerified} />
+                                             <VerifiedPill verified={!!client.phoneVerified} />
                                           </span>
-                                       ) : (
-                                          <span className="text-muted-foreground/50">—</span>
-                                       )
+                                       ) : NOT_PROVIDED
                                     }
                                  />
                                  <Field
                                     label="State"
                                     icon={MapPinIcon}
-                                    value={client.state ?? <span className="text-muted-foreground/50">—</span>}
+                                    value={client.state ?? NOT_PROVIDED}
                                  />
                                  <Field
                                     label="Address"
                                     icon={HomeIcon}
-                                    value={client.address ? client.address : <span className="text-muted-foreground/50">—</span>}
+                                    value={client.address ? client.address : NOT_PROVIDED}
                                  />
                               </div>
                            </CardContent>
@@ -199,30 +231,35 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
                         {/* KYC */}
                         <Card size="sm">
-                           <CardHeader>
-                              <CardTitle className="flex items-center gap-2 text-sm">
-                                 <ShieldCheckIcon className="size-4 text-muted-foreground" />
+                           <CardHeader className="border-b">
+                              <CardTitle className="flex items-center gap-2.5 text-sm">
+                                 <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                    <ShieldCheckIcon className="size-4" />
+                                 </span>
                                  KYC Details
                               </CardTitle>
+                              <CardAction>
+                                 <StatusPill active={kycComplete} trueLabel="Verified" falseLabel="Pending" />
+                              </CardAction>
                            </CardHeader>
                            <CardContent>
-                              <div className="grid grid-cols-1 gap-4 @2xl/main:grid-cols-2">
+                              <div className="grid grid-cols-1 gap-5 @2xl/main:grid-cols-2">
                                  <Field
                                     label="PAN Number"
                                     icon={CreditCardIcon}
                                     value={
                                        client.panNumber
                                           ? <span className="font-mono">{client.panNumber}</span>
-                                          : <span className="text-muted-foreground/50">—</span>
+                                          : NOT_PROVIDED
                                     }
                                  />
                                  <Field
-                                    label="Aadhar Number"
+                                    label="Aadhaar Number"
                                     icon={BadgeIcon}
                                     value={
                                        client.aadharNumber
                                           ? <span className="font-mono">{client.aadharNumber.replace(/(\d{4})(\d{4})(\d{4})/, "$1 $2 $3")}</span>
-                                          : <span className="text-muted-foreground/50">—</span>
+                                          : NOT_PROVIDED
                                     }
                                  />
                                  <Field
@@ -231,7 +268,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                                     value={
                                        client.gstNumber
                                           ? <span className="font-mono">{client.gstNumber}</span>
-                                          : <span className="text-muted-foreground/50">—</span>
+                                          : NOT_PROVIDED
                                     }
                                  />
                               </div>
