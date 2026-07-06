@@ -203,7 +203,7 @@ export function WatchlistClient({ items: initialItems }: { items: WatchlistItem[
                filtered.map((item, i) => (
                   <div
                      key={item.id}
-                     className="group animate-slide-up rounded-xl border bg-card p-3 shadow-sm motion-reduce:animate-none"
+                     className="group animate-slide-up rounded-xl border bg-card p-3 motion-reduce:animate-none"
                      style={{ animationDelay: `${Math.min(i, 8) * 80}ms` }}
                   >
                      {/* Name + status + remove */}

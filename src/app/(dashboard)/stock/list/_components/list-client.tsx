@@ -446,7 +446,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
                )}
 
                {/* ── Company list (2-column grid - adaptive to available space) ── */}
-               <div className="grid grid-cols-1 @4xl/main:grid-cols-2 gap-3">
+               <div className="grid grid-cols-1 @3xl/main:grid-cols-2 @4xl/main:grid-cols-3 gap-3">
                   {loading ? (
                      <>
                         {Array.from({ length: 6 }).map((_, i) => (

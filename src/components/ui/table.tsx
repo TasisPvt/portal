@@ -1,19 +1,74 @@
-"use client"
-
 import * as React from "react"
 
 import { cn } from "@/src/lib/utils"
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+function Table({
+  className,
+  ...props
+}: React.ComponentProps<"table">) {
+  const scrollRef = React.useRef<HTMLDivElement>(null)
+
+  const [edges, setEdges] = React.useState({
+    left: false,
+    right: false,
+  })
+
+  const update = React.useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    const { scrollLeft, scrollWidth, clientWidth } = el
+    const max = scrollWidth - clientWidth
+
+    setEdges({
+      left: scrollLeft > 1,
+      right: scrollLeft < max - 1,
+    })
+  }, [])
+
+  React.useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    update()
+
+    el.addEventListener("scroll", update, { passive: true })
+
+    const resizeObserver = new ResizeObserver(update)
+    resizeObserver.observe(el)
+
+    return () => {
+      el.removeEventListener("scroll", update)
+      resizeObserver.disconnect()
+    }
+  }, [update])
+
   return (
-    <div
-      data-slot="table-container"
-      className="relative w-full overflow-x-auto"
-    >
-      <table
-        data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
-        {...props}
+    <div className="relative">
+      <div
+        ref={scrollRef}
+        data-slot="table-container"
+        className="overflow-x-auto"
+      >
+        <table
+          data-slot="table"
+          className={cn("w-full caption-bottom text-sm", className)}
+          {...props}
+        />
+      </div>
+
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-card to-transparent transition-opacity duration-100 ease-out",
+          edges.left ? "opacity-100" : "opacity-0"
+        )}
+      />
+
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-card to-transparent transition-opacity duration-100 ease-out",
+          edges.right ? "opacity-100" : "opacity-0"
+        )}
       />
     </div>
   )
@@ -57,7 +112,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        "border-b transition-colors hover:bg-muted has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
         className
       )}
       {...props}

@@ -2,25 +2,23 @@
 
 import * as React from "react"
 import {
-  flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-  type Column,
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table"
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/src/components/ui/table"
-import { Badge } from "@/src/components/ui/badge"
+  DataTableCard,
+  DataTableHead,
+  DataTableBody,
+  DataTablePagination,
+  SortableHeader,
+  DotBadge,
+} from "@/src/components/ui/data-table-parts"
 import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
 import { Avatar, AvatarFallback } from "@/src/components/ui/avatar"
@@ -32,18 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/src/components/ui/select"
-import {
-  SearchIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
-  ChevronsUpDownIcon,
-  ChevronsLeftIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ChevronsRightIcon,
-  XIcon,
-  DownloadIcon,
-} from "lucide-react"
+import { SearchIcon, XIcon, DownloadIcon } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/src/lib/utils"
 
@@ -91,26 +78,6 @@ function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((n) => n[0]?.toUpperCase() ?? "").join("")
 }
 
-const PAGE_SIZE_OPTIONS = [10, 20, 30, 50]
-
-function SortableHeader<T>({ column, label }: { column: Column<T, unknown>; label: string }) {
-  const sorted = column.getIsSorted()
-  return (
-    <button
-      className={cn(
-        "flex items-center gap-1 select-none transition-colors hover:cursor-pointer hover:text-foreground",
-        sorted ? "text-foreground" : "text-muted-foreground",
-      )}
-      onClick={column.getToggleSortingHandler()}
-    >
-      {label}
-      {sorted === "asc" && <ArrowUpIcon className="size-3.5" />}
-      {sorted === "desc" && <ArrowDownIcon className="size-3.5" />}
-      {!sorted && <ChevronsUpDownIcon className="size-3.5 opacity-40" />}
-    </button>
-  )
-}
-
 // ─── Table ─────────────────────────────────────────────────────────────────────
 
 export function UsersTable({ data }: { data: UserRow[] }) {
@@ -138,13 +105,18 @@ export function UsersTable({ data }: { data: UserRow[] }) {
       header: ({ column }) => <SortableHeader column={column} label="User" />,
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
-          <Avatar>
+          <Avatar className="size-9">
             <AvatarFallback className={cn("text-white text-xs font-semibold", avatarColor(row.original.id))}>
               {getInitials(row.original.name)}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <span className="text-sm font-medium leading-tight">{row.original.name}</span>
+            <Link
+              href={`/admin/users/${row.original.id}`}
+              className="text-sm font-semibold leading-tight hover:text-primary hover:underline"
+            >
+              {row.original.name}
+            </Link>
             <span className="text-xs text-muted-foreground">{row.original.email}</span>
           </div>
         </div>
@@ -157,9 +129,7 @@ export function UsersTable({ data }: { data: UserRow[] }) {
       cell: ({ row }) => {
         const role = row.original.adminRole
         return role ? (
-          <Badge variant="outline" className={cn("text-xs font-medium", ROLE_COLORS[role])}>
-            {ROLE_LABELS[role]}
-          </Badge>
+          <DotBadge className={ROLE_COLORS[role]}>{ROLE_LABELS[role]}</DotBadge>
         ) : (
           <span className="text-muted-foreground opacity-40">—</span>
         )
@@ -170,17 +140,15 @@ export function UsersTable({ data }: { data: UserRow[] }) {
       accessorFn: (row) => (row.emailVerified ? "Verified" : "Unverified"),
       header: ({ column }) => <SortableHeader column={column} label="Email" />,
       cell: ({ row }) => (
-        <Badge
-          variant="outline"
+        <DotBadge
           className={cn(
-            "text-xs font-medium",
             row.original.emailVerified
               ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400"
               : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400",
           )}
         >
           {row.original.emailVerified ? "Verified" : "Unverified"}
-        </Badge>
+        </DotBadge>
       ),
     },
     {
@@ -188,17 +156,15 @@ export function UsersTable({ data }: { data: UserRow[] }) {
       accessorFn: (row) => (row.isActive ? "Active" : "Inactive"),
       header: ({ column }) => <SortableHeader column={column} label="Status" />,
       cell: ({ row }) => (
-        <Badge
-          variant="outline"
+        <DotBadge
           className={cn(
-            "text-xs font-medium",
             row.original.isActive
               ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400"
               : "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400",
           )}
         >
           {row.original.isActive ? "Active" : "Inactive"}
-        </Badge>
+        </DotBadge>
       ),
     },
     {
@@ -214,18 +180,6 @@ export function UsersTable({ data }: { data: UserRow[] }) {
             year: "numeric",
           })}
         </span>
-      ),
-    },
-    {
-      id: "actions",
-      enableSorting: false,
-      header: () => null,
-      cell: ({ row }) => (
-        <Button variant="ghost" size="icon" className="size-7 opacity-0 group-hover:opacity-100 transition-opacity" asChild>
-          <Link href={`/admin/users/${row.original.id}`}>
-            <ChevronRightIcon className="size-4 text-muted-foreground" />
-          </Link>
-        </Button>
       ),
     },
   ], [])
@@ -281,18 +235,15 @@ export function UsersTable({ data }: { data: UserRow[] }) {
     table.setPageIndex(0)
   }, [roleFilter, statusFilter])
 
-  const { pageIndex, pageSize } = table.getState().pagination
-  const pageCount = table.getPageCount()
-
   return (
-    <div className="flex w-full min-w-0 flex-col gap-4">
+    <DataTableCard>
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 @2xl/main:flex-row @2xl/main:items-center @2xl/main:justify-between">
-        <div className="relative w-full max-w-sm">
+      <div className="flex flex-col gap-3 border-b p-4 @2xl/main:flex-row @2xl/main:items-center @2xl/main:justify-between">
+        <div className="relative w-full @2xl/main:max-w-xs">
           <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search user..."
-            className="pl-9"
+            className="rounded-full border-transparent bg-muted/50 pl-9"
             value={globalFilter}
             onChange={(e) => {
               setGlobalFilter(e.target.value)
@@ -302,7 +253,7 @@ export function UsersTable({ data }: { data: UserRow[] }) {
         </div>
         <div className="flex items-center gap-2">
           <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-36" size="sm">
+            <SelectTrigger className="w-36 rounded-full" size="sm">
               <SelectValue placeholder="Role" />
             </SelectTrigger>
             <SelectContent>
@@ -315,7 +266,7 @@ export function UsersTable({ data }: { data: UserRow[] }) {
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32" size="sm">
+            <SelectTrigger className="w-32 rounded-full" size="sm">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -326,7 +277,7 @@ export function UsersTable({ data }: { data: UserRow[] }) {
               </SelectGroup>
             </SelectContent>
           </Select>
-          <Button size="sm" variant="outline" onClick={exportCSV} className="gap-1.5 hover:cursor-pointer">
+          <Button size="sm" variant="outline" onClick={exportCSV} className="rounded-full hover:cursor-pointer" aria-label="Export CSV">
             <DownloadIcon className="size-3.5" />
           </Button>
         </div>
@@ -334,7 +285,7 @@ export function UsersTable({ data }: { data: UserRow[] }) {
 
       {/* Active filter chips */}
       {activeFilters.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 border-b px-4 py-3">
           {activeFilters.map((f) => (
             <span
               key={f.key}
@@ -354,90 +305,13 @@ export function UsersTable({ data }: { data: UserRow[] }) {
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border">
-        <Table>
-          <TableHeader className="bg-muted/60">
-            {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id} className="hover:bg-transparent">
-                {hg.headers.map((header) => (
-                  <TableHead key={header.id} className="pl-4">
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
-                  No users match your search.
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} className="group cursor-pointer transition-colors hover:bg-muted/40">
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="pl-4">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <Table>
+        <DataTableHead table={table} />
+        <DataTableBody table={table} colSpan={columns.length} emptyMessage="No users match your search." />
+      </Table>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <span>Show</span>
-          <Select
-            value={String(pageSize)}
-            onValueChange={(v) => { table.setPageSize(Number(v)); table.setPageIndex(0) }}
-          >
-            <SelectTrigger className="h-7 w-16 text-xs" size="sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {PAGE_SIZE_OPTIONS.map((s) => (
-                  <SelectItem key={s} value={String(s)}>{s}</SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <span>per page &nbsp;·&nbsp; {table.getFilteredRowModel().rows.length} total</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" className="size-7" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
-            <ChevronsLeftIcon className="size-3.5" />
-          </Button>
-          <Button variant="outline" size="icon" className="size-7" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-            <ChevronLeftIcon className="size-3.5" />
-          </Button>
-          {Array.from({ length: pageCount }, (_, i) => i)
-            .filter((i) => Math.abs(i - pageIndex) <= 2)
-            .map((i) => (
-              <Button
-                key={i}
-                variant={i === pageIndex ? "default" : "outline"}
-                size="icon"
-                className="size-7 text-xs"
-                onClick={() => table.setPageIndex(i)}
-              >
-                {i + 1}
-              </Button>
-            ))}
-          <Button variant="outline" size="icon" className="size-7" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-            <ChevronRightIcon className="size-3.5" />
-          </Button>
-          <Button variant="outline" size="icon" className="size-7" onClick={() => table.setPageIndex(pageCount - 1)} disabled={!table.getCanNextPage()}>
-            <ChevronsRightIcon className="size-3.5" />
-          </Button>
-        </div>
-      </div>
-    </div>
+      <DataTablePagination table={table} />
+    </DataTableCard>
   )
 }

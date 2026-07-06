@@ -39,7 +39,7 @@ export function CustomersCard({
 
    return (
       <Link href="/admin/clients" className="group block h-full focus-visible:outline-none">
-         <Card className="h-full transition-transform duration-200 ease-out group-hover:-translate-y-1 group-hover:c-box-shadow group-hover:border">
+         <Card className="h-full transition-transform duration-200 ease-out group-hover:-translate-y-1 group-hover:c-box-shadow! group-hover:border">
             <CardContent className="flex h-full flex-col gap-3">
                <div className="flex flex-col items-start justify-between gap-2">
                   <div className="flex gap-2.5">
