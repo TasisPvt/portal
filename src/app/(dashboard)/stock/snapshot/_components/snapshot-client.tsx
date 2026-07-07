@@ -44,6 +44,7 @@ import {
    type RecentlyViewedCompany,
 } from "../_actions"
 import { toggleWatchlist, getWatchlistedCompanyIds } from "../../watchlist/_actions"
+import { WATCHLIST_LIMIT } from "@/src/lib/constants"
 import { Button } from "@/src/components/ui/button"
 import {
    Sheet,
@@ -1080,7 +1081,9 @@ export function SnapshotClient({ access, commonRemark, thresholds, initialCompan
          toast.error(
             res.error === "no_active_subscription"
                ? "An active subscription is required to use the watchlist."
-               : "Couldn't update watchlist. Please try again.",
+               : res.error === "limit_reached"
+                  ? `Watchlist is full (${WATCHLIST_LIMIT} companies). Remove a company before adding another.`
+                  : "Couldn't update watchlist. Please try again.",
          )
       } else {
          toast.success(res.watchlisted ? "Added to watchlist" : "Removed from watchlist")

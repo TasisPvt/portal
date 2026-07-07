@@ -1,7 +1,7 @@
 "use server"
 
 import { randomUUID } from "crypto"
-import { and, desc, eq, inArray } from "drizzle-orm"
+import { and, count, desc, eq, inArray } from "drizzle-orm"
 import { headers } from "next/headers"
 import { revalidatePath } from "next/cache"
 
@@ -9,10 +9,11 @@ import { auth } from "@/src/lib/auth"
 import { db } from "@/src/db/client"
 import { watchlist, companyMaster, companyShariah, industryGroup } from "@/src/db/schema"
 import { getSubscriptionAccess, canViewSnapshot } from "@/src/lib/subscription-access"
+import { WATCHLIST_LIMIT } from "@/src/lib/constants"
 
 export type ToggleWatchlistResult =
    | { ok: true; watchlisted: boolean }
-   | { ok: false; error: "unauthenticated" | "no_active_subscription" | "failed" }
+   | { ok: false; error: "unauthenticated" | "no_active_subscription" | "limit_reached" | "failed" }
 
 // Add/remove a company from the current user's watchlist. Requires an active
 // list OR snapshot subscription (bookmarks are user-owned but gated on access).
@@ -34,6 +35,16 @@ export async function toggleWatchlist(companyId: string): Promise<ToggleWatchlis
          await db.delete(watchlist).where(eq(watchlist.id, existing.id))
          revalidatePath("/stock/watchlist")
          return { ok: true, watchlisted: false }
+      }
+
+      // Enforce the cap only on additions — the user must free a slot first.
+      const [{ value: current }] = await db
+         .select({ value: count() })
+         .from(watchlist)
+         .where(eq(watchlist.userId, access.userId))
+
+      if (current >= WATCHLIST_LIMIT) {
+         return { ok: false, error: "limit_reached" }
       }
 
       await db

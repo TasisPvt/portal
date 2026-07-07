@@ -16,3 +16,7 @@ export const DURATION_LABELS: Record<string, string> = {
    quarterly: "Quarterly",
    annual: "Annual",
 }
+
+// Max companies a user may keep bookmarked at once. Enforced server-side in the
+// watchlist toggle action; surfaced in the add-bookmark UI when reached.
+export const WATCHLIST_LIMIT = 100
