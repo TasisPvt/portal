@@ -28,15 +28,11 @@ export type PlanInput = {
    monthlyPrice?: string | null      // snapshot only
    quarterlyPrice: string
    annualPrice: string
-   // stocks per duration (snapshot only — each duration has independent limits)
+   // daily view limit (snapshot only — each duration has an independent limit)
    oneTimeStocksPerDay?: number | null
-   oneTimeStocksInDuration?: number | null
    monthlyStocksPerDay?: number | null
-   monthlyStocksInDuration?: number | null
    quarterlyStocksPerDay?: number | null
-   quarterlyStocksInDuration?: number | null
    annualStocksPerDay?: number | null
-   annualStocksInDuration?: number | null
 }
 
 // ---------------------------------------------------------------------------
@@ -58,13 +54,9 @@ export async function getPricingPlans() {
          quarterlyPrice: pricingPlan.quarterlyPrice,
          annualPrice: pricingPlan.annualPrice,
          oneTimeStocksPerDay: pricingPlan.oneTimeStocksPerDay,
-         oneTimeStocksInDuration: pricingPlan.oneTimeStocksInDuration,
          monthlyStocksPerDay: pricingPlan.monthlyStocksPerDay,
-         monthlyStocksInDuration: pricingPlan.monthlyStocksInDuration,
          quarterlyStocksPerDay: pricingPlan.quarterlyStocksPerDay,
-         quarterlyStocksInDuration: pricingPlan.quarterlyStocksInDuration,
          annualStocksPerDay: pricingPlan.annualStocksPerDay,
-         annualStocksInDuration: pricingPlan.annualStocksInDuration,
          createdById: pricingPlan.createdById,
          createdByName: user.name,
          createdAt: pricingPlan.createdAt,
@@ -111,13 +103,9 @@ function buildValues(input: PlanInput) {
       quarterlyPrice: input.quarterlyPrice,
       annualPrice: input.annualPrice,
       oneTimeStocksPerDay: isSnapshot ? (input.oneTimeStocksPerDay ?? null) : null,
-      oneTimeStocksInDuration: isSnapshot ? (input.oneTimeStocksInDuration ?? null) : null,
       monthlyStocksPerDay: isSnapshot ? (input.monthlyStocksPerDay ?? null) : null,
-      monthlyStocksInDuration: isSnapshot ? (input.monthlyStocksInDuration ?? null) : null,
       quarterlyStocksPerDay: isSnapshot ? (input.quarterlyStocksPerDay ?? null) : null,
-      quarterlyStocksInDuration: isSnapshot ? (input.quarterlyStocksInDuration ?? null) : null,
       annualStocksPerDay: isSnapshot ? (input.annualStocksPerDay ?? null) : null,
-      annualStocksInDuration: isSnapshot ? (input.annualStocksInDuration ?? null) : null,
    }
 }
 

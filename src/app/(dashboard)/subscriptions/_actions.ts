@@ -23,7 +23,6 @@ export async function getMySubscriptions() {
          endDate: subscription.endDate,
          priceSnapshot: subscription.priceSnapshot,
          stocksPerDaySnapshot: subscription.stocksPerDaySnapshot,
-         stocksInDurationSnapshot: subscription.stocksInDurationSnapshot,
          createdAt: subscription.createdAt,
       })
       .from(subscription)

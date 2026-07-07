@@ -34,16 +34,16 @@ type PlanRow = typeof pricingPlan.$inferSelect
 function snapshotFromPlan(
    plan: PlanRow,
    durationType: DurationType,
-): { price: string; stocksPerDay: number | null; stocksInDuration: number | null } {
+): { price: string; stocksPerDay: number | null } {
    switch (durationType) {
       case "one_time":
-         return { price: plan.oneTimePrice!, stocksPerDay: plan.oneTimeStocksPerDay, stocksInDuration: plan.oneTimeStocksInDuration }
+         return { price: plan.oneTimePrice!, stocksPerDay: plan.oneTimeStocksPerDay }
       case "monthly":
-         return { price: plan.monthlyPrice!, stocksPerDay: plan.monthlyStocksPerDay, stocksInDuration: plan.monthlyStocksInDuration }
+         return { price: plan.monthlyPrice!, stocksPerDay: plan.monthlyStocksPerDay }
       case "quarterly":
-         return { price: plan.quarterlyPrice!, stocksPerDay: plan.quarterlyStocksPerDay, stocksInDuration: plan.quarterlyStocksInDuration }
+         return { price: plan.quarterlyPrice!, stocksPerDay: plan.quarterlyStocksPerDay }
       case "annual":
-         return { price: plan.annualPrice!, stocksPerDay: plan.annualStocksPerDay, stocksInDuration: plan.annualStocksInDuration }
+         return { price: plan.annualPrice!, stocksPerDay: plan.annualStocksPerDay }
    }
 }
 
@@ -85,13 +85,9 @@ export async function getActivePlans() {
          quarterlyPrice: pricingPlan.quarterlyPrice,
          annualPrice: pricingPlan.annualPrice,
          oneTimeStocksPerDay: pricingPlan.oneTimeStocksPerDay,
-         oneTimeStocksInDuration: pricingPlan.oneTimeStocksInDuration,
          monthlyStocksPerDay: pricingPlan.monthlyStocksPerDay,
-         monthlyStocksInDuration: pricingPlan.monthlyStocksInDuration,
          quarterlyStocksPerDay: pricingPlan.quarterlyStocksPerDay,
-         quarterlyStocksInDuration: pricingPlan.quarterlyStocksInDuration,
          annualStocksPerDay: pricingPlan.annualStocksPerDay,
-         annualStocksInDuration: pricingPlan.annualStocksInDuration,
       })
       .from(pricingPlan)
       .leftJoin(indexMaster, eq(pricingPlan.indexId, indexMaster.id))
@@ -158,7 +154,7 @@ export async function createPaymentOrder(
       return { success: false, message: "You already have an active subscription for this plan and duration" }
    }
 
-   const { price, stocksPerDay, stocksInDuration } = snapshotFromPlan(plan, durationType)
+   const { price, stocksPerDay } = snapshotFromPlan(plan, durationType)
    const amountPaise = Math.round(parseFloat(price ?? "") * 100)
    if (!Number.isFinite(amountPaise) || amountPaise < 100) {
       return { success: false, message: "This plan option is not available for purchase" }
@@ -204,7 +200,6 @@ export async function createPaymentOrder(
       gstRate: String(GST_RATE),
       placeOfSupply: profile?.state ?? "",
       stocksPerDaySnapshot: stocksPerDay,
-      stocksInDurationSnapshot: stocksInDuration,
       razorpayOrderId: order.id,
       status: "created",
    })

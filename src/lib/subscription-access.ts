@@ -9,17 +9,12 @@ import { subscription, pricingPlan } from "@/src/db/schema"
 import { stockViewLog } from "@/src/db/schema/stock-views"
 
 // Snapshot subscription context, evaluated with the real validity rules rather
-// than the (never-updated) `status` column:
+// than the (never-updated) `status` column. Snapshot plans are gated only by a
+// daily view limit, so validity is purely the time window:
 //   • time window → subscription.endDate (computeEndDate already encodes it)
-//   • total quota → distinct companies viewed vs stocksInDuration
 export type SnapshotContext = {
    subscriptionId: string
    endDate: Date
-   stocksInDuration: number | null
-   totalViewed: number
-   // Total quota is used up. The plan is "expired" for new companies, but the
-   // user can still re-view companies already viewed today until the day ends.
-   quotaExhausted: boolean
    viewedTodayIds: string[]
 }
 
@@ -60,7 +55,6 @@ export async function getSubscriptionAccess(): Promise<SubscriptionAccess | null
          .select({
             id: subscription.id,
             endDate: subscription.endDate,
-            stocksInDuration: subscription.stocksInDurationSnapshot,
          })
          .from(subscription)
          .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
@@ -75,27 +69,14 @@ export async function getSubscriptionAccess(): Promise<SubscriptionAccess | null
       const sub = snapRows[0]
       const today = new Date().toISOString().slice(0, 10)
 
-      const [totalRow, viewedTodayRows] = await Promise.all([
-         db
-            .select({ cnt: sql<number>`count(distinct ${stockViewLog.companyId})` })
-            .from(stockViewLog)
-            .where(eq(stockViewLog.subscriptionId, sub.id)),
-         db
-            .select({ companyId: stockViewLog.companyId })
-            .from(stockViewLog)
-            .where(and(eq(stockViewLog.subscriptionId, sub.id), eq(stockViewLog.viewedDate, today))),
-      ])
-
-      const totalViewed = Number(totalRow[0]?.cnt ?? 0)
-      const quotaExhausted =
-         sub.stocksInDuration !== null && totalViewed >= sub.stocksInDuration
+      const viewedTodayRows = await db
+         .select({ companyId: stockViewLog.companyId })
+         .from(stockViewLog)
+         .where(and(eq(stockViewLog.subscriptionId, sub.id), eq(stockViewLog.viewedDate, today)))
 
       snapshot = {
          subscriptionId: sub.id,
          endDate: sub.endDate,
-         stocksInDuration: sub.stocksInDuration,
-         totalViewed,
-         quotaExhausted,
          viewedTodayIds: viewedTodayRows.map((r) => r.companyId),
       }
    }
@@ -108,12 +89,10 @@ export async function getSubscriptionAccess(): Promise<SubscriptionAccess | null
    }
 }
 
-// Can the user open the full snapshot detail for this specific company right now?
-// True when a snapshot plan is in its window and either quota remains, or the
-// company was already viewed today (free re-view).
-export function canViewSnapshot(access: SubscriptionAccess, companyId: string): boolean {
-   const s = access.snapshot
-   if (!s) return false
-   if (!s.quotaExhausted) return true
-   return s.viewedTodayIds.includes(companyId)
+// Can the user open the full snapshot detail right now? Snapshot plans have no
+// total cap anymore — access is granted whenever a snapshot plan is in its time
+// window. The daily view limit is enforced (softly, with free same-day re-views)
+// at view time in getCompanySnapshot.
+export function canViewSnapshot(access: SubscriptionAccess): boolean {
+   return access.snapshot !== null
 }

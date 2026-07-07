@@ -111,16 +111,11 @@ function fmtMarketCapRaw(val: string | null | undefined): string {
 function CompactQuotaBar({
    dailyUsed,
    dailyLimit,
-   totalUsed,
-   totalLimit,
 }: {
    dailyUsed: number
    dailyLimit: number | null
-   totalUsed: number
-   totalLimit: number | null
 }) {
    const dailyPct = dailyLimit ? Math.min(dailyUsed / dailyLimit, 1) : null
-   const totalPct = totalLimit ? Math.min(totalUsed / totalLimit, 1) : null
    const barColor = (pct: number) =>
       pct >= 0.9 ? "bg-red-500" : pct >= 0.7 ? "bg-amber-500" : "bg-emerald-500"
 
@@ -128,7 +123,6 @@ function CompactQuotaBar({
       <div className="hidden @2xl/main:flex items-center gap-2 shrink-0">
          {[
             { label: "Today", used: dailyUsed, limit: dailyLimit, pct: dailyPct },
-            { label: "Total", used: totalUsed, limit: totalLimit, pct: totalPct },
          ].map(({ label, used, limit, pct }) => (
             <div key={label} className="flex min-w-20 flex-col gap-1 rounded-xl border bg-card px-3 py-2">
                <div className="flex items-center justify-between gap-2 text-[10px]">
@@ -153,16 +147,11 @@ function CompactQuotaBar({
 function FullQuotaBar({
    dailyUsed,
    dailyLimit,
-   totalUsed,
-   totalLimit,
 }: {
    dailyUsed: number
    dailyLimit: number | null
-   totalUsed: number
-   totalLimit: number | null
 }) {
    const dailyPct = dailyLimit ? Math.min(dailyUsed / dailyLimit, 1) : null
-   const totalPct = totalLimit ? Math.min(totalUsed / totalLimit, 1) : null
    const barColor = (pct: number) =>
       pct >= 0.9 ? "bg-red-500" : pct >= 0.7 ? "bg-amber-500" : "bg-emerald-500"
 
@@ -172,7 +161,6 @@ function FullQuotaBar({
          <div className="flex flex-wrap gap-5">
             {[
                { label: "Today", used: dailyUsed, limit: dailyLimit, pct: dailyPct },
-               { label: "Total", used: totalUsed, limit: totalLimit, pct: totalPct },
             ].map(({ label, used, limit, pct }) => (
                <div key={label} className="flex min-w-24 flex-col gap-1">
                   <div className="flex items-center justify-between gap-3 text-sm">
@@ -972,8 +960,6 @@ export function SnapshotClient({ access, commonRemark, thresholds, initialCompan
    const [quota, setQuota] = React.useState({
       dailyUsed: access.dailyUsed,
       dailyLimit: access.stocksPerDay,
-      totalUsed: access.totalUsed,
-      totalLimit: access.stocksInDuration,
    })
    const [watchlistedIds, setWatchlistedIds] = React.useState<Set<string>>(new Set())
    const [togglingWatchlist, setTogglingWatchlist] = React.useState(false)
@@ -1031,9 +1017,6 @@ export function SnapshotClient({ access, commonRemark, thresholds, initialCompan
          if ("error" in result) {
             if (result.error === "daily_quota_exceeded") {
                toast.error("Daily quota reached. You've viewed the maximum companies for today.")
-               if ("quota" in result) setQuota(result.quota)
-            } else if (result.error === "total_quota_exceeded") {
-               toast.error("Subscription quota reached. You've viewed the maximum companies for this subscription.")
                if ("quota" in result) setQuota(result.quota)
             } else {
                toast.error("Failed to load snapshot.")
@@ -1118,8 +1101,6 @@ export function SnapshotClient({ access, commonRemark, thresholds, initialCompan
             <CompactQuotaBar
                dailyUsed={quota.dailyUsed}
                dailyLimit={quota.dailyLimit}
-               totalUsed={quota.totalUsed}
-               totalLimit={quota.totalLimit}
             />
 
             {/* TASIS Note button */}
@@ -1152,8 +1133,6 @@ export function SnapshotClient({ access, commonRemark, thresholds, initialCompan
          <FullQuotaBar
             dailyUsed={quota.dailyUsed}
             dailyLimit={quota.dailyLimit}
-            totalUsed={quota.totalUsed}
-            totalLimit={quota.totalLimit}
          />
 
          {/* Empty state */}

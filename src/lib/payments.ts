@@ -97,7 +97,6 @@ async function createSubscriptionRecord(
       durationType: DurationType
       price: string
       stocksPerDay: number | null
-      stocksInDuration: number | null
       taxableAmount: string
       cgst: string
       sgst: string
@@ -126,7 +125,6 @@ async function createSubscriptionRecord(
       gstRate: args.gstRate,
       placeOfSupply: args.placeOfSupply,
       stocksPerDaySnapshot: args.stocksPerDay,
-      stocksInDurationSnapshot: args.stocksInDuration,
       createdAt: startDate,
       updatedAt: startDate,
    })
@@ -191,7 +189,6 @@ export async function finalizePaidOrder(args: {
               durationType,
               price: pay.priceSnapshot,
               stocksPerDay: pay.stocksPerDaySnapshot,
-              stocksInDuration: pay.stocksInDurationSnapshot,
               taxableAmount: pay.taxableAmount,
               cgst: pay.cgst,
               sgst: pay.sgst,

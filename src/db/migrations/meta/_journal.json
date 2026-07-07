@@ -134,6 +134,13 @@
       "when": 1782932700471,
       "tag": "0018_flat_valeria_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1783454920325,
+      "tag": "0019_sweet_sabretooth",
+      "breakpoints": true
     }
   ]
 }

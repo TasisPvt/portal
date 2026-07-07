@@ -25,7 +25,6 @@ interface SubscribeButtonProps {
    durationType: DurationType
    price: string
    stocksPerDay?: number | null
-   stocksInDuration?: number | null
    customerState?: string | null
    triggerLabel?: string
    triggerClassName?: string
@@ -125,12 +124,6 @@ export function SubscribeButton(props: SubscribeButtonProps) {
                      <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Stocks per day</span>
                         <span>{props.stocksPerDay}</span>
-                     </div>
-                  )}
-                  {props.stocksInDuration != null && (
-                     <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Total stocks in duration</span>
-                        <span>{props.stocksInDuration}</span>
                      </div>
                   )}
                   {/* GST breakdown (price is inclusive of GST) */}
