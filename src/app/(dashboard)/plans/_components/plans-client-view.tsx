@@ -10,6 +10,7 @@ import {
    SelectValue,
 } from "@/src/components/ui/select"
 import { cn } from "@/src/lib/utils"
+import { Card } from "@/src/components/ui/card"
 import { SubscribeButton } from "./subscribe-dialog"
 import { PlanTypeBadge } from "@/src/components/plan-type-badge"
 import type { DurationType } from "../_actions"
@@ -96,7 +97,7 @@ function PlanCard({ plan, isSubscribed, customerState }: { plan: PlanRow; isSubs
    }
 
    return (
-     <div className="relative row-span-5 grid grid-rows-subgrid gap-y-0 rounded-2xl border bg-card p-4 shadow-md hover:c-box-shadow transition-transform duration-200 ease-out hover:-translate-y-1 hover:border-primary/50">
+      <Card className="relative row-span-5 !grid grid-rows-subgrid !gap-y-0 !overflow-visible !py-4 px-4 transition-transform duration-200 ease-out hover:-translate-y-1 hover:border-primary/40">
          {/* Already Subscribed banner */}
          {isSubscribed && (
             <div className="absolute -top-px left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
@@ -191,7 +192,7 @@ function PlanCard({ plan, isSubscribed, customerState }: { plan: PlanRow; isSubs
                ))}
             </ul>
          </div>
-      </div>
+      </Card>
    )
 }
 

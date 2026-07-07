@@ -9,6 +9,14 @@ import { Input } from "@/src/components/ui/input"
 import { Button } from "@/src/components/ui/button"
 import { Badge } from "@/src/components/ui/badge"
 import {
+   Card,
+   CardHeader,
+   CardTitle,
+   CardAction,
+   CardContent,
+   CardFooter,
+} from "@/src/components/ui/card"
+import {
    DropdownMenu,
    DropdownMenuContent,
    DropdownMenuItem,
@@ -22,6 +30,7 @@ import {
    EmptyDescription,
 } from "@/src/components/ui/empty"
 import { cn } from "@/src/lib/utils"
+import { WATCHLIST_LIMIT } from "@/src/lib/constants"
 import { toggleWatchlist, type WatchlistItem } from "../_actions"
 
 type ComplianceFilter = "all" | "compliant" | "non-compliant"
@@ -57,6 +66,8 @@ export function WatchlistClient({ items: initialItems }: { items: WatchlistItem[
    const [removingId, setRemovingId] = React.useState<string | null>(null)
    const [search, setSearch] = React.useState("")
    const [complianceFilter, setComplianceFilter] = React.useState<ComplianceFilter>("all")
+
+   const atLimit = items.length >= WATCHLIST_LIMIT
 
    // Compliant = status 1; everything else with a known status is non-compliant.
    const complianceCounts = React.useMemo(() => {
@@ -184,11 +195,38 @@ export function WatchlistClient({ items: initialItems }: { items: WatchlistItem[
                />
             </div>
 
-            {/* Results count */}
-            <p className="whitespace-nowrap text-xs text-muted-foreground" aria-live="polite">
-               {filtered.length} of {items.length} shown
-            </p>
+            <div className="flex items-center gap-2.5">
+               {/* Results count */}
+               <p className="whitespace-nowrap text-xs text-muted-foreground" aria-live="polite">
+                  {filtered.length} of {items.length} shown
+               </p>
+
+               {/* Capacity indicator — surfaces the watchlist limit */}
+               <span
+                  className={cn(
+                     "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium",
+                     atLimit
+                        ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                        : "border-border text-muted-foreground",
+                  )}
+                  title={`Your watchlist can hold up to ${WATCHLIST_LIMIT} companies`}
+               >
+                  <BookmarkIcon className="size-3.5" aria-hidden="true" />
+                  {items.length} / {WATCHLIST_LIMIT}
+               </span>
+            </div>
          </div>
+
+         {/* At-capacity notice */}
+         {atLimit && (
+            <p
+               className="-mt-3 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400"
+               role="status"
+            >
+               <BookmarkIcon className="size-3.5" aria-hidden="true" />
+               Watchlist is full ({WATCHLIST_LIMIT} companies). Remove a company before adding a new one.
+            </p>
+         )}
 
          {/* Company cards */}
          <div className="grid grid-cols-1 gap-3 @4xl/main:grid-cols-2">
@@ -203,69 +241,75 @@ export function WatchlistClient({ items: initialItems }: { items: WatchlistItem[
                filtered.map((item, i) => (
                   <div
                      key={item.id}
-                     className="group animate-slide-up rounded-xl border bg-card p-3 motion-reduce:animate-none"
+                     className="animate-slide-up motion-reduce:animate-none"
                      style={{ animationDelay: `${Math.min(i, 8) * 80}ms` }}
                   >
-                     {/* Name + status + remove */}
-                     <div className="mb-3 flex items-start justify-between gap-2">
-                        <h3 className="min-w-0 flex-1 break-words text-sm font-semibold text-foreground">
-                           {item.companyName}
-                        </h3>
-                        <div className="flex shrink-0 items-center">
-                           <StatusBadge status={item.shariahStatus} />
-                           <button
-                              type="button"
-                              onClick={() => handleRemove(item.id)}
-                              disabled={removingId === item.id}
-                              aria-label="Remove from watchlist"
-                              title="Remove from watchlist"
-                              className="flex h-7 w-0 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border text-muted-foreground opacity-0 transition-all duration-200 ease-out group-hover:ml-1.5 group-hover:w-7 group-hover:opacity-100 hover:bg-muted hover:text-red-600 focus-visible:ml-1.5 focus-visible:w-7 focus-visible:opacity-100 disabled:opacity-50 motion-reduce:transition-none dark:hover:text-red-400"
-                           >
-                              <Trash2Icon className="size-3.5" />
-                           </button>
-                        </div>
-                     </div>
+                     <Card size="sm" className="group h-full gap-3 hover:border-primary/40">
+                        {/* Name + status + remove */}
+                        <CardHeader>
+                           <CardTitle className="min-w-0 break-words text-sm font-semibold leading-snug">
+                              {item.companyName}
+                           </CardTitle>
+                           <CardAction>
+                              <div className="flex items-center">
+                                 <StatusBadge status={item.shariahStatus} />
+                                 <button
+                                    type="button"
+                                    onClick={() => handleRemove(item.id)}
+                                    disabled={removingId === item.id}
+                                    aria-label="Remove from watchlist"
+                                    title="Remove from watchlist"
+                                    className="flex h-7 w-0 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border text-muted-foreground opacity-0 transition-all duration-200 ease-out group-hover:ml-1.5 group-hover:w-7 group-hover:opacity-100 hover:bg-muted hover:text-red-600 focus-visible:ml-1.5 focus-visible:w-7 focus-visible:opacity-100 disabled:opacity-50 motion-reduce:transition-none dark:hover:text-red-400"
+                                 >
+                                    <Trash2Icon className="size-3.5" />
+                                 </button>
+                              </div>
+                           </CardAction>
+                        </CardHeader>
 
-                     {/* NSE / BSE codes */}
-                     {(item.nseSymbol || item.bseScripCode) && (
-                        <div className="mb-3 flex flex-wrap gap-1">
-                           {item.nseSymbol && (
-                              <Badge variant="secondary" className="rounded-lg">
-                                 <span className="text-foreground">NSE Symbol: </span>
-                                 {item.nseSymbol}
-                              </Badge>
+                        <CardContent className="flex flex-col gap-2.5">
+                           {/* NSE / BSE codes */}
+                           {(item.nseSymbol || item.bseScripCode) && (
+                              <div className="flex flex-wrap gap-1">
+                                 {item.nseSymbol && (
+                                    <Badge variant="secondary" className="rounded-lg">
+                                       <span className="text-foreground">NSE Symbol: </span>
+                                       {item.nseSymbol}
+                                    </Badge>
+                                 )}
+                                 {item.bseScripCode && (
+                                    <Badge variant="secondary" className="rounded-lg">
+                                       <span className="text-foreground">BSE Scrip Code: </span>
+                                       {item.bseScripCode}
+                                    </Badge>
+                                 )}
+                              </div>
                            )}
-                           {item.bseScripCode && (
-                              <Badge variant="secondary" className="rounded-lg">
-                                 <span className="text-foreground">BSE Scrip Code: </span>
-                                 {item.bseScripCode}
-                              </Badge>
+
+                           {/* Industry */}
+                           {item.industryGroup && (
+                              <div className="text-xs">
+                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    Industry
+                                 </p>
+                                 <p className="truncate font-medium text-foreground">{item.industryGroup}</p>
+                              </div>
                            )}
-                        </div>
-                     )}
+                        </CardContent>
 
-                     {/* Industry */}
-                     {item.industryGroup && (
-                        <div className="mb-3 text-xs">
-                           <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                              Industry
-                           </p>
-                           <p className="truncate font-medium text-foreground">{item.industryGroup}</p>
-                        </div>
-                     )}
-
-                     {/* Action */}
-                     <div className="flex justify-end">
-                        {item.canViewSnapshot ? (
-                           <Button asChild size="sm">
-                              <Link href={`/stock/snapshot?company=${item.id}`}>View detailed snapshot</Link>
-                           </Button>
-                        ) : (
-                           <Button asChild size="sm" variant="outline">
-                              <Link href="/plans">Unlock detailed snapshot</Link>
-                           </Button>
-                        )}
-                     </div>
+                        {/* Action */}
+                        <CardFooter className="mt-auto justify-end">
+                           {item.canViewSnapshot ? (
+                              <Button asChild size="sm">
+                                 <Link href={`/stock/snapshot?company=${item.id}`}>View detailed snapshot</Link>
+                              </Button>
+                           ) : (
+                              <Button asChild size="sm" variant="outline">
+                                 <Link href="/plans">Unlock detailed snapshot</Link>
+                              </Button>
+                           )}
+                        </CardFooter>
+                     </Card>
                   </div>
                ))
             )}

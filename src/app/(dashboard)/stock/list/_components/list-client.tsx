@@ -44,6 +44,7 @@ import { cn } from "@/src/lib/utils"
 import { formatMonth as fmtMonth } from "@/src/lib/format"
 import { getListCompanies, type ListSubscription, type ListCompany } from "../_actions"
 import { toggleWatchlist, getWatchlistedCompanyIds } from "../../watchlist/_actions"
+import { WATCHLIST_LIMIT } from "@/src/lib/constants"
 import { getCompanySnapshot, getFinancialRatioThresholds } from "../../snapshot/_actions"
 import { SnapshotCard, type SnapshotSuccess } from "../../snapshot/_components/snapshot-client"
 import { Badge } from "@/src/components/ui/badge"
@@ -163,7 +164,9 @@ export function ListClient({ subscriptions }: ListClientProps) {
          toast.error(
             res.error === "no_active_subscription"
                ? "An active subscription is required to use the watchlist."
-               : "Couldn't update watchlist. Please try again.",
+               : res.error === "limit_reached"
+                  ? `Watchlist is full (${WATCHLIST_LIMIT} companies). Remove a company before adding another.`
+                  : "Couldn't update watchlist. Please try again.",
          )
       } else {
          toast.success(res.watchlisted ? "Added to watchlist" : "Removed from watchlist")
