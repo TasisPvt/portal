@@ -1,7 +1,7 @@
 "use server"
 
 import { randomUUID } from "crypto"
-import { and, eq } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
 
@@ -10,6 +10,7 @@ import {
    subscription,
    pricingPlan,
    indexMaster,
+   indexCompany,
    payment,
    clientProfile,
 } from "@/src/db/schema"
@@ -76,6 +77,8 @@ export async function getActivePlans() {
          type: pricingPlan.type,
          indexId: pricingPlan.indexId,
          indexName: indexMaster.name,
+         // Number of companies in the plan's index (0 for non-list plans).
+         indexCompanyCount: sql<number>`(select count(*)::int from ${indexCompany} where ${indexCompany.indexId} = ${pricingPlan.indexId})`,
          category: pricingPlan.category,
          oneTimePrice: pricingPlan.oneTimePrice,
          monthlyPrice: pricingPlan.monthlyPrice,

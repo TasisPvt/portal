@@ -21,6 +21,7 @@ type PlanRow = {
    type: string
    indexId: string | null
    indexName: string | null
+   indexCompanyCount: number
    category: string | null
    oneTimePrice: string | null
    monthlyPrice: string | null
@@ -92,7 +93,8 @@ function PlanCard({ plan, isSubscribed, customerState }: { plan: PlanRow; isSubs
       if (sid != null) features.push({ label: `${sid} Stock(s) total` })
       if (spd != null) features.push({ label: `${spd} stock(s) per day` })
    } else {
-      features.push({ label: "Unlimited Stock(s)" })
+      const n = plan.indexCompanyCount
+      features.push({ label: `${new Intl.NumberFormat("en-IN").format(n)} ${n === 1 ? "Stock" : "Stocks"} total` })
       if (plan.indexName) features.push({ label: `Index: ${plan.indexName}` })
    }
 
