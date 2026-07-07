@@ -28,10 +28,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             {/* ── Brand panel (desktop only) ── */}
             <aside className="hidden flex-col justify-between p-12 lg:flex">
                {/* Headline + messaging */}
-               <div className="my-auto max-w-md animate-slide-up">
+               <div className="my-auto max-w-lg animate-slide-up">
                   <Logo white priority width={88} height={100} className="justify-start" />
                   <h1 className="mt-5 font-heading text-2xl font-bold leading-tight text-white">
-                     Where Ethical Investing Meets ,
+                     Where Ethical Investing Meets
                      <br />
                      Intelligent Research.
                   </h1>
