@@ -33,6 +33,13 @@ import {
    DropdownMenuItem,
    DropdownMenuTrigger,
 } from "@/src/components/ui/dropdown-menu"
+import {
+   Card,
+   CardHeader,
+   CardTitle,
+   CardAction,
+   CardContent,
+} from "@/src/components/ui/card"
 import { cn } from "@/src/lib/utils"
 import { formatMonth as fmtMonth } from "@/src/lib/format"
 import { getListCompanies, type ListSubscription, type ListCompany } from "../_actions"
@@ -211,14 +218,20 @@ export function ListClient({ subscriptions }: ListClientProps) {
 
       // Apply search filter
       const q = search.toLowerCase()
-      if (!q) return result
-      return result.filter(
-         (c) =>
-            c.companyName.toLowerCase().includes(q) ||
-            (c.nseSymbol?.toLowerCase().includes(q) ?? false) ||
-            (c.bseScripCode?.toLowerCase().includes(q) ?? false) ||
-            // (c.isinCode?.toLowerCase().includes(q) ?? false) ||
-            (c.industryGroup?.toLowerCase().includes(q) ?? false),
+      if (q) {
+         result = result.filter(
+            (c) =>
+               c.companyName.toLowerCase().includes(q) ||
+               (c.nseSymbol?.toLowerCase().includes(q) ?? false) ||
+               (c.bseScripCode?.toLowerCase().includes(q) ?? false) ||
+               // (c.isinCode?.toLowerCase().includes(q) ?? false) ||
+               (c.industryGroup?.toLowerCase().includes(q) ?? false),
+         )
+      }
+
+      // Sort alphabetically by company name (A→Z).
+      return [...result].sort((a, b) =>
+         a.companyName.localeCompare(b.companyName, undefined, { sensitivity: "base" }),
       )
    }, [companies, search, complianceFilter])
 
@@ -446,22 +459,22 @@ export function ListClient({ subscriptions }: ListClientProps) {
                )}
 
                {/* ── Company list (2-column grid - adaptive to available space) ── */}
-               <div className="grid grid-cols-1 @3xl/main:grid-cols-2 @4xl/main:grid-cols-3 gap-3">
+               <div className="grid grid-cols-1 @4xl/main:grid-cols-2 @5xl/main:grid-cols-3 gap-3">
                   {loading ? (
                      <>
                         {Array.from({ length: 6 }).map((_, i) => (
-                           <div key={i} className="rounded-xl border p-3 space-y-2">
-                              <div className="flex items-start justify-between gap-2">
-                                 <Skeleton className="h-5 w-40" />
-                                 <Skeleton className="h-5 w-20 shrink-0" />
-                              </div>
-                              <div className="grid grid-cols-2 gap-3">
-                                 <Skeleton className="h-4 w-24" />
-                                 <Skeleton className="h-4 w-24" />
-                                 <Skeleton className="h-4 w-24" />
-                                 <Skeleton className="h-4 w-24" />
-                              </div>
-                           </div>
+                           <Card key={i} size="sm">
+                              <CardHeader>
+                                 <Skeleton className="h-4 w-40" />
+                                 <CardAction>
+                                    <Skeleton className="h-5 w-24" />
+                                 </CardAction>
+                              </CardHeader>
+                              <CardContent className="flex flex-col gap-2">
+                                 <Skeleton className="h-3 w-32" />
+                                 <Skeleton className="h-3 w-24" />
+                              </CardContent>
+                           </Card>
                         ))}
                      </>
                   ) : filtered.length === 0 ? (
@@ -473,8 +486,12 @@ export function ListClient({ subscriptions }: ListClientProps) {
                      </div>
                   ) : (
                      paginated.map((company) => (
-                        <div
+                        <Card
                            key={company.id}
+                           size="sm"
+                           role="button"
+                           tabIndex={0}
+                           aria-label={`View details for ${company.companyName}`}
                            onClick={() => {
                               setSelectedCompany(company)
                               setSnapshotData(null)
@@ -487,64 +504,67 @@ export function ListClient({ subscriptions }: ListClientProps) {
                                  })
                                  .finally(() => setSnapshotLoading(false))
                            }}
-                           role="button"
-                           tabIndex={0}
-                           aria-label={`View details for ${company.companyName}`}
                            onKeyDown={(e) => {
                               if (e.key === "Enter" || e.key === " ") {
                                  e.preventDefault()
                                  setSelectedCompany(company)
                               }
                            }}
-                           className="group cursor-pointer rounded-xl border bg-card p-3 transition-all shadow-sm hover:border-primary/40 hover:shadow-md"
+                           className="group cursor-pointer transition-all hover:border-primary/40 hover:shadow-md"
                         >
-                           {/* Header: Company name + Status badge + bookmark */}
-                           <div className="flex items-start justify-between gap-2 mb-2.5">
-                              <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors break-words flex-1 min-w-0">
+                           <CardHeader>
+                              <CardTitle className="text-sm font-semibold leading-snug group-hover:text-primary transition-colors">
                                  {company.companyName}
-                              </h3>
-                              <div className="flex shrink-0 items-center gap-1.5">
-                                 <StatusBadge status={company.shariahStatus} />
-                                 <button
-                                    type="button"
-                                    onClick={(e) => {
-                                       e.stopPropagation()
-                                       handleToggleWatchlist(company.id)
-                                    }}
-                                    disabled={togglingId === company.id}
-                                    aria-pressed={watchlistedIds.has(company.id)}
-                                    aria-label={watchlistedIds.has(company.id) ? "Remove from watchlist" : "Add to watchlist"}
-                                    title={watchlistedIds.has(company.id) ? "Remove from watchlist" : "Add to watchlist"}
-                                    className={cn(
-                                       "flex size-7 shrink-0 items-center justify-center rounded-lg border transition-colors disabled:opacity-50",
-                                       watchlistedIds.has(company.id)
-                                          ? "border-primary/30 bg-primary/10 text-primary"
-                                          : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
-                                    )}
-                                 >
-                                    <BookmarkIcon className={cn("size-3.5", watchlistedIds.has(company.id) && "fill-current")} />
-                                 </button>
-                              </div>
-                           </div>
-                           <div className="flex flex-wrap gap-1 mt-1">
-                              {company.nseSymbol && (<Badge variant="secondary" className="rounded-lg">
-                                 <span className="text-foreground ">NSE Symbol: </span>{company.nseSymbol}
-                              </Badge>)}
-                              {company.bseScripCode && (<Badge variant="secondary" className="rounded-lg">
-                                 <span className="text-foreground ">BSE Scrip Code: </span>{company.bseScripCode}
-                              </Badge>)}
-                           </div>
+                              </CardTitle>
+                              <CardAction>
+                                 <div className="flex items-center gap-1.5">
+                                    <StatusBadge status={company.shariahStatus} />
+                                    <button
+                                       type="button"
+                                       onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleToggleWatchlist(company.id)
+                                       }}
+                                       disabled={togglingId === company.id}
+                                       aria-pressed={watchlistedIds.has(company.id)}
+                                       aria-label={watchlistedIds.has(company.id) ? "Remove from watchlist" : "Add to watchlist"}
+                                       title={watchlistedIds.has(company.id) ? "Remove from watchlist" : "Add to watchlist"}
+                                       className={cn(
+                                          "flex size-7 shrink-0 items-center justify-center rounded-lg border transition-colors disabled:opacity-50",
+                                          watchlistedIds.has(company.id)
+                                             ? "border-primary/30 bg-primary/10 text-primary"
+                                             : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
+                                       )}
+                                    >
+                                       <BookmarkIcon className={cn("size-3.5", watchlistedIds.has(company.id) && "fill-current")} />
+                                    </button>
+                                 </div>
+                              </CardAction>
+                           </CardHeader>
 
-                           {/* Details: 2x2 grid */}
-                           <div className="text-xs mt-3">
-                              {company.industryGroup && (
-                                 <div>
-                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Industry</p>
-                                    <p className="text-foreground font-medium truncate">{company.industryGroup}</p>
+                           <CardContent className="flex flex-col gap-2.5">
+                              {(company.nseSymbol || company.bseScripCode) && (
+                                 <div className="flex flex-wrap gap-1">
+                                    {company.nseSymbol && (
+                                       <Badge variant="secondary" className="rounded-lg">
+                                          <span className="text-foreground">NSE Symbol: </span>{company.nseSymbol}
+                                       </Badge>
+                                    )}
+                                    {company.bseScripCode && (
+                                       <Badge variant="secondary" className="rounded-lg">
+                                          <span className="text-foreground">BSE Scrip Code: </span>{company.bseScripCode}
+                                       </Badge>
+                                    )}
                                  </div>
                               )}
-                           </div>
-                        </div>
+                              {company.industryGroup && (
+                                 <div className="text-xs">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Industry</p>
+                                    <p className="truncate font-medium text-foreground">{company.industryGroup}</p>
+                                 </div>
+                              )}
+                           </CardContent>
+                        </Card>
                      ))
                   )}
                </div>
