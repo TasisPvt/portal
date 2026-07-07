@@ -112,11 +112,10 @@ export function PricingPlansTable({
             ? <span className="text-xs text-muted-foreground">{r.indexName}</span>
             : <span className="text-xs text-muted-foreground opacity-40">—</span>
         }
-        // Snapshot — show one-time tier limits as a reference; full details are in edit dialog
+        // Snapshot — show the one-time daily limit as a reference; full details are in edit dialog
         return (
           <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
             <span>{r.oneTimeStocksPerDay ?? "—"}/day (one-time)</span>
-            <span>{r.oneTimeStocksInDuration ?? "—"} stocks total</span>
           </div>
         )
       },

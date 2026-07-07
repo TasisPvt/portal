@@ -58,7 +58,6 @@ type SubscriptionRow = {
   endDate: Date
   priceSnapshot: string
   stocksPerDaySnapshot: number | null
-  stocksInDurationSnapshot: number | null
   createdAt: Date
 }
 

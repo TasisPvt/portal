@@ -28,13 +28,9 @@ type PlanRow = {
    quarterlyPrice: string | null
    annualPrice: string | null
    oneTimeStocksPerDay: number | null
-   oneTimeStocksInDuration: number | null
    monthlyStocksPerDay: number | null
-   monthlyStocksInDuration: number | null
    quarterlyStocksPerDay: number | null
-   quarterlyStocksInDuration: number | null
    annualStocksPerDay: number | null
-   annualStocksInDuration: number | null
 }
 
 type FilterType = "all" | "snapshot" | "list"
@@ -66,13 +62,6 @@ function getSpd(plan: PlanRow, key: DurationType): number | null {
    return plan.annualStocksPerDay
 }
 
-function getSid(plan: PlanRow, key: DurationType): number | null {
-   if (key === "one_time") return plan.oneTimeStocksInDuration
-   if (key === "monthly") return plan.monthlyStocksInDuration
-   if (key === "quarterly") return plan.quarterlyStocksInDuration
-   return plan.annualStocksInDuration
-}
-
 function fmtNum(n: string | null | undefined): string {
    if (!n) return "0"
    const v = parseFloat(n)
@@ -86,11 +75,9 @@ function PlanCard({ plan, isSubscribed, customerState }: { plan: PlanRow; isSubs
 
    const price = getPrice(plan, selectedDuration)
    const spd = isSnapshot ? getSpd(plan, selectedDuration) : null
-   const sid = isSnapshot ? getSid(plan, selectedDuration) : null
 
    const features: { label: string }[] = []
    if (isSnapshot) {
-      if (sid != null) features.push({ label: `${sid} Stock(s) total` })
       if (spd != null) features.push({ label: `${spd} stock(s) per day` })
    } else {
       const n = plan.indexCompanyCount
@@ -165,7 +152,6 @@ function PlanCard({ plan, isSubscribed, customerState }: { plan: PlanRow; isSubs
                   durationType={selectedDuration}
                   price={price}
                   stocksPerDay={spd}
-                  stocksInDuration={sid}
                   triggerLabel="Select"
                   triggerClassName="w-full h-11"
                   customerState={customerState}

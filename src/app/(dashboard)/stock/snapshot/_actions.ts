@@ -1,7 +1,7 @@
 "use server"
 
 import { randomUUID } from "crypto"
-import { and, count, desc, eq, ilike, max, or, sql } from "drizzle-orm"
+import { and, count, desc, eq, ilike, max, or } from "drizzle-orm"
 import { headers } from "next/headers"
 
 import { auth } from "@/src/lib/auth"
@@ -24,9 +24,7 @@ export type SnapshotAccess = {
    subscriptionId: string
    planName: string
    stocksPerDay: number | null
-   stocksInDuration: number | null
    dailyUsed: number
-   totalUsed: number
 }
 
 export type CompanySearchResult = {
@@ -41,7 +39,6 @@ export type CompanySearchResult = {
 export type CompanySnapshotResult =
    | { error: "unauthenticated" | "no_subscription" | "company_not_found" }
    | { error: "daily_quota_exceeded"; quota: QuotaInfo }
-   | { error: "total_quota_exceeded"; quota: QuotaInfo }
    | {
         company: {
            id: string
@@ -81,8 +78,6 @@ export type CompanySnapshotResult =
 type QuotaInfo = {
    dailyUsed: number
    dailyLimit: number | null
-   totalUsed: number
-   totalLimit: number | null
 }
 
 export type RecentlyViewedCompany = {
@@ -106,7 +101,6 @@ export async function getSnapshotAccess(): Promise<SnapshotAccess | null> {
          id: subscription.id,
          planName: pricingPlan.name,
          stocksPerDay: subscription.stocksPerDaySnapshot,
-         stocksInDuration: subscription.stocksInDurationSnapshot,
       })
       .from(subscription)
       .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
@@ -134,18 +128,11 @@ export async function getSnapshotAccess(): Promise<SnapshotAccess | null> {
          ),
       )
 
-   const [totalRow] = await db
-      .select({ cnt: sql<number>`count(distinct ${stockViewLog.companyId})` })
-      .from(stockViewLog)
-      .where(eq(stockViewLog.subscriptionId, sub.id))
-
    return {
       subscriptionId: sub.id,
       planName: sub.planName,
       stocksPerDay: sub.stocksPerDay,
-      stocksInDuration: sub.stocksInDuration,
       dailyUsed: dailyRow.cnt,
-      totalUsed: Number(totalRow.cnt),
    }
 }
 
@@ -183,7 +170,6 @@ export async function getCompanySnapshot(companyId: string, trackQuota = true): 
       .select({
          id: subscription.id,
          stocksPerDay: subscription.stocksPerDaySnapshot,
-         stocksInDuration: subscription.stocksInDurationSnapshot,
       })
       .from(subscription)
       .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
@@ -232,61 +218,11 @@ export async function getCompanySnapshot(companyId: string, trackQuota = true): 
                )
 
             if (dailyCnt >= sub.stocksPerDay) {
-               const [{ cnt: totalCnt }] = await db
-                  .select({ cnt: sql<number>`count(distinct ${stockViewLog.companyId})` })
-                  .from(stockViewLog)
-                  .where(eq(stockViewLog.subscriptionId, sub.id))
-
                return {
                   error: "daily_quota_exceeded",
                   quota: {
                      dailyUsed: dailyCnt,
                      dailyLimit: sub.stocksPerDay,
-                     totalUsed: Number(totalCnt),
-                     totalLimit: sub.stocksInDuration,
-                  },
-               }
-            }
-         }
-
-         // Check if company was ever viewed in this subscription
-         const everViewedRows = await db
-            .select({ id: stockViewLog.id })
-            .from(stockViewLog)
-            .where(
-               and(
-                  eq(stockViewLog.subscriptionId, sub.id),
-                  eq(stockViewLog.companyId, companyId),
-               ),
-            )
-            .limit(1)
-
-         const isNewCompany = everViewedRows.length === 0
-
-         if (isNewCompany && sub.stocksInDuration !== null) {
-            const [{ cnt: totalCnt }] = await db
-               .select({ cnt: sql<number>`count(distinct ${stockViewLog.companyId})` })
-               .from(stockViewLog)
-               .where(eq(stockViewLog.subscriptionId, sub.id))
-
-            if (Number(totalCnt) >= sub.stocksInDuration) {
-               const [{ cnt: dailyCnt }] = await db
-                  .select({ cnt: count() })
-                  .from(stockViewLog)
-                  .where(
-                     and(
-                        eq(stockViewLog.subscriptionId, sub.id),
-                        eq(stockViewLog.viewedDate, today),
-                     ),
-                  )
-
-               return {
-                  error: "total_quota_exceeded",
-                  quota: {
-                     dailyUsed: dailyCnt,
-                     dailyLimit: sub.stocksPerDay,
-                     totalUsed: Number(totalCnt),
-                     totalLimit: sub.stocksInDuration,
                   },
                }
             }
@@ -394,11 +330,6 @@ export async function getCompanySnapshot(companyId: string, trackQuota = true): 
          ),
       )
 
-   const [{ cnt: totalUsed }] = await db
-      .select({ cnt: sql<number>`count(distinct ${stockViewLog.companyId})` })
-      .from(stockViewLog)
-      .where(eq(stockViewLog.subscriptionId, sub.id))
-
    return {
       company,
       shariah,
@@ -407,8 +338,6 @@ export async function getCompanySnapshot(companyId: string, trackQuota = true): 
       quota: {
          dailyUsed,
          dailyLimit: sub.stocksPerDay,
-         totalUsed: Number(totalUsed),
-         totalLimit: sub.stocksInDuration,
       },
    }
 }

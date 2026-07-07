@@ -668,9 +668,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
                      <p className="py-10 text-center text-sm text-muted-foreground">
                         {snapshotError === "daily_quota_exceeded"
                            ? "Daily quota reached. You've viewed the maximum companies for today."
-                           : snapshotError === "total_quota_exceeded"
-                              ? "Subscription quota reached."
-                              : "Failed to load snapshot."}
+                           : "Failed to load snapshot."}
                      </p>
                   )}
                   {!snapshotLoading && snapshotData && (

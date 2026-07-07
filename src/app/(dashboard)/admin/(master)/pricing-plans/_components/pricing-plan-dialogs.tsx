@@ -52,19 +52,15 @@ type FormValues = {
    // one-time
    oneTimePrice: string
    oneTimeStocksPerDay: string
-   oneTimeStocksInDuration: string
    // monthly (snapshot only)
    monthlyPrice: string
    monthlyStocksPerDay: string
-   monthlyStocksInDuration: string
    // quarterly
    quarterlyPrice: string
    quarterlyStocksPerDay: string
-   quarterlyStocksInDuration: string
    // annual
    annualPrice: string
    annualStocksPerDay: string
-   annualStocksInDuration: string
 }
 
 export type PricingPlanRow = {
@@ -80,13 +76,9 @@ export type PricingPlanRow = {
    quarterlyPrice: string | null
    annualPrice: string | null
    oneTimeStocksPerDay: number | null
-   oneTimeStocksInDuration: number | null
    monthlyStocksPerDay: number | null
-   monthlyStocksInDuration: number | null
    quarterlyStocksPerDay: number | null
-   quarterlyStocksInDuration: number | null
    annualStocksPerDay: number | null
-   annualStocksInDuration: number | null
    createdById: string | null
    createdByName: string | null
    createdAt: Date
@@ -116,9 +108,6 @@ function priceField(key: DurationKey): keyof FormValues {
 }
 function spd(key: DurationKey): keyof FormValues {
    return `${key}StocksPerDay` as keyof FormValues
-}
-function sid(key: DurationKey): keyof FormValues {
-   return `${key}StocksInDuration` as keyof FormValues
 }
 
 // ---------------------------------------------------------------------------
@@ -159,10 +148,10 @@ function PricingPlanForm({
          type: "snapshot",
          indexId: "",
          category: "",
-         oneTimePrice: "", oneTimeStocksPerDay: "", oneTimeStocksInDuration: "",
-         monthlyPrice: "", monthlyStocksPerDay: "", monthlyStocksInDuration: "",
-         quarterlyPrice: "", quarterlyStocksPerDay: "", quarterlyStocksInDuration: "",
-         annualPrice: "", annualStocksPerDay: "", annualStocksInDuration: "",
+         oneTimePrice: "", oneTimeStocksPerDay: "",
+         monthlyPrice: "", monthlyStocksPerDay: "",
+         quarterlyPrice: "", quarterlyStocksPerDay: "",
+         annualPrice: "", annualStocksPerDay: "",
          ...defaultValues,
       },
    })
@@ -188,13 +177,9 @@ function PricingPlanForm({
          quarterlyPrice: data.quarterlyPrice,
          annualPrice: data.annualPrice,
          oneTimeStocksPerDay: isSnapshot ? parseInt(data.oneTimeStocksPerDay) : null,
-         oneTimeStocksInDuration: isSnapshot ? parseInt(data.oneTimeStocksInDuration) : null,
          monthlyStocksPerDay: isSnapshot ? parseInt(data.monthlyStocksPerDay) : null,
-         monthlyStocksInDuration: isSnapshot ? parseInt(data.monthlyStocksInDuration) : null,
          quarterlyStocksPerDay: isSnapshot ? parseInt(data.quarterlyStocksPerDay) : null,
-         quarterlyStocksInDuration: isSnapshot ? parseInt(data.quarterlyStocksInDuration) : null,
          annualStocksPerDay: isSnapshot ? parseInt(data.annualStocksPerDay) : null,
-         annualStocksInDuration: isSnapshot ? parseInt(data.annualStocksInDuration) : null,
       }
    }
 
@@ -306,11 +291,10 @@ function PricingPlanForm({
             {/* Header */}
             <div className={cn(
                "grid gap-2 px-1 text-xs font-medium text-muted-foreground",
-               planType === "snapshot" ? "grid-cols-[120px_1fr_1fr_1fr]" : "grid-cols-[120px_1fr]",
+               planType === "snapshot" ? "grid-cols-[120px_1fr_1fr]" : "grid-cols-[120px_1fr]",
             )}>
                <span>Duration</span>
                {planType === "snapshot" && <span>Stocks / Day</span>}
-               {planType === "snapshot" && <span>Stocks in Duration</span>}
                <span>Price (₹)</span>
             </div>
 
@@ -318,13 +302,12 @@ function PricingPlanForm({
                {durations.map(({ key, label }) => {
                   const pf = priceField(key)
                   const spdF = spd(key)
-                  const sidF = sid(key)
                   return (
                      <div
                         key={key}
                         className={cn(
                            "grid items-start gap-2",
-                           planType === "snapshot" ? "grid-cols-[120px_1fr_1fr_1fr]" : "grid-cols-[120px_1fr]",
+                           planType === "snapshot" ? "grid-cols-[120px_1fr_1fr]" : "grid-cols-[120px_1fr]",
                         )}
                      >
                         <div className="flex h-9 items-center">
@@ -332,24 +315,14 @@ function PricingPlanForm({
                         </div>
 
                         {planType === "snapshot" && (
-                           <>
-                              <div className="flex flex-col gap-1">
-                                 <Input
-                                    type="number" min="1" step="1" placeholder="e.g. 10"
-                                    className={cn("tabular-nums", errors[spdF] ? "border-destructive" : "")}
-                                    {...register(spdF, { validate: reqPosInt })}
-                                 />
-                                 {errors[spdF] && <p className="text-xs text-destructive">{errors[spdF]?.message}</p>}
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                 <Input
-                                    type="number" min="1" step="1" placeholder="e.g. 300"
-                                    className={cn("tabular-nums", errors[sidF] ? "border-destructive" : "")}
-                                    {...register(sidF, { validate: reqPosInt })}
-                                 />
-                                 {errors[sidF] && <p className="text-xs text-destructive">{errors[sidF]?.message}</p>}
-                              </div>
-                           </>
+                           <div className="flex flex-col gap-1">
+                              <Input
+                                 type="number" min="1" step="1" placeholder="e.g. 10"
+                                 className={cn("tabular-nums", errors[spdF] ? "border-destructive" : "")}
+                                 {...register(spdF, { validate: reqPosInt })}
+                              />
+                              {errors[spdF] && <p className="text-xs text-destructive">{errors[spdF]?.message}</p>}
+                           </div>
                         )}
 
                         <div className="flex flex-col gap-1">
@@ -457,16 +430,12 @@ export function EditPricingPlanDialog({
       category: plan.category ?? "",
       oneTimePrice: plan.oneTimePrice ?? "",
       oneTimeStocksPerDay: plan.oneTimeStocksPerDay != null ? String(plan.oneTimeStocksPerDay) : "",
-      oneTimeStocksInDuration: plan.oneTimeStocksInDuration != null ? String(plan.oneTimeStocksInDuration) : "",
       monthlyPrice: plan.monthlyPrice ?? "",
       monthlyStocksPerDay: plan.monthlyStocksPerDay != null ? String(plan.monthlyStocksPerDay) : "",
-      monthlyStocksInDuration: plan.monthlyStocksInDuration != null ? String(plan.monthlyStocksInDuration) : "",
       quarterlyPrice: plan.quarterlyPrice ?? "",
       quarterlyStocksPerDay: plan.quarterlyStocksPerDay != null ? String(plan.quarterlyStocksPerDay) : "",
-      quarterlyStocksInDuration: plan.quarterlyStocksInDuration != null ? String(plan.quarterlyStocksInDuration) : "",
       annualPrice: plan.annualPrice ?? "",
       annualStocksPerDay: plan.annualStocksPerDay != null ? String(plan.annualStocksPerDay) : "",
-      annualStocksInDuration: plan.annualStocksInDuration != null ? String(plan.annualStocksInDuration) : "",
    }
 
    function handleOpenChange(val: boolean) {

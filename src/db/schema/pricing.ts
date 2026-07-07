@@ -18,15 +18,11 @@ export const pricingPlan = pgTable(
       name: varchar("name", { length: 255 }).notNull().unique(),
       type: varchar("type", { length: 20 }).notNull(), // 'snapshot' | 'list'
       isActive: boolean("is_active").notNull().default(true),
-      // snapshot-only (stocks per duration — each duration has independent limits)
+      // snapshot-only daily view limit (each duration has an independent limit)
       oneTimeStocksPerDay: integer("one_time_stocks_per_day"),
-      oneTimeStocksInDuration: integer("one_time_stocks_in_duration"),
       monthlyStocksPerDay: integer("monthly_stocks_per_day"),
-      monthlyStocksInDuration: integer("monthly_stocks_in_duration"),
       quarterlyStocksPerDay: integer("quarterly_stocks_per_day"),
-      quarterlyStocksInDuration: integer("quarterly_stocks_in_duration"),
       annualStocksPerDay: integer("annual_stocks_per_day"),
-      annualStocksInDuration: integer("annual_stocks_in_duration"),
       // list-only
       indexId: varchar("index_id", { length: 36 }).references(() => indexMaster.id, { onDelete: "set null" }),
       category: varchar("category", { length: 100 }),

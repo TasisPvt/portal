@@ -130,7 +130,7 @@ export async function getWatchlist(): Promise<WatchlistData> {
       bseScripCode: r.bseScripCode,
       industryGroup: r.industryGroup,
       shariahStatus: statusMap.get(r.id) ?? null,
-      canViewSnapshot: canViewSnapshot(access, r.id),
+      canViewSnapshot: canViewSnapshot(access),
    }))
 
    return { noAccess: false, hasActiveSnapshot: access.hasActiveSnapshot, items }

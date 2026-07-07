@@ -28,7 +28,6 @@ export const subscription = pgTable(
       gstRate: numeric("gst_rate", { precision: 5, scale: 2 }).notNull().default("18"),
       placeOfSupply: varchar("place_of_supply", { length: 100 }).notNull().default(""),
       stocksPerDaySnapshot: integer("stocks_per_day_snapshot"),
-      stocksInDurationSnapshot: integer("stocks_in_duration_snapshot"),
       createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
       updatedAt: timestamp("updated_at", { precision: 3 })
          .defaultNow()
@@ -103,7 +102,6 @@ export const payment = pgTable(
       gstRate: numeric("gst_rate", { precision: 5, scale: 2 }).notNull().default("18"),
       placeOfSupply: varchar("place_of_supply", { length: 100 }).notNull().default(""),
       stocksPerDaySnapshot: integer("stocks_per_day_snapshot"),
-      stocksInDurationSnapshot: integer("stocks_in_duration_snapshot"),
       razorpayOrderId: varchar("razorpay_order_id", { length: 255 }).notNull().unique(),
       razorpayPaymentId: varchar("razorpay_payment_id", { length: 255 }),
       razorpaySignature: varchar("razorpay_signature", { length: 255 }),

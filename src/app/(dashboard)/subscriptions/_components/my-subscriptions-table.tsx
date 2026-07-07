@@ -53,7 +53,6 @@ type SubscriptionRow = {
   endDate: Date
   priceSnapshot: string
   stocksPerDaySnapshot: number | null
-  stocksInDurationSnapshot: number | null
 }
 
 type TypeFilter = "all" | "list" | "snapshot"
