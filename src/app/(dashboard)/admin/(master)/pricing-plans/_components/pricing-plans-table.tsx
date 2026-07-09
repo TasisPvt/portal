@@ -150,7 +150,9 @@ export function PricingPlansTable({
       id: "quarterlyPrice",
       accessorFn: (r) => r.quarterlyPrice ? parseFloat(r.quarterlyPrice) : -1,
       header: ({ column }) => <SortableHeader column={column} label="Quarterly" />,
-      cell: ({ row }) => fmt(row.original.quarterlyPrice),
+      cell: ({ row }) => row.original.type === "list"
+        ? <span className="text-muted-foreground opacity-40 text-xs">—</span>
+        : fmt(row.original.quarterlyPrice),
     },
     {
       id: "annualPrice",

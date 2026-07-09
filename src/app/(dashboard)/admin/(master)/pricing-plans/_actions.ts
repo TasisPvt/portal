@@ -26,7 +26,7 @@ export type PlanInput = {
    // prices
    oneTimePrice: string
    monthlyPrice?: string | null      // snapshot only
-   quarterlyPrice: string
+   quarterlyPrice?: string | null    // snapshot only
    annualPrice: string
    // daily view limit (snapshot only — each duration has an independent limit)
    oneTimeStocksPerDay?: number | null
@@ -100,7 +100,7 @@ function buildValues(input: PlanInput) {
       category: !isSnapshot ? (input.category?.trim() || null) : null,
       oneTimePrice: input.oneTimePrice,
       monthlyPrice: isSnapshot ? (input.monthlyPrice ?? null) : null,
-      quarterlyPrice: input.quarterlyPrice,
+      quarterlyPrice: isSnapshot ? (input.quarterlyPrice ?? null) : null,
       annualPrice: input.annualPrice,
       oneTimeStocksPerDay: isSnapshot ? (input.oneTimeStocksPerDay ?? null) : null,
       monthlyStocksPerDay: isSnapshot ? (input.monthlyStocksPerDay ?? null) : null,
