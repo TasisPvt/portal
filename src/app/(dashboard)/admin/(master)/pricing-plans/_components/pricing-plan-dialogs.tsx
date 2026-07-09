@@ -97,7 +97,6 @@ const SNAPSHOT_DURATIONS = [
 
 const LIST_DURATIONS = [
    { key: "oneTime" as const, label: "One-time" },
-   { key: "quarterly" as const, label: "Quarterly" },
    { key: "annual" as const, label: "Annual" },
 ]
 
@@ -174,7 +173,8 @@ function PricingPlanForm({
          category: !isSnapshot ? data.category : null,
          oneTimePrice: data.oneTimePrice,
          monthlyPrice: isSnapshot ? data.monthlyPrice : null,
-         quarterlyPrice: data.quarterlyPrice,
+         // Quarterly applies to snapshot plans only.
+         quarterlyPrice: isSnapshot ? data.quarterlyPrice : null,
          annualPrice: data.annualPrice,
          oneTimeStocksPerDay: isSnapshot ? parseInt(data.oneTimeStocksPerDay) : null,
          monthlyStocksPerDay: isSnapshot ? parseInt(data.monthlyStocksPerDay) : null,

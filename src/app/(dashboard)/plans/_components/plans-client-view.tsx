@@ -44,7 +44,6 @@ const SNAPSHOT_DURATIONS: { key: DurationType; label: string }[] = [
 
 const LIST_DURATIONS: { key: DurationType; label: string }[] = [
    { key: "one_time", label: "One-Time" },
-   { key: "quarterly", label: "Quarterly" },
    { key: "annual", label: "Annual" },
 ]
 

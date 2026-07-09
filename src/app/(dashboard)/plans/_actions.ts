@@ -26,7 +26,7 @@ type ActionResult = { success: true } | { success: false; message: string }
 
 const VALID_DURATIONS: Record<string, DurationType[]> = {
    snapshot: ["one_time", "monthly", "quarterly", "annual"],
-   list: ["one_time", "quarterly", "annual"],
+   list: ["one_time", "annual"],
 }
 
 type PlanRow = typeof pricingPlan.$inferSelect
