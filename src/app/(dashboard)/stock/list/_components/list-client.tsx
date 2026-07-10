@@ -1,8 +1,9 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { toast } from "sonner"
-import { SearchIcon, BuildingIcon, FilterIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, BookmarkIcon } from "lucide-react"
+import { SearchIcon, BuildingIcon, FilterIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, BookmarkIcon, LockIcon } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
 import { Skeleton } from "@/src/components/ui/skeleton"
 import { Spinner } from "@/src/components/ui/spinner"
@@ -258,29 +259,38 @@ export function ListClient({ subscriptions }: ListClientProps) {
             <div className="flex flex-wrap gap-2 sm:gap-3" role="group" aria-label="Select a list">
                {subscriptions.map((sub) => {
                   const active = sub.subscriptionId === selectedSubId
+                  const select = () => {
+                     setSearch("")
+                     setSelectedMonth(null)
+                     setSelectedSubId(sub.subscriptionId)
+                  }
                   return (
-                     <button
+                     <Card
                         key={sub.subscriptionId}
-                        type="button"
+                        size="sm"
+                        role="button"
+                        tabIndex={0}
                         aria-pressed={active}
-                        onClick={() => {
-                           setSearch("")
-                           setSelectedMonth(null)
-                           setSelectedSubId(sub.subscriptionId)
+                        onClick={select}
+                        onKeyDown={(e) => {
+                           if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault()
+                              select()
+                           }
                         }}
                         className={cn(
-                           "rounded-xl border px-3 sm:px-4 py-2 sm:py-2.5 text-sm transition-all",
-                           "hover:cursor-pointer hover:border-primary",
+                           "cursor-pointer px-3 py-3! gap-2! transition-all",
+                           "focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none hover:border-primary",
                            active
-                              ? "border-primary bg-primary/10 text-foreground font-medium"
-                              : "border-border bg-muted/40 text-muted-foreground hover:bg-muted/60",
+                              ? "border-primary bg-primary/10 text-foreground"
+                              : "bg-muted hover:bg-muted/60",
                         )}
                      >
-                        <span className="block font-medium">{sub.indexName}</span>
+                        <span className="block text-sm font-medium">{sub.indexName}</span>
                         <span className="text-xs text-muted-foreground">
                            {fmtDurationType(sub.durationType)} · {fmtMonth(sub.startMonth)} – {fmtMonth(sub.endMonth)}
                         </span>
-                     </button>
+                     </Card>
                   )
                })}
             </div>
@@ -500,7 +510,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
                               setSnapshotData(null)
                               setSnapshotError(null)
                               setSnapshotLoading(true)
-                              getCompanySnapshot(company.id, false)
+                              getCompanySnapshot(company.id, false, true)
                                  .then((result) => {
                                     if ("error" in result && result.error) setSnapshotError(result.error as string)
                                     else if ("company" in result) setSnapshotData(result)
@@ -665,11 +675,29 @@ export function ListClient({ subscriptions }: ListClientProps) {
                      </div>
                   )}
                   {!snapshotLoading && snapshotError && (
-                     <p className="py-10 text-center text-sm text-muted-foreground">
-                        {snapshotError === "daily_quota_exceeded"
-                           ? "Daily quota reached. You've viewed the maximum companies for today."
-                           : "Failed to load snapshot."}
-                     </p>
+                     snapshotError === "no_subscription" ? (
+                        <div className="flex flex-col items-center gap-4 px-4 py-12 text-center">
+                           <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+                              <LockIcon className="size-5 text-muted-foreground" />
+                           </div>
+                           <div>
+                              <p className="text-sm font-medium text-foreground">Snapshot subscription required</p>
+                              <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+                                 Your list plan lets you browse companies. To view detailed Shariah screening for a
+                                 company, you need an active Snapshot plan.
+                              </p>
+                           </div>
+                           <Button asChild size="sm">
+                              <Link href="/plans">Browse Snapshot plans</Link>
+                           </Button>
+                        </div>
+                     ) : (
+                        <p className="py-10 text-center text-sm text-muted-foreground">
+                           {snapshotError === "daily_quota_exceeded"
+                              ? "Daily quota reached. You've viewed the maximum companies for today."
+                              : "Failed to load snapshot."}
+                        </p>
+                     )
                   )}
                   {!snapshotLoading && snapshotData && (
                      <div className="p-1">

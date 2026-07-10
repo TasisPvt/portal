@@ -15,6 +15,7 @@ import {
    pricingPlan,
    screeningStandardRemark,
    subscription,
+   subscriptionListSnapshot,
 } from "@/src/db/schema"
 import { stockViewLog } from "@/src/db/schema/stock-views"
 
@@ -161,34 +162,68 @@ export async function searchCompanies(query: string): Promise<CompanySearchResul
       .limit(20)
 }
 
-export async function getCompanySnapshot(companyId: string, trackQuota = true): Promise<CompanySnapshotResult> {
+export async function getCompanySnapshot(
+   companyId: string,
+   trackQuota = true,
+   fromList = false,
+): Promise<CompanySnapshotResult> {
    const session = await auth.api.getSession({ headers: await headers() })
    if (!session) return { error: "unauthenticated" }
 
-   // Get active snapshot subscription
-   const subs = await db
-      .select({
-         id: subscription.id,
-         stocksPerDay: subscription.stocksPerDaySnapshot,
-      })
-      .from(subscription)
-      .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
-      .where(
-         and(
-            eq(subscription.clientId, session.user.id),
-            eq(subscription.status, "active"),
-            eq(pricingPlan.type, "snapshot"),
-         ),
-      )
-      .limit(1)
+   // Resolve viewing access. Two independent paths:
+   //  • Snapshot plan → gated by an active snapshot subscription + daily quota.
+   //  • List plan     → a list subscriber may open the full screening detail for
+   //    any company in their own list, with NO snapshot subscription and NO
+   //    quota. When `fromList` is set we authorize against the list snapshot
+   //    membership instead and leave `sub` null (no quota accounting applies).
+   let sub: { id: string; stocksPerDay: number | null } | null = null
 
-   if (!subs.length) return { error: "no_subscription" }
-   const sub = subs[0]
+   if (fromList) {
+      const [listAccess] = await db
+         .select({ id: subscription.id })
+         .from(subscription)
+         .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
+         .innerJoin(
+            subscriptionListSnapshot,
+            eq(subscriptionListSnapshot.subscriptionId, subscription.id),
+         )
+         .where(
+            and(
+               eq(subscription.clientId, session.user.id),
+               eq(subscription.status, "active"),
+               eq(pricingPlan.type, "list"),
+               eq(subscriptionListSnapshot.companyId, companyId),
+            ),
+         )
+         .limit(1)
+
+      if (!listAccess) return { error: "no_subscription" }
+   } else {
+      // Get active snapshot subscription
+      const subs = await db
+         .select({
+            id: subscription.id,
+            stocksPerDay: subscription.stocksPerDaySnapshot,
+         })
+         .from(subscription)
+         .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
+         .where(
+            and(
+               eq(subscription.clientId, session.user.id),
+               eq(subscription.status, "active"),
+               eq(pricingPlan.type, "snapshot"),
+            ),
+         )
+         .limit(1)
+
+      if (!subs.length) return { error: "no_subscription" }
+      sub = subs[0]
+   }
 
    const today = new Date().toISOString().slice(0, 10)
 
-   // Quota tracking — only if trackQuota is true
-   if (trackQuota) {
+   // Quota tracking — only for snapshot-plan views (skipped for list viewers).
+   if (trackQuota && sub) {
       // Check if already viewed today (free repeat view)
       const viewedTodayRows = await db
          .select({ id: stockViewLog.id })
@@ -319,26 +354,28 @@ export async function getCompanySnapshot(companyId: string, trackQuota = true): 
       return { parameter, label, value, remark, passRemark: entry?.passRemark ?? null, failRemark: entry?.failRemark ?? null }
    })
 
-   // Updated quota
-   const [{ cnt: dailyUsed }] = await db
-      .select({ cnt: count() })
-      .from(stockViewLog)
-      .where(
-         and(
-            eq(stockViewLog.subscriptionId, sub.id),
-            eq(stockViewLog.viewedDate, today),
-         ),
-      )
+   // Updated quota — only meaningful for snapshot-plan views. List viewers have
+   // no quota, so report an unlimited/empty quota.
+   let quota: QuotaInfo = { dailyUsed: 0, dailyLimit: null }
+   if (sub) {
+      const [{ cnt: dailyUsed }] = await db
+         .select({ cnt: count() })
+         .from(stockViewLog)
+         .where(
+            and(
+               eq(stockViewLog.subscriptionId, sub.id),
+               eq(stockViewLog.viewedDate, today),
+            ),
+         )
+      quota = { dailyUsed, dailyLimit: sub.stocksPerDay }
+   }
 
    return {
       company,
       shariah,
       complianceHistory: historyRows,
       screeningRemarks,
-      quota: {
-         dailyUsed,
-         dailyLimit: sub.stocksPerDay,
-      },
+      quota,
    }
 }
 
