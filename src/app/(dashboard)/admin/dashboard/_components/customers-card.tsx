@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Area, AreaChart, XAxis } from "recharts"
+import { Area, AreaChart, XAxis, YAxis } from "recharts"
 import { ArrowUpRightIcon, UsersIcon } from "lucide-react"
 
 import {
@@ -62,8 +62,8 @@ export function CustomersCard({
                   </div>
                </div>
 
-               <ChartContainer config={config} className="aspect-auto h-16 w-full">
-                  <AreaChart data={trend} margin={{ top: 4, bottom: 0, left: 0, right: 0 }}>
+               <ChartContainer config={config} className="aspect-auto h-26 w-full">
+                  <AreaChart data={trend} margin={{ top: 8, bottom: 8, left: 0, right: 0 }}>
                      <defs>
                         <linearGradient id="fillCustomers" x1="0" y1="0" x2="0" y2="1">
                            <stop offset="5%" stopColor="var(--color-total)" stopOpacity={0.3} />
@@ -71,6 +71,7 @@ export function CustomersCard({
                         </linearGradient>
                      </defs>
                      <XAxis dataKey="label" hide />
+                     <YAxis hide domain={["dataMin - 1", "dataMax + 1"]} />
                      <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
                      <Area
                         dataKey="total"
