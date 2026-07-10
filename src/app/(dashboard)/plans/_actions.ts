@@ -1,7 +1,7 @@
 "use server"
 
 import { randomUUID } from "crypto"
-import { and, eq, sql } from "drizzle-orm"
+import { and, eq, gte, ne, or, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
 
@@ -17,6 +17,7 @@ import {
 import { auth } from "@/src/lib/auth"
 import { getRazorpay, RAZORPAY_KEY_ID, verifyRazorpaySignature } from "@/src/lib/razorpay"
 import { finalizePaidOrder } from "@/src/lib/payments"
+import { expireStaleSubscriptions } from "@/src/lib/subscription-access"
 import { computeGstPaise, paiseToAmount, GST_RATE } from "@/src/lib/gst"
 import { sendInvoiceForPayment } from "@/src/lib/invoice/generate"
 
@@ -62,10 +63,23 @@ export async function getCurrentClientState(): Promise<string | null> {
 export async function getSubscribedPlanIds(): Promise<string[]> {
    const session = await auth.api.getSession({ headers: await headers() })
    if (!session?.user?.id) return []
+   // A plan counts as "subscribed" (and so locks its card on /plans) only for a
+   // standing subscription still inside its validity window. A one-time snapshot
+   // is a consumable day-pass — it never locks the card, so the user can keep
+   // buying more (each purchase tops up the day's quota; see finalizePaidOrder).
+   // Validity is derived from endDate, not the (unreliable) status column.
    const rows = await db
       .select({ planId: subscription.planId })
       .from(subscription)
-      .where(and(eq(subscription.clientId, session.user.id), eq(subscription.status, "active")))
+      .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
+      .where(
+         and(
+            eq(subscription.clientId, session.user.id),
+            ne(subscription.status, "cancelled"),
+            gte(subscription.endDate, new Date()),
+            or(ne(pricingPlan.type, "snapshot"), ne(subscription.durationType, "one_time")),
+         ),
+      )
    return [...new Set(rows.map((r) => r.planId))]
 }
 
@@ -150,7 +164,16 @@ export async function createPaymentOrder(
       return { success: false, message: "Invalid duration for this plan type" }
    }
 
-   if (await hasActiveSubscription(userId, planId, durationType)) {
+   // Expire any of this user's lapsed subscriptions right here on the purchase
+   // path, so the re-purchase check below (and finalize) can't mistake an
+   // expired-but-not-yet-swept subscription for an active one — otherwise a
+   // re-purchase of an expired plan would be wrongly blocked as "already active".
+   await expireStaleSubscriptions(userId)
+
+   // One-time snapshot is a consumable day-pass — re-purchasing tops up the day's
+   // quota (see finalizePaidOrder), so it is never blocked as "already active".
+   const isOneTimeSnapshot = plan.type === "snapshot" && durationType === "one_time"
+   if (!isOneTimeSnapshot && (await hasActiveSubscription(userId, planId, durationType))) {
       return { success: false, message: "You already have an active subscription for this plan and duration" }
    }
 
@@ -271,7 +294,9 @@ export async function verifyPayment(args: {
 
    revalidatePath("/plans")
    revalidatePath("/subscriptions")
+   revalidatePath("/payments")
    revalidatePath("/stock/list")
+   revalidatePath("/stock/snapshot")
    return { success: true, orderId: args.razorpayOrderId }
 }
 

@@ -3,6 +3,7 @@ import { CheckCircle2Icon, XCircleIcon, Clock3Icon, ReceiptTextIcon } from "luci
 
 import { SiteHeader } from "@/src/components/site-header"
 import { Button } from "@/src/components/ui/button"
+import { Card } from "@/src/components/ui/card"
 import { formatPrice, formatDate } from "@/src/lib/format"
 import { DURATION_LABELS } from "@/src/lib/constants"
 import { getPaymentDetails, type PaymentDetails } from "../plans/_actions"
@@ -19,9 +20,9 @@ export default async function ConfirmPaymentPage({
       <>
          <SiteHeader title="Payment" />
          <div className="flex flex-1 flex-col items-center justify-center p-4 md:p-6">
-            <div className="@container/card w-full max-w-md rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
+            <Card className="@container/card w-full max-w-md p-6 sm:p-8">
                {details ? <StatusContent details={details} /> : <NotFound />}
-            </div>
+            </Card>
          </div>
       </>
    )

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/src/lib/auth"
+import { expireStaleSubscriptions, expireAllStaleSubscriptions } from "@/src/lib/subscription-access"
 
 export async function POST(req: Request) {
    const { email, password } = await req.json()
@@ -12,10 +13,25 @@ export async function POST(req: Request) {
    }
 
    try {
-      await auth.api.signInEmail({
+      const result = await auth.api.signInEmail({
          body: { email, password },
          headers: req.headers,
       })
+
+      // Refresh the status column for subscriptions that expired while away.
+      // Admins need every client's status current (they manage all of them);
+      // clients only their own. Best-effort — must never fail the login.
+      if (result?.user?.id) {
+         try {
+            if (result.user.userType === "admin") {
+               await expireAllStaleSubscriptions()
+            } else {
+               await expireStaleSubscriptions(result.user.id)
+            }
+         } catch (err) {
+            console.error("[login] expireStaleSubscriptions", err)
+         }
+      }
 
       return NextResponse.json({ success: true })
    } catch (err: any) {

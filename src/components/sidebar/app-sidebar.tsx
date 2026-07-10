@@ -48,6 +48,7 @@ const clientNav = {
       { title: "Watchlist", url: "/stock/watchlist", icon: <BookmarkIcon /> },
       { title: "Plans", url: "/plans", icon: <PackageIcon /> },
       { title: "My Subscriptions", url: "/subscriptions", icon: <CreditCardIcon /> },
+      { title: "Payment History", url: "/payments", icon: <ReceiptIcon /> },
    ],
    navScreening: [
       {

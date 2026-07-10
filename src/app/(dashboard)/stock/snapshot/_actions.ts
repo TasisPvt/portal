@@ -1,7 +1,7 @@
 "use server"
 
 import { randomUUID } from "crypto"
-import { and, count, desc, eq, ilike, max, or } from "drizzle-orm"
+import { and, count, desc, eq, gte, ilike, max, ne, or } from "drizzle-orm"
 import { headers } from "next/headers"
 
 import { auth } from "@/src/lib/auth"
@@ -17,6 +17,7 @@ import {
    subscription,
 } from "@/src/db/schema"
 import { stockViewLog } from "@/src/db/schema/stock-views"
+import { expireStaleSubscriptions } from "@/src/lib/subscription-access"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -92,11 +93,20 @@ export type RecentlyViewedCompany = {
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
-export async function getSnapshotAccess(): Promise<SnapshotAccess | null> {
-   const session = await auth.api.getSession({ headers: await headers() })
-   if (!session) return null
+// Resolve the user's usable snapshot subscription using the REAL validity rules
+// rather than the never-updated `status` column: a snapshot plan counts only
+// while it is not cancelled AND still inside its endDate window. As a side
+// effect this lazily flips any now-expired snapshot subscription's status to
+// "expired" so the column stays truthful. When several qualify, the
+// longest-lived (latest endDate) one wins.
+type ActiveSnapshotSub = { id: string; planName: string; stocksPerDay: number | null }
 
-   const subs = await db
+async function resolveActiveSnapshotSub(userId: string): Promise<ActiveSnapshotSub | null> {
+   // Correct the status column for any subs whose window has closed, then read
+   // the longest-lived snapshot plan still inside its endDate window.
+   await expireStaleSubscriptions(userId)
+
+   const [valid] = await db
       .select({
          id: subscription.id,
          planName: pricingPlan.name,
@@ -106,15 +116,24 @@ export async function getSnapshotAccess(): Promise<SnapshotAccess | null> {
       .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
       .where(
          and(
-            eq(subscription.clientId, session.user.id),
-            eq(subscription.status, "active"),
+            eq(subscription.clientId, userId),
+            ne(subscription.status, "cancelled"),
+            gte(subscription.endDate, new Date()),
             eq(pricingPlan.type, "snapshot"),
          ),
       )
+      .orderBy(desc(subscription.endDate))
       .limit(1)
 
-   if (!subs.length) return null
-   const sub = subs[0]
+   return valid ?? null
+}
+
+export async function getSnapshotAccess(): Promise<SnapshotAccess | null> {
+   const session = await auth.api.getSession({ headers: await headers() })
+   if (!session) return null
+
+   const sub = await resolveActiveSnapshotSub(session.user.id)
+   if (!sub) return null
 
    const today = new Date().toISOString().slice(0, 10)
 
@@ -165,25 +184,9 @@ export async function getCompanySnapshot(companyId: string, trackQuota = true): 
    const session = await auth.api.getSession({ headers: await headers() })
    if (!session) return { error: "unauthenticated" }
 
-   // Get active snapshot subscription
-   const subs = await db
-      .select({
-         id: subscription.id,
-         stocksPerDay: subscription.stocksPerDaySnapshot,
-      })
-      .from(subscription)
-      .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
-      .where(
-         and(
-            eq(subscription.clientId, session.user.id),
-            eq(subscription.status, "active"),
-            eq(pricingPlan.type, "snapshot"),
-         ),
-      )
-      .limit(1)
-
-   if (!subs.length) return { error: "no_subscription" }
-   const sub = subs[0]
+   // Resolve the usable snapshot subscription (endDate-validated; also expires stale ones).
+   const sub = await resolveActiveSnapshotSub(session.user.id)
+   if (!sub) return { error: "no_subscription" }
 
    const today = new Date().toISOString().slice(0, 10)
 
@@ -346,20 +349,8 @@ export async function getRecentlyViewed(): Promise<RecentlyViewedCompany[]> {
    const session = await auth.api.getSession({ headers: await headers() })
    if (!session) return []
 
-   const subs = await db
-      .select({ id: subscription.id })
-      .from(subscription)
-      .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
-      .where(
-         and(
-            eq(subscription.clientId, session.user.id),
-            eq(subscription.status, "active"),
-            eq(pricingPlan.type, "snapshot"),
-         ),
-      )
-      .limit(1)
-
-   if (!subs.length) return []
+   const sub = await resolveActiveSnapshotSub(session.user.id)
+   if (!sub) return []
 
    const rows = await db
       .select({
@@ -373,7 +364,7 @@ export async function getRecentlyViewed(): Promise<RecentlyViewedCompany[]> {
       })
       .from(stockViewLog)
       .innerJoin(companyMaster, eq(stockViewLog.companyId, companyMaster.id))
-      .where(eq(stockViewLog.subscriptionId, subs[0].id))
+      .where(eq(stockViewLog.subscriptionId, sub.id))
       .groupBy(
          companyMaster.id,
          companyMaster.companyName,
