@@ -6,10 +6,14 @@ import { headers } from "next/headers"
 import { db } from "@/src/db/client"
 import { subscription, pricingPlan } from "@/src/db/schema"
 import { auth } from "@/src/lib/auth"
+import { expireStaleSubscriptions } from "@/src/lib/subscription-access"
 
 export async function getMySubscriptions() {
    const session = await auth.api.getSession({ headers: await headers() })
    if (!session?.user?.id) return []
+
+   // Keep the status column truthful before rendering the page.
+   await expireStaleSubscriptions(session.user.id)
 
    return db
       .select({

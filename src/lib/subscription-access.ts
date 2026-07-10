@@ -1,6 +1,6 @@
 import "server-only"
 
-import { and, eq, gte, ne, sql } from "drizzle-orm"
+import { and, eq, gte, lt, ne, sql } from "drizzle-orm"
 import { headers } from "next/headers"
 
 import { auth } from "@/src/lib/auth"
@@ -25,6 +25,38 @@ export type SubscriptionAccess = {
    // A snapshot plan still inside its time window (may be quota-exhausted).
    hasActiveSnapshot: boolean
    snapshot: SnapshotContext | null
+}
+
+// Flips any of the user's active-but-past-endDate subscriptions to "expired" so
+// the status column stays truthful. `status` is never updated at expiry time on
+// its own, so this must be run whenever we want the column to be current (login,
+// the subscriptions page, the snapshot page). Cheap — only stale rows are written.
+export async function expireStaleSubscriptions(userId: string): Promise<void> {
+   await db
+      .update(subscription)
+      .set({ status: "expired", updatedAt: new Date() })
+      .where(
+         and(
+            eq(subscription.clientId, userId),
+            eq(subscription.status, "active"),
+            lt(subscription.endDate, new Date()),
+         ),
+      )
+}
+
+// Global variant of expireStaleSubscriptions for admin surfaces (admin login,
+// the admin subscriptions view) that need every client's status to be current,
+// not just one user's. Only stale rows are written, so it stays cheap.
+export async function expireAllStaleSubscriptions(): Promise<void> {
+   await db
+      .update(subscription)
+      .set({ status: "expired", updatedAt: new Date() })
+      .where(
+         and(
+            eq(subscription.status, "active"),
+            lt(subscription.endDate, new Date()),
+         ),
+      )
 }
 
 // A subscription counts as active when it is not cancelled and its endDate is

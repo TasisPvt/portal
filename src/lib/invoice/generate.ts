@@ -2,7 +2,7 @@ import "server-only"
 
 import fs from "node:fs"
 import path from "node:path"
-import { and, eq, gte, lt } from "drizzle-orm"
+import { and, eq, gte, lt, type SQL } from "drizzle-orm"
 import { renderToBuffer } from "@react-pdf/renderer"
 
 import { db } from "@/src/db/client"
@@ -63,39 +63,46 @@ function logoDataUri(): string | undefined {
    return cachedLogo ?? undefined
 }
 
-// Builds the invoice PDF for a paid payment and emails it to the client.
-// Idempotent-safe to call once on successful verification; failures are thrown
-// so the caller can log them (and must NOT let them fail the payment).
-export async function sendInvoiceForPayment(razorpayOrderId: string): Promise<void> {
+// Shared read model for one payment + its buyer, used by both the email and the
+// on-demand download paths.
+const invoiceSelect = {
+   payId: payment.id,
+   status: payment.status,
+   createdAt: payment.createdAt,
+   durationType: payment.durationType,
+   priceSnapshot: payment.priceSnapshot,
+   taxableAmount: payment.taxableAmount,
+   cgst: payment.cgst,
+   sgst: payment.sgst,
+   igst: payment.igst,
+   gstRate: payment.gstRate,
+   placeOfSupply: payment.placeOfSupply,
+   planType: pricingPlan.type,
+   planName: pricingPlan.name,
+   clientName: user.name,
+   clientEmail: user.email,
+   address: clientProfile.address,
+   gstNumber: clientProfile.gstNumber,
+}
+
+type InvoiceRow = Awaited<ReturnType<typeof loadInvoiceRow>>
+
+async function loadInvoiceRow(where: SQL | undefined) {
    const [row] = await db
-      .select({
-         payId: payment.id,
-         status: payment.status,
-         createdAt: payment.createdAt,
-         durationType: payment.durationType,
-         priceSnapshot: payment.priceSnapshot,
-         taxableAmount: payment.taxableAmount,
-         cgst: payment.cgst,
-         sgst: payment.sgst,
-         igst: payment.igst,
-         gstRate: payment.gstRate,
-         placeOfSupply: payment.placeOfSupply,
-         planType: pricingPlan.type,
-         planName: pricingPlan.name,
-         clientName: user.name,
-         clientEmail: user.email,
-         address: clientProfile.address,
-         gstNumber: clientProfile.gstNumber,
-      })
+      .select(invoiceSelect)
       .from(payment)
       .leftJoin(pricingPlan, eq(payment.planId, pricingPlan.id))
       .leftJoin(user, eq(payment.clientId, user.id))
       .leftJoin(clientProfile, eq(payment.clientId, clientProfile.userId))
-      .where(eq(payment.razorpayOrderId, razorpayOrderId))
+      .where(where)
       .limit(1)
+   return row ?? null
+}
 
-   if (!row || row.status !== "paid" || !row.clientEmail) return
-
+// Renders the invoice PDF for a loaded payment row (no side effects).
+async function renderInvoice(
+   row: NonNullable<InvoiceRow>,
+): Promise<{ pdf: Buffer; invoiceNumber: string; planName: string }> {
    const planType = row.planType ?? "list"
    const invoiceNumber = await computeInvoiceNumber({ id: row.payId, createdAt: row.createdAt }, planType)
 
@@ -138,12 +145,36 @@ export async function sendInvoiceForPayment(razorpayOrderId: string): Promise<vo
    // Call the component directly so the root element is a <Document>, which is
    // what renderToBuffer expects.
    const pdf = await renderToBuffer(InvoiceDocument({ data }))
+   return { pdf, invoiceNumber, planName: data.item.title }
+}
+
+// Builds the invoice PDF for a paid payment and emails it to the client.
+// Idempotent-safe to call once on successful verification; failures are thrown
+// so the caller can log them (and must NOT let them fail the payment).
+export async function sendInvoiceForPayment(razorpayOrderId: string): Promise<void> {
+   const row = await loadInvoiceRow(eq(payment.razorpayOrderId, razorpayOrderId))
+   if (!row || row.status !== "paid" || !row.clientEmail) return
+
+   const { pdf, invoiceNumber, planName } = await renderInvoice(row)
 
    await sendInvoiceEmail({
       to: row.clientEmail,
       name: row.clientName ?? "",
       invoiceNumber,
-      planName: data.item.title,
+      planName,
       pdf,
    })
+}
+
+// On-demand invoice download, scoped to the owning client. Returns null when the
+// payment doesn't exist, isn't the client's, or hasn't been paid.
+export async function getInvoicePdfForClient(
+   paymentId: string,
+   clientId: string,
+): Promise<{ pdf: Buffer; invoiceNumber: string } | null> {
+   const row = await loadInvoiceRow(and(eq(payment.id, paymentId), eq(payment.clientId, clientId)))
+   if (!row || row.status !== "paid") return null
+
+   const { pdf, invoiceNumber } = await renderInvoice(row)
+   return { pdf, invoiceNumber }
 }

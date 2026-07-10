@@ -1,7 +1,9 @@
 "use client"
 
 import * as React from "react"
+import { createPortal } from "react-dom"
 import { toast } from "sonner"
+import { CreditCardIcon } from "lucide-react"
 import { createPaymentOrder, verifyPayment, markPaymentFailed, markPaymentCancelled, type DurationType } from "../_actions"
 import { loadRazorpay } from "@/src/lib/load-razorpay"
 import { Button } from "@/src/components/ui/button"
@@ -30,9 +32,45 @@ interface SubscribeButtonProps {
    triggerClassName?: string
 }
 
+// Full-screen overlay shown after a successful (or failed) payment while we
+// verify server-side and hard-redirect to the confirm page. It bridges the
+// otherwise-blank gap where the user is left on /plans, unsure what happened.
+// Never shown when the checkout is dismissed (that path stays on /plans).
+//
+// Rendered through a portal to document.body: the plan Card uses a transform
+// (hover lift), which would otherwise become the containing block for this
+// `fixed` element and trap it inside the card instead of covering the viewport.
+function PaymentProcessingOverlay() {
+   if (typeof document === "undefined") return null
+   return createPortal(
+      <div
+         className="fixed inset-0 z-50 flex items-center justify-center bg-background/75 backdrop-blur-sm"
+         role="status"
+         aria-live="polite"
+      >
+         <div className="flex flex-col items-center gap-4 rounded-2xl border bg-card px-10 py-8 shadow-xl">
+            <div className="relative flex size-16 items-center justify-center">
+               <span className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
+               <span className="absolute inset-0 animate-spin rounded-full border-2 border-primary/25 border-t-primary" />
+               <CreditCardIcon className="relative size-7 animate-pulse text-primary" />
+            </div>
+            <div className="text-center">
+               <p className="text-sm font-medium">Processing your payment…</p>
+               <p className="mt-0.5 text-xs text-muted-foreground">
+                  Please don&apos;t close or refresh this page.
+               </p>
+            </div>
+         </div>
+      </div>,
+      document.body,
+   )
+}
+
 export function SubscribeButton(props: SubscribeButtonProps) {
    const [open, setOpen] = React.useState(false)
    const [isPending, startTransition] = React.useTransition()
+   // Drives the post-payment overlay while verify + redirect are in flight.
+   const [processing, setProcessing] = React.useState(false)
 
    // GST is included in the gross price (18% of gross), split by place of supply.
    const gst = computeGstFromPrice(props.price, props.customerState)
@@ -62,6 +100,10 @@ export function SubscribeButton(props: SubscribeButtonProps) {
             prefill: order.prefill,
             theme: { color: "#1a3a6e" },
             handler: (response) => {
+               // Payment done — cover /plans with the processing overlay while we
+               // verify server-side and hard-redirect, so the user isn't left
+               // staring at a blank page wondering what happened.
+               setProcessing(true)
                // Verify server-side, then show the result on the confirm page.
                // Hard navigation (not router.push): Razorpay's modal teardown
                // swallows Next.js soft navigations, leaving the user on /plans.
@@ -75,7 +117,9 @@ export function SubscribeButton(props: SubscribeButtonProps) {
             },
             modal: {
                ondismiss: () => {
-                  // User closed checkout without paying — mark the order cancelled.
+                  // User closed checkout without paying — no redirect happens, so
+                  // make sure the overlay is not showing and mark the order cancelled.
+                  setProcessing(false)
                   markPaymentCancelled(order.orderId)
                   toast.info("Payment cancelled.")
                },
@@ -83,6 +127,8 @@ export function SubscribeButton(props: SubscribeButtonProps) {
          })
 
          rzp.on("payment.failed", () => {
+            // A failed payment also hard-redirects to the confirm page.
+            setProcessing(true)
             markPaymentFailed(order.orderId).finally(() => {
                window.location.assign(`/confirm-payment?order=${order.orderId}`)
             })
@@ -94,6 +140,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
    }
 
    return (
+      <>
       <Dialog open={open} onOpenChange={setOpen}>
          <DialogTrigger asChild>
             <Button
@@ -173,5 +220,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
             </DialogFooter>
          </DialogContent>
       </Dialog>
+      {processing && <PaymentProcessingOverlay />}
+      </>
    )
 }

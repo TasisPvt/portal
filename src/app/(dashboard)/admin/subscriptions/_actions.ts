@@ -5,10 +5,14 @@ import { revalidatePath } from "next/cache"
 
 import { db } from "@/src/db/client"
 import { subscription, pricingPlan, user } from "@/src/db/schema"
+import { expireAllStaleSubscriptions } from "@/src/lib/subscription-access"
 
 type ActionResult = { success: true } | { success: false; message: string }
 
 export async function getAllSubscriptions() {
+   // Keep every client's status column truthful before rendering the admin view.
+   await expireAllStaleSubscriptions()
+
    return db
       .select({
          id: subscription.id,

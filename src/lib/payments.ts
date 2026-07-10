@@ -1,7 +1,7 @@
 import "server-only"
 
 import { randomUUID } from "crypto"
-import { and, eq, inArray, max } from "drizzle-orm"
+import { and, eq, gte, inArray, max } from "drizzle-orm"
 
 import { db } from "@/src/db/client"
 import {
@@ -166,10 +166,17 @@ export async function finalizePaidOrder(args: {
       if (!plan) return { ok: false, reason: "plan_not_found" }
 
       const durationType = pay.durationType as DurationType
+      // One-time snapshot is a consumable day-pass: re-buying it while today's
+      // pass is still valid tops up that pass's daily quota instead of creating
+      // a parallel subscription. A stale pass (endDate passed) starts fresh.
+      const isOneTimeSnapshot = plan.type === "snapshot" && durationType === "one_time"
 
-      // Don't create a duplicate active subscription for the same plan + duration.
+      // Find an existing *still-valid* subscription for the same plan + duration.
+      // The endDate guard is essential: `status` is only lazily expired, so
+      // without it a re-purchase of a lapsed plan could reattach the dead
+      // subscription (no new endDate) and the user would pay for nothing.
       const [existingActive] = await tx
-         .select({ id: subscription.id })
+         .select({ id: subscription.id, stocksPerDaySnapshot: subscription.stocksPerDaySnapshot })
          .from(subscription)
          .where(
             and(
@@ -177,25 +184,43 @@ export async function finalizePaidOrder(args: {
                eq(subscription.planId, pay.planId),
                eq(subscription.durationType, durationType),
                eq(subscription.status, "active"),
+               gte(subscription.endDate, new Date()),
             ),
          )
          .limit(1)
 
-      const subscriptionId = existingActive
-         ? existingActive.id
-         : await createSubscriptionRecord(tx, {
-              clientId: pay.clientId,
-              plan,
-              durationType,
-              price: pay.priceSnapshot,
-              stocksPerDay: pay.stocksPerDaySnapshot,
-              taxableAmount: pay.taxableAmount,
-              cgst: pay.cgst,
-              sgst: pay.sgst,
-              igst: pay.igst,
-              gstRate: pay.gstRate,
-              placeOfSupply: pay.placeOfSupply,
-           })
+      let subscriptionId: string
+      if (existingActive && isOneTimeSnapshot) {
+         subscriptionId = existingActive.id
+         // Top up the day-pass by this purchase's per-day allotment. Skip when
+         // either side is null (unlimited) — an unlimited pass already covers it.
+         if (existingActive.stocksPerDaySnapshot !== null && pay.stocksPerDaySnapshot !== null) {
+            await tx
+               .update(subscription)
+               .set({
+                  stocksPerDaySnapshot: existingActive.stocksPerDaySnapshot + pay.stocksPerDaySnapshot,
+                  updatedAt: new Date(),
+               })
+               .where(eq(subscription.id, existingActive.id))
+         }
+      } else if (existingActive) {
+         // Standing plans: don't create a duplicate for the same plan + duration.
+         subscriptionId = existingActive.id
+      } else {
+         subscriptionId = await createSubscriptionRecord(tx, {
+            clientId: pay.clientId,
+            plan,
+            durationType,
+            price: pay.priceSnapshot,
+            stocksPerDay: pay.stocksPerDaySnapshot,
+            taxableAmount: pay.taxableAmount,
+            cgst: pay.cgst,
+            sgst: pay.sgst,
+            igst: pay.igst,
+            gstRate: pay.gstRate,
+            placeOfSupply: pay.placeOfSupply,
+         })
+      }
 
       await tx
          .update(payment)

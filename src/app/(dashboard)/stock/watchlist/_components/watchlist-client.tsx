@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { toast } from "sonner"
-import { SearchIcon, BookmarkIcon, Trash2Icon, FilterIcon, ChevronDownIcon } from "lucide-react"
+import { SearchIcon, BookmarkIcon, Trash2Icon, FilterIcon, ChevronDownIcon, LockIcon, ArrowUpRightIcon } from "lucide-react"
 
 import { Input } from "@/src/components/ui/input"
 import { Button } from "@/src/components/ui/button"
@@ -14,7 +14,6 @@ import {
    CardTitle,
    CardAction,
    CardContent,
-   CardFooter,
 } from "@/src/components/ui/card"
 import {
    DropdownMenu,
@@ -238,80 +237,107 @@ export function WatchlistClient({ items: initialItems }: { items: WatchlistItem[
                   </p>
                </div>
             ) : (
-               filtered.map((item, i) => (
-                  <div
-                     key={item.id}
-                     className="animate-slide-up motion-reduce:animate-none"
-                     style={{ animationDelay: `${Math.min(i, 8) * 80}ms` }}
-                  >
-                     <Card size="sm" className="group h-full gap-3 hover:border-primary/40">
-                        {/* Name + status + remove */}
-                        <CardHeader>
-                           <CardTitle className="min-w-0 break-words text-sm font-semibold leading-snug">
-                              {item.companyName}
-                           </CardTitle>
-                           <CardAction>
-                              <div className="flex items-center">
-                                 <StatusBadge status={item.shariahStatus} />
-                                 <button
-                                    type="button"
-                                    onClick={() => handleRemove(item.id)}
-                                    disabled={removingId === item.id}
-                                    aria-label="Remove from watchlist"
-                                    title="Remove from watchlist"
-                                    className="flex h-7 w-0 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border text-muted-foreground opacity-0 transition-all duration-200 ease-out group-hover:ml-1.5 group-hover:w-7 group-hover:opacity-100 hover:bg-muted hover:text-red-600 focus-visible:ml-1.5 focus-visible:w-7 focus-visible:opacity-100 disabled:opacity-50 motion-reduce:transition-none dark:hover:text-red-400"
-                                 >
-                                    <Trash2Icon className="size-3.5" />
-                                 </button>
-                              </div>
-                           </CardAction>
-                        </CardHeader>
+               filtered.map((item, i) => {
+                  const locked = !item.canViewSnapshot
+                  return (
+                     <div
+                        key={item.id}
+                        className="animate-slide-up motion-reduce:animate-none"
+                        style={{ animationDelay: `${Math.min(i, 8) * 80}ms` }}
+                     >
+                        <Card
+                           size="sm"
+                           className={cn(
+                              "group relative h-full gap-3 transition-all duration-200 ease-out",
+                              locked
+                                 ? "hover:border-primary/40"
+                                 : "cursor-pointer hover:-translate-y-1 hover:border-primary/50 motion-reduce:hover:translate-y-0",
+                           )}
+                        >
+                           {/* Active subscription: the whole card opens the snapshot */}
+                           {!locked && (
+                              <Link
+                                 href={`/stock/snapshot?company=${item.id}`}
+                                 aria-label={`View detailed snapshot for ${item.companyName}`}
+                                 className="absolute inset-0 z-10"
+                              />
+                           )}
 
-                        <CardContent className="flex flex-col gap-2.5">
-                           {/* NSE / BSE codes */}
-                           {(item.nseSymbol || item.bseScripCode) && (
-                              <div className="flex flex-wrap gap-1">
-                                 {item.nseSymbol && (
-                                    <Badge variant="secondary" className="rounded-lg">
-                                       <span className="text-foreground">NSE Symbol: </span>
-                                       {item.nseSymbol}
-                                    </Badge>
-                                 )}
-                                 {item.bseScripCode && (
-                                    <Badge variant="secondary" className="rounded-lg">
-                                       <span className="text-foreground">BSE Scrip Code: </span>
-                                       {item.bseScripCode}
-                                    </Badge>
-                                 )}
+                           {/* Name + status + remove (kept above the click/lock layers) */}
+                           <CardHeader>
+                              <CardTitle className="min-w-0 break-words text-sm font-semibold leading-snug">
+                                 {item.companyName}
+                              </CardTitle>
+                              <CardAction>
+                                 <div className="relative z-20 flex items-center">
+                                    <StatusBadge status={item.shariahStatus} />
+                                    <button
+                                       type="button"
+                                       onClick={() => handleRemove(item.id)}
+                                       disabled={removingId === item.id}
+                                       aria-label="Remove from watchlist"
+                                       title="Remove from watchlist"
+                                       className="flex h-7 w-0 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border text-muted-foreground opacity-0 transition-all duration-200 ease-out group-hover:ml-1.5 group-hover:w-7 group-hover:opacity-100 hover:bg-muted hover:text-red-600 focus-visible:ml-1.5 focus-visible:w-7 focus-visible:opacity-100 disabled:opacity-50 motion-reduce:transition-none dark:hover:text-red-400"
+                                    >
+                                       <Trash2Icon className="size-3.5" />
+                                    </button>
+                                 </div>
+                              </CardAction>
+                           </CardHeader>
+
+                           <CardContent className="flex flex-col gap-2.5">
+                              {/* NSE / BSE codes */}
+                              {(item.nseSymbol || item.bseScripCode) && (
+                                 <div className="flex flex-wrap gap-1">
+                                    {item.nseSymbol && (
+                                       <Badge variant="secondary" className="rounded-lg">
+                                          <span className="text-foreground">NSE Symbol: </span>
+                                          {item.nseSymbol}
+                                       </Badge>
+                                    )}
+                                    {item.bseScripCode && (
+                                       <Badge variant="secondary" className="rounded-lg">
+                                          <span className="text-foreground">BSE Scrip Code: </span>
+                                          {item.bseScripCode}
+                                       </Badge>
+                                    )}
+                                 </div>
+                              )}
+
+                              {/* Industry */}
+                              {item.industryGroup && (
+                                 <div className="text-xs">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                       Industry
+                                    </p>
+                                    <p className="truncate font-medium text-foreground">{item.industryGroup}</p>
+                                 </div>
+                              )}
+                           </CardContent>
+
+                           {/* Active subscription: hover affordance hinting the card is clickable */}
+                           {!locked && (
+                              <div className="pointer-events-none absolute bottom-3 right-3 z-20 flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary opacity-0 transition-opacity duration-200 group-hover:opacity-100 motion-reduce:transition-none">
+                                 View snapshot
+                                 <ArrowUpRightIcon className="size-3.5" />
                               </div>
                            )}
 
-                           {/* Industry */}
-                           {item.industryGroup && (
-                              <div className="text-xs">
-                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                    Industry
-                                 </p>
-                                 <p className="truncate font-medium text-foreground">{item.industryGroup}</p>
+                           {/* Inactive subscription: lock overlay revealed on hover */}
+                           {locked && (
+                              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card/70 opacity-0 backdrop-blur-[2px] transition-opacity duration-200 group-hover:opacity-100 motion-reduce:transition-none">
+                                 <div className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                    <LockIcon className="size-5" />
+                                 </div>
+                                 <Button asChild size="sm" variant="outline" className="relative z-20">
+                                    <Link href="/plans">Unlock detailed snapshot</Link>
+                                 </Button>
                               </div>
                            )}
-                        </CardContent>
-
-                        {/* Action */}
-                        <CardFooter className="mt-auto justify-end">
-                           {item.canViewSnapshot ? (
-                              <Button asChild size="sm">
-                                 <Link href={`/stock/snapshot?company=${item.id}`}>View detailed snapshot</Link>
-                              </Button>
-                           ) : (
-                              <Button asChild size="sm" variant="outline">
-                                 <Link href="/plans">Unlock detailed snapshot</Link>
-                              </Button>
-                           )}
-                        </CardFooter>
-                     </Card>
-                  </div>
-               ))
+                        </Card>
+                     </div>
+                  )
+               })
             )}
          </div>
       </div>
