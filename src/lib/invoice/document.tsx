@@ -6,11 +6,17 @@ import {
    Text,
    Image as PdfImage,
    StyleSheet,
+   Font,
 } from "@react-pdf/renderer"
 import { SELLER } from "./seller"
 
+// Disable react-pdf's default hyphenation so long words (e.g. "SOLUTION") wrap
+// whole to the next line instead of breaking with a dash ("SOLU-TION").
+Font.registerHyphenationCallback((word) => [word])
+
 export type InvoiceData = {
    logoSrc?: string
+   sealSrc?: string
    invoiceNumber: string
    date: string
    buyer: {
@@ -75,7 +81,7 @@ const s = StyleSheet.create({
    // bank / footer
    footer: { flexDirection: "row", borderTopWidth: 1, borderColor: BORDER },
    bankBox: { width: "60%", padding: 8, borderRightWidth: 1, borderColor: BORDER },
-   signBox: { width: "40%", padding: 8, alignItems: "flex-end", justifyContent: "space-between" },
+   signBox: { width: "40%", padding: 8, alignItems: "flex-end" },
    declRow: { flexDirection: "row", borderTopWidth: 1, borderColor: BORDER },
 })
 
@@ -255,8 +261,8 @@ export function InvoiceDocument({ data }: { data: InvoiceData }) {
                      <Text style={s.muted}>Branch & IFS Code : {SELLER.bank.branchIfsc}</Text>
                   </View>
                   <View style={s.signBox}>
-                     {data.logoSrc ? <PdfImage src={data.logoSrc} style={{ width: 38, height: 42, objectFit: "contain" }} /> : <Text> </Text>}
-                     <Text style={[s.muted, { fontSize: 8, textAlign: "right" }]}>For {SELLER.name}</Text>
+                     {data.sealSrc ? <PdfImage src={data.sealSrc} style={{ width: 56, height: 56, objectFit: "contain" }} /> : <Text> </Text>}
+                     <Text style={[s.muted, { fontSize: 8, textAlign: "left", marginTop: 12, width: "100%" }]}>For {SELLER.name}</Text>
                   </View>
                </View>
 
