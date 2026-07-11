@@ -51,17 +51,22 @@ function formatInvoiceDate(d: Date): string {
    return `${String(d.getDate()).padStart(2, "0")}-${months[d.getMonth()]}-${d.getFullYear()}`
 }
 
-let cachedLogo: string | null | undefined
-function logoDataUri(): string | undefined {
-   if (cachedLogo !== undefined) return cachedLogo ?? undefined
+// Reads an image from public/assets/images once and caches it as a data URI.
+function imageDataUri(cache: { v: string | null | undefined }, fileName: string): string | undefined {
+   if (cache.v !== undefined) return cache.v ?? undefined
    try {
-      const file = path.join(process.cwd(), "public", "assets", "images", "logo.png")
-      cachedLogo = `data:image/png;base64,${fs.readFileSync(file).toString("base64")}`
+      const file = path.join(process.cwd(), "public", "assets", "images", fileName)
+      cache.v = `data:image/png;base64,${fs.readFileSync(file).toString("base64")}`
    } catch {
-      cachedLogo = null
+      cache.v = null
    }
-   return cachedLogo ?? undefined
+   return cache.v ?? undefined
 }
+
+const logoCache: { v: string | null | undefined } = { v: undefined }
+const sealCache: { v: string | null | undefined } = { v: undefined }
+const logoDataUri = () => imageDataUri(logoCache, "logo.png")
+const sealDataUri = () => imageDataUri(sealCache, "invoice_seal.png")
 
 // Shared read model for one payment + its buyer, used by both the email and the
 // on-demand download paths.
@@ -114,6 +119,7 @@ async function renderInvoice(
 
    const data: InvoiceData = {
       logoSrc: logoDataUri(),
+      sealSrc: sealDataUri(),
       invoiceNumber,
       date: formatInvoiceDate(row.createdAt),
       buyer: {
