@@ -171,7 +171,7 @@ export async function sendOtpEmail({
                         <td style="padding:40px 40px 24px;">
                            <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#18181b;">Verify your identity</p>
                            <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.6;">
-                              Hi ${name}, use the OTP below to reset your password. It expires in <strong>10 minutes</strong>.
+                              Hi ${name}, use the OTP below to reset your password. It expires in <strong>3 minutes</strong>.
                            </p>
                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
                               <tr>
@@ -193,7 +193,7 @@ export async function sendOtpEmail({
                      <tr>
                         <td style="border-top:1px solid #f4f4f5;padding:20px 40px;text-align:center;">
                            <p style="margin:0;font-size:12px;color:#a1a1aa;">
-                              © ${new Date().getFullYear()} Tasis Pvt Ltd. · This OTP is valid for 10 minutes only.
+                              © ${new Date().getFullYear()} Tasis Pvt Ltd. · This OTP is valid for 5 minutes only.
                            </p>
                         </td>
                      </tr>
