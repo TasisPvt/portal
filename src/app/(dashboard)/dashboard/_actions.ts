@@ -54,6 +54,7 @@ export type DashboardList = {
    planId: string
    name: string
    purchases: number
+   priceFrom: number | null
 }
 
 export type ClientDashboard = {
@@ -136,11 +137,20 @@ export async function getClientDashboard(): Promise<ClientDashboard | null> {
                planId: pricingPlan.id,
                name: pricingPlan.name,
                purchases: count(payment.id),
+               oneTimePrice: pricingPlan.oneTimePrice,
+               quarterlyPrice: pricingPlan.quarterlyPrice,
+               annualPrice: pricingPlan.annualPrice,
             })
             .from(payment)
             .innerJoin(pricingPlan, eq(payment.planId, pricingPlan.id))
             .where(and(eq(payment.status, "paid"), eq(pricingPlan.type, "list")))
-            .groupBy(pricingPlan.id, pricingPlan.name)
+            .groupBy(
+               pricingPlan.id,
+               pricingPlan.name,
+               pricingPlan.oneTimePrice,
+               pricingPlan.quarterlyPrice,
+               pricingPlan.annualPrice,
+            )
             .orderBy(desc(count(payment.id)))
             .limit(MOST_PURCHASED_LIMIT),
       ])
@@ -177,11 +187,18 @@ export async function getClientDashboard(): Promise<ClientDashboard | null> {
       views: r.views,
    }))
 
-   const mostPurchasedLists: DashboardList[] = purchasedRows.map((r) => ({
-      planId: r.planId,
-      name: r.name,
-      purchases: r.purchases,
-   }))
+   const mostPurchasedLists: DashboardList[] = purchasedRows.map((r) => {
+      // Cheapest advertised entry point for the plan → "from ₹X".
+      const prices = [r.oneTimePrice, r.quarterlyPrice, r.annualPrice]
+         .map((p) => (p != null ? parseFloat(p) : NaN))
+         .filter((n) => Number.isFinite(n) && n > 0)
+      return {
+         planId: r.planId,
+         name: r.name,
+         purchases: r.purchases,
+         priceFrom: prices.length ? Math.min(...prices) : null,
+      }
+   })
 
    return {
       firstName,
