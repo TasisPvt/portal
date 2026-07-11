@@ -1,21 +1,34 @@
 import Link from "next/link"
 import {
    ArrowRightIcon,
+   ArrowUpRightIcon,
+   AwardIcon,
    EyeIcon,
    AlertTriangleIcon,
    Building2Icon,
    CheckCircle2Icon,
+   FlameIcon,
    LockIcon,
    PackageIcon,
    BookmarkIcon,
    TrendingUpIcon,
    TrophyIcon,
+   UsersIcon,
+   ZapIcon,
 } from "lucide-react"
 
 import { SiteHeader } from "@/src/components/site-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
 import { Button } from "@/src/components/ui/button"
 import { Badge } from "@/src/components/ui/badge"
+import {
+   Empty,
+   EmptyHeader,
+   EmptyMedia,
+   EmptyTitle,
+   EmptyDescription,
+   EmptyContent,
+} from "@/src/components/ui/empty"
 import { cn } from "@/src/lib/utils"
 import { formatDate } from "@/src/lib/format"
 import { DURATION_LABELS } from "@/src/lib/constants"
@@ -48,14 +61,14 @@ export default async function ClientDashboardPage() {
          <div className="@container/main flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
             <CompaniesBanner count={data.companiesScreened} greeting={greeting} firstName={data.firstName} />
 
-            <div className="grid grid-cols-1 gap-4 @4xl/main:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 @3xl/main:grid-cols-2 @4xl/main:grid-cols-3">
                <SubscriptionsWidget subscriptions={data.subscriptions} className="@4xl/main:col-span-2" />
                <MostPurchasedWidget lists={data.mostPurchasedLists} />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 @4xl/main:grid-cols-3">
-               <WatchlistWidget items={data.watchlist} className="@4xl/main:col-span-2" />
-               <MostViewedWidget stocks={data.mostViewed} hasActiveSnapshot={data.hasActiveSnapshot} />
+            <div className="grid grid-cols-1 gap-4 @3xl/main:grid-cols-2 @4xl/main:grid-cols-3">
+               <WatchlistWidget items={data.watchlist} hasActiveSnapshot={data.hasActiveSnapshot} className="@4xl/main:col-span-2" />
+               <MostViewedWidget stocks={data.mostViewed} hasActiveSnapshot={data.hasActiveSnapshot} universe={data.companiesScreened} />
             </div>
          </div>
       </>
@@ -89,7 +102,7 @@ function StatusPill({ status }: { status: number | null }) {
 // Icon tile + title/description, matching the admin dashboard widget headers.
 function WidgetTitle({ icon, tone, title, description }: { icon: React.ReactNode; tone: string; title: string; description: string }) {
    return (
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-start gap-2.5">
          <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", tone)}>{icon}</span>
          <div className="space-y-0.5">
             <CardTitle className="text-base">{title}</CardTitle>
@@ -99,13 +112,37 @@ function WidgetTitle({ icon, tone, title, description }: { icon: React.ReactNode
    )
 }
 
-function RankBadge({ n }: { n: number }) {
+// Rank medal — #1 gets an amber "hot" treatment with a flame flag.
+function RankMedal({ n }: { n: number }) {
+   const top = n === 1
    return (
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground tabular-nums">
+      <span
+         className={cn(
+            "relative flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums",
+            top
+               ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
+               : "bg-muted text-muted-foreground",
+         )}
+      >
          {n}
+         {top && (
+            <FlameIcon className="absolute -top-1.5 -right-1.5 size-3.5 fill-amber-500 text-amber-500" aria-hidden="true" />
+         )}
       </span>
    )
 }
+
+// Compact count, e.g. 12400 → "12.4k".
+function compactCount(n: number): string {
+   if (n >= 1000) {
+      const v = n / 1000
+      return `${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)}k`
+   }
+   return String(n)
+}
+
+// Shared spotlight tint for the #1 row in a ranked widget.
+const spotlight = "border-amber-200 bg-amber-50/60 dark:border-amber-900/50 dark:bg-amber-950/20"
 
 function EmptyInline({ icon, title, desc, href, cta }: { icon: React.ReactNode; title: string; desc: string; href: string; cta: string }) {
    return (
@@ -161,7 +198,7 @@ function CompaniesBanner({ count, greeting, firstName }: { count: number; greeti
 function SubscriptionsWidget({ subscriptions, className }: { subscriptions: DashboardSubscription[]; className?: string }) {
    return (
       <Card className={className}>
-         <CardHeader>
+        <CardHeader>
             <div className="flex items-center justify-between gap-2">
                <WidgetTitle
                   icon={<PackageIcon className="size-4" />}
@@ -234,7 +271,15 @@ function SubscriptionRow({ sub }: { sub: DashboardSubscription }) {
 
 // ─── ③ Watchlist ────────────────────────────────────────────────────────────────
 
-function WatchlistWidget({ items, className }: { items: DashboardWatchItem[]; className?: string }) {
+function WatchlistWidget({
+   items,
+   hasActiveSnapshot,
+   className,
+}: {
+   items: DashboardWatchItem[]
+   hasActiveSnapshot: boolean
+   className?: string
+}) {
    return (
       <Card className={className}>
          <CardHeader>
@@ -261,37 +306,97 @@ function WatchlistWidget({ items, className }: { items: DashboardWatchItem[]; cl
                   href="/stock/list"
                   cta="Browse companies"
                />
-            ) : (
-               <ul className="flex flex-col gap-2.5">
+            ) : hasActiveSnapshot ? (
+               <div className="flex flex-col gap-2.5">
                   {items.map((it) => (
-                     <li key={it.id} className="flex items-center gap-3 rounded-xl border p-3">
-                        <div className="min-w-0 flex-1">
-                           <p className="truncate text-sm font-medium">{it.companyName}</p>
-                           <p className="text-xs text-muted-foreground">
-                              {it.nseSymbol ? `NSE: ${it.nseSymbol}` : "NSE: —"}
-                           </p>
-                        </div>
-                        <StatusPill status={it.shariahStatus} />
-                     </li>
+                     <WatchRow key={it.id} item={it} />
                   ))}
-               </ul>
+               </div>
+            ) : (
+               // Locked: rows are inert; hovering the whole list reveals a single
+               // lock overlay nudging the user to a Snapshot plan.
+               <div className="group relative flex flex-col gap-2.5">
+                  {items.map((it) => (
+                     <div key={it.id} className="flex items-center gap-3 rounded-xl border p-3">
+                        <WatchRowContent item={it} />
+                     </div>
+                  ))}
+                  <div className="pointer-events-none absolute inset-0 z-20 flex opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100 motion-reduce:transition-none">
+                     <Empty className="justify-center rounded-xl border bg-card/85 p-6 backdrop-blur-[2px]">
+                        <EmptyHeader>
+                           <EmptyMedia
+                              variant="icon"
+                              className="size-12 rounded-full bg-muted text-muted-foreground [&_svg:not([class*='size-'])]:size-5"
+                           >
+                              <LockIcon />
+                           </EmptyMedia>
+                           <EmptyTitle className="text-base">Snapshots locked</EmptyTitle>
+                           <EmptyDescription className="text-xs">
+                              A Snapshot plan unlocks detailed Shariah screening for your watchlist.
+                           </EmptyDescription>
+                        </EmptyHeader>
+                        <EmptyContent>
+                           <Button asChild size="sm">
+                              <Link href="/plans">Unlock snapshots</Link>
+                           </Button>
+                        </EmptyContent>
+                     </Empty>
+                  </div>
+               </div>
             )}
          </CardContent>
       </Card>
    )
 }
 
+function WatchRowContent({ item }: { item: DashboardWatchItem }) {
+   return (
+      <>
+         <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{item.companyName}</p>
+            <p className="text-xs text-muted-foreground">{item.nseSymbol ? `NSE: ${item.nseSymbol}` : "NSE: —"}</p>
+         </div>
+         <StatusPill status={item.shariahStatus} />
+      </>
+   )
+}
+
+// Unlocked watchlist row — the whole row links to the company's snapshot.
+function WatchRow({ item }: { item: DashboardWatchItem }) {
+   return (
+      <Link
+         href={`/stock/snapshot?company=${item.id}`}
+         aria-label={`View snapshot for ${item.companyName}`}
+         className="group flex items-center gap-3 rounded-xl border p-3 transition-all hover:border-primary/50 hover:bg-muted/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+      >
+         <WatchRowContent item={item} />
+         <ArrowUpRightIcon
+            className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+            aria-hidden="true"
+         />
+      </Link>
+   )
+}
+
 // ─── ④ Most viewed (trending) ───────────────────────────────────────────────────
 
-function MostViewedWidget({ stocks, hasActiveSnapshot }: { stocks: DashboardStock[]; hasActiveSnapshot: boolean }) {
+function MostViewedWidget({
+   stocks,
+   hasActiveSnapshot,
+   universe,
+}: {
+   stocks: DashboardStock[]
+   hasActiveSnapshot: boolean
+   universe: number
+}) {
    return (
-      <Card>
+      <Card className="overflow-hidden">
          <CardHeader>
             <WidgetTitle
                icon={<TrendingUpIcon className="size-4" />}
                tone="bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400"
                title="Most Viewed Stocks"
-               description="Trending across TASIS clients"
+               description="Most-opened snapshots by TASIS clients"
             />
          </CardHeader>
          <CardContent className="flex flex-col gap-2.5">
@@ -299,36 +404,17 @@ function MostViewedWidget({ stocks, hasActiveSnapshot }: { stocks: DashboardStoc
                <p className="py-6 text-center text-sm text-muted-foreground">No view activity yet.</p>
             ) : (
                <>
-                  {stocks.map((s) =>
-                     hasActiveSnapshot ? (
-                        <Link
-                           key={s.id}
-                           href={`/stock/snapshot?company=${s.id}`}
-                           className="group flex items-center gap-3 rounded-xl border p-3 transition-all hover:border-primary/50 hover:bg-muted/40"
-                        >
-                           <p className="min-w-0 flex-1 truncate text-sm font-medium">{s.companyName}</p>
-                           <EyeIcon
-                              className="size-4 shrink-0 text-primary opacity-0 transition-opacity group-hover:opacity-100"
-                              aria-hidden="true"
-                           />
-                        </Link>
-                     ) : (
-                        <div
-                           key={s.id}
-                           className="group flex items-center gap-3 rounded-xl border p-3 transition-colors hover:bg-muted/40"
-                        >
-                           <p className="min-w-0 flex-1 truncate text-sm font-medium">{s.companyName}</p>
-                           <LockIcon
-                              className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
-                              aria-hidden="true"
-                           />
-                        </div>
-                     ),
-                  )}
+                  {stocks.map((s, i) => (
+                     <ViewedRow key={s.id} stock={s} rank={i + 1} hasActiveSnapshot={hasActiveSnapshot} />
+                  ))}
                   {!hasActiveSnapshot && (
-                     <Button asChild size="sm" className="mt-1 w-full">
+                     <Button
+                        asChild
+                        className="mt-1 h-11 w-full bg-gradient-to-r from-primary to-blue-600 text-white shadow-sm hover:opacity-95"
+                     >
                         <Link href="/plans">
-                           <LockIcon className="mr-1 size-3.5" /> Unlock snapshots
+                           <ZapIcon className="mr-1.5 size-4 fill-current" />
+                           Unlock all {universe.toLocaleString("en-IN")} snapshots
                         </Link>
                      </Button>
                   )}
@@ -339,17 +425,75 @@ function MostViewedWidget({ stocks, hasActiveSnapshot }: { stocks: DashboardStoc
    )
 }
 
+function ViewedRow({
+   stock,
+   rank,
+   hasActiveSnapshot,
+}: {
+   stock: DashboardStock
+   rank: number
+   hasActiveSnapshot: boolean
+}) {
+   const inner = (
+      <>
+         <RankMedal n={rank} />
+         <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">{stock.companyName}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+               {stock.nseSymbol && (
+                  <span className="text-xs font-medium text-muted-foreground">{stock.nseSymbol}</span>
+               )}
+               <span className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
+                  <EyeIcon className="size-3" aria-hidden="true" />
+                  {compactCount(stock.views)}
+               </span>
+            </div>
+         </div>
+         {hasActiveSnapshot ? (
+            <ArrowRightIcon
+               className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+               aria-hidden="true"
+            />
+         ) : (
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+               <LockIcon className="size-3.5" aria-hidden="true" />
+            </span>
+         )}
+      </>
+   )
+
+   const base = cn(
+      "flex items-center gap-3 rounded-xl border p-3 transition-all",
+      rank === 1 && spotlight,
+   )
+
+   return hasActiveSnapshot ? (
+      <Link
+         href={`/stock/snapshot?company=${stock.id}`}
+         className={cn(
+            "group hover:border-primary/50 hover:bg-muted/40 hover:shadow-sm",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+            base,
+         )}
+      >
+         {inner}
+      </Link>
+   ) : (
+      <div className={base}>{inner}</div>
+   )
+}
+
 // ─── ⑤ Most purchased lists ─────────────────────────────────────────────────────
 
 function MostPurchasedWidget({ lists }: { lists: DashboardList[] }) {
    return (
-      <Card>
+      <Card className="overflow-hidden">
          <CardHeader>
             <WidgetTitle
                icon={<TrophyIcon className="size-4" />}
                tone="bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
                title="Most Purchased Lists"
-               description="Popular with TASIS clients"
+               description="Top-selling screens on TASIS"
             />
          </CardHeader>
          <CardContent className="flex flex-col gap-2.5">
@@ -357,24 +501,76 @@ function MostPurchasedWidget({ lists }: { lists: DashboardList[] }) {
                <p className="py-6 text-center text-sm text-muted-foreground">No purchases yet.</p>
             ) : (
                <>
-                  {lists.map((l, i) => (
-                     <div key={l.planId} className="flex items-center gap-3 rounded-xl border p-3">
-                        <RankBadge n={i + 1} />
-                        <div className="min-w-0 flex-1">
-                           <p className="truncate text-sm font-medium">{l.name}</p>
-                           <p className="text-xs text-muted-foreground tabular-nums">
-                              {l.purchases.toLocaleString("en-IN")} purchase{l.purchases === 1 ? "" : "s"}
-                           </p>
-                        </div>
-                        <TrendingUpIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                     </div>
-                  ))}
-                  <Button asChild variant="outline" size="sm" className="mt-1 w-full">
-                     <Link href="/plans">Browse all plans</Link>
+                  {lists.map((l, i) =>
+                     i === 0 ? (
+                        <BestsellerCard key={l.planId} list={l} />
+                     ) : (
+                        <PurchasedRow key={l.planId} list={l} rank={i + 1} />
+                     ),
+                  )}
+                  <Button asChild variant="outline" className="mt-1 h-11 w-full">
+                     <Link href="/plans">
+                        Browse all plans <ArrowRightIcon className="ml-1 size-3.5" />
+                     </Link>
                   </Button>
                </>
             )}
          </CardContent>
       </Card>
+   )
+}
+
+// #1 seller — premium "award" spotlight, echoing the brand gradient banner.
+function BestsellerCard({ list }: { list: DashboardList }) {
+   return (
+      <div
+         style={{ background: "linear-gradient(150deg, #0d1f3c 0%, #1a3a6e 100%)" }}
+         className="relative overflow-hidden rounded-xl p-4 shadow-md"
+      >
+         <TrophyIcon className="pointer-events-none absolute -top-4 -right-3 size-24 text-white/[0.05]" aria-hidden="true" />
+         <div className="relative z-10 flex flex-col gap-3">
+            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950">
+               <AwardIcon className="size-3" aria-hidden="true" />
+               Bestseller
+            </span>
+            <h3 className="text-base font-bold leading-snug text-white text-balance">{list.name}</h3>
+            <div className="flex items-center justify-between gap-3 pt-1">
+               <span className="flex items-center gap-1.5 text-sm tabular-nums text-blue-100/80">
+                  <UsersIcon className="size-4" aria-hidden="true" />
+                  {list.purchases.toLocaleString("en-IN")}
+               </span>
+               <Button asChild variant="secondary" className="h-11 shrink-0">
+                  <Link href="/plans">
+                     {list.priceFrom != null ? `Plans from ₹${list.priceFrom.toLocaleString("en-IN")}` : "View plans"}
+                     <ArrowRightIcon className="ml-1 size-3.5" />
+                  </Link>
+               </Button>
+            </div>
+         </div>
+      </div>
+   )
+}
+
+function PurchasedRow({ list, rank }: { list: DashboardList; rank: number }) {
+   return (
+      <Link
+         href="/plans"
+         className="group flex items-center gap-3 rounded-xl border p-3 transition-all hover:border-primary/50 hover:bg-muted/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+      >
+         <RankMedal n={rank} />
+         <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold leading-snug">{list.name}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+               <span className="flex items-center gap-1 tabular-nums">
+                  <UsersIcon className="size-3" aria-hidden="true" />
+                  {list.purchases.toLocaleString("en-IN")}
+               </span>
+            </div>
+         </div>
+         <ArrowRightIcon
+            className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+            aria-hidden="true"
+         />
+      </Link>
    )
 }
