@@ -8,16 +8,21 @@ import {
    FileTextIcon,
    DownloadIcon,
    AlertCircleIcon,
+   AlertTriangleIcon,
    PlusCircleIcon,
    RefreshCwIcon,
    XCircleIcon,
-   LockIcon,
    MinusCircleIcon,
+   CalendarIcon,
+   ChevronDownIcon,
+   ChevronLeftIcon,
+   ChevronRightIcon,
 } from "lucide-react"
 
 import { getImportContext, importShariahData, type ShariahImportRow, type ExistingShariahEntry } from "../_actions"
 import { formatMonthLabel } from "../_utils"
 import { Button } from "@/src/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/src/components/ui/popover"
 import { Spinner } from "@/src/components/ui/spinner"
 import { Badge } from "@/src/components/ui/badge"
 import {
@@ -420,15 +425,114 @@ type PreviewRow = ShariahImportRow & {
 }
 
 // ---------------------------------------------------------------------------
+// Month / year picker
+// ---------------------------------------------------------------------------
+
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+// Compact "YYYY-MM" picker: year stepper + 12-month grid. Caps at maxMonth
+// (no future). Months that already hold data are marked with a dot.
+function MonthYearPicker({
+   value,
+   onChange,
+   maxMonth,
+   monthsWithData,
+   disabled,
+}: {
+   value: string
+   onChange: (month: string) => void
+   maxMonth: string
+   monthsWithData: Set<string>
+   disabled?: boolean
+}) {
+   const [open, setOpen] = React.useState(false)
+   const [viewYear, setViewYear] = React.useState(() => Number(value.slice(0, 4)))
+
+   // Re-centre the year view on the selected month whenever the picker opens.
+   React.useEffect(() => {
+      if (open) setViewYear(Number(value.slice(0, 4)))
+   }, [open, value])
+
+   const maxYear = Number(maxMonth.slice(0, 4))
+   const maxMon = Number(maxMonth.slice(5, 7))
+   const selYear = Number(value.slice(0, 4))
+   const selMon = Number(value.slice(5, 7))
+
+   return (
+      <Popover open={open} onOpenChange={setOpen}>
+         <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" disabled={disabled} className="gap-2">
+               <CalendarIcon className="size-3.5" />
+               {formatMonthLabel(value)}
+               <ChevronDownIcon className="size-3.5 opacity-60" />
+            </Button>
+         </PopoverTrigger>
+         <PopoverContent align="start" className="w-64 gap-3">
+            <div className="flex items-center justify-between">
+               <Button variant="ghost" size="icon" className="size-7" onClick={() => setViewYear((y) => y - 1)}>
+                  <ChevronLeftIcon className="size-4" />
+               </Button>
+               <span className="text-sm font-semibold tabular-nums">{viewYear}</span>
+               <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  disabled={viewYear >= maxYear}
+                  onClick={() => setViewYear((y) => y + 1)}
+               >
+                  <ChevronRightIcon className="size-4" />
+               </Button>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+               {MONTH_LABELS.map((label, i) => {
+                  const m = i + 1
+                  const key = `${viewYear}-${String(m).padStart(2, "0")}`
+                  const isFuture = viewYear > maxYear || (viewYear === maxYear && m > maxMon)
+                  const isSelected = viewYear === selYear && m === selMon
+                  const hasData = monthsWithData.has(key)
+                  return (
+                     <Button
+                        key={key}
+                        variant={isSelected ? "default" : "ghost"}
+                        size="sm"
+                        disabled={isFuture}
+                        onClick={() => {
+                           onChange(key)
+                           setOpen(false)
+                        }}
+                        className="relative"
+                     >
+                        {label}
+                        {hasData && !isSelected && (
+                           <span className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-primary" />
+                        )}
+                     </Button>
+                  )
+               })}
+            </div>
+         </PopoverContent>
+      </Popover>
+   )
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function ImportShariahDialog() {
+export function ImportShariahDialog({
+   currentMonth,
+   monthsWithData,
+   canBackdate,
+}: {
+   currentMonth: string
+   monthsWithData: string[]
+   canBackdate: boolean
+}) {
    const [open, setOpen] = React.useState(false)
    const [fileName, setFileName] = React.useState<string | null>(null)
-   const [preview, setPreview] = React.useState<PreviewRow[] | null>(null)
+   const [rawRows, setRawRows] = React.useState<RawParsedRow[] | null>(null)
    const [activeTab, setActiveTab] = React.useState("new")
-   const [currentMonth, setCurrentMonth] = React.useState<string | null>(null)
+   const [targetMonth, setTargetMonth] = React.useState(currentMonth)
    const [existingProwessIds, setExistingProwessIds] = React.useState<Set<string>>(new Set())
    const [companyNames, setCompanyNames] = React.useState<Record<string, string>>({})
    const [existingShariahData, setExistingShariahData] = React.useState<Record<string, ExistingShariahEntry>>({})
@@ -437,24 +541,28 @@ export function ImportShariahDialog() {
    const fileInputRef = React.useRef<HTMLInputElement>(null)
    const router = useRouter()
 
+   const monthsWithDataSet = React.useMemo(() => new Set(monthsWithData), [monthsWithData])
+
+   // Re-fetch the existing-data context whenever the dialog opens or the target
+   // month changes, so New/Update/No-change diffing reflects the chosen month.
    React.useEffect(() => {
       if (!open) return
       setIsFetching(true)
-      getImportContext()
-         .then(({ currentMonth, existingProwessIds, companyNames, existingShariahData }) => {
-            setCurrentMonth(currentMonth)
+      getImportContext(targetMonth)
+         .then(({ existingProwessIds, companyNames, existingShariahData }) => {
             setExistingProwessIds(existingProwessIds)
             setCompanyNames(companyNames)
             setExistingShariahData(existingShariahData)
          })
          .finally(() => setIsFetching(false))
-   }, [open])
+   }, [open, targetMonth])
 
    function handleOpenChange(val: boolean) {
       if (!val) {
-         setPreview(null)
+         setRawRows(null)
          setFileName(null)
          setActiveTab("new")
+         setTargetMonth(currentMonth)
          if (fileInputRef.current) fileInputRef.current.value = ""
       }
       setOpen(val)
@@ -464,44 +572,61 @@ export function ImportShariahDialog() {
       const file = e.target.files?.[0]
       if (!file) return
       setFileName(file.name)
-      setPreview(null)
+      setRawRows(null)
       setActiveTab("new")
       const reader = new FileReader()
       reader.onload = (ev) => {
          const text = ev.target?.result as string
          const parsed = parseCSV(text)
-         const rows: PreviewRow[] = parsed.map((raw) => {
-            const { _parseIssues, ...rawRow } = raw
-            // Apply cascade first so downstream NA fields are already null
-            const r = applyComplianceCascade(rawRow)
-            if (!r.prowessId || !companyNames[r.prowessId]) {
-               return { ...r, _status: "not_found" as const, _parseIssues }
-            }
-            const missingFields = getMissingFields(r)
-            if (missingFields.length > 0 || (_parseIssues && _parseIssues.length > 0)) {
-               return { ...r, _status: "invalid" as const, _missingFields: missingFields, _parseIssues }
-            }
-            if (existingProwessIds.has(r.prowessId)) {
-               const existing = existingShariahData[r.prowessId]
-               const changedFields = existing ? getChangedFields(r, existing) : []
-               if (changedFields.length === 0) return { ...r, _status: "no_change" as const }
-               return { ...r, _status: "update" as const, _changedFields: changedFields }
-            }
-            return { ...r, _status: "new" as const }
-         })
 
-         const parseIssueCount = rows.filter((r) => r._parseIssues && r._parseIssues.length > 0).length
+         const parseIssueCount = parsed.filter((r) => r._parseIssues && r._parseIssues.length > 0).length
          if (parseIssueCount > 0) {
             toast.warning(`${parseIssueCount} row${parseIssueCount > 1 ? "s" : ""} have unrecognised field values`, {
                description: "Check the Invalid tab for details. Affected rows won't be imported.",
             })
          }
 
-         setPreview(rows)
+         setRawRows(parsed)
          setActiveTab("new")
       }
       reader.readAsText(file)
    }
+
+   function openFilePicker() {
+      if (isFetching) return
+      if (fileInputRef.current) {
+         fileInputRef.current.value = ""
+         fileInputRef.current.click()
+      }
+   }
+
+   // Classify parsed rows against the selected month's existing data. Derived so
+   // switching months re-evaluates the same file without a re-upload.
+   const preview = React.useMemo<PreviewRow[] | null>(() => {
+      if (!rawRows) return null
+      return rawRows.map((raw) => {
+         const { _parseIssues, ...rawRow } = raw
+         // Apply cascade first so downstream NA fields are already null
+         const r = applyComplianceCascade(rawRow)
+         if (!r.prowessId || !companyNames[r.prowessId]) {
+            return { ...r, _status: "not_found" as const, _parseIssues }
+         }
+         const missingFields = getMissingFields(r)
+         if (missingFields.length > 0 || (_parseIssues && _parseIssues.length > 0)) {
+            return { ...r, _status: "invalid" as const, _missingFields: missingFields, _parseIssues }
+         }
+         if (existingProwessIds.has(r.prowessId)) {
+            const existing = existingShariahData[r.prowessId]
+            const changedFields = existing ? getChangedFields(r, existing) : []
+            if (changedFields.length === 0) return { ...r, _status: "no_change" as const }
+            return { ...r, _status: "update" as const, _changedFields: changedFields }
+         }
+         return { ...r, _status: "new" as const }
+      })
+   }, [rawRows, companyNames, existingProwessIds, existingShariahData])
+
+   const isPastMonth = targetMonth < currentMonth
+   const isPastMonthWithData = isPastMonth && existingProwessIds.size > 0
 
    const newRows = preview?.filter((r) => r._status === "new") ?? []
    const updateRows = preview?.filter((r) => r._status === "update") ?? []
@@ -515,17 +640,23 @@ export function ImportShariahDialog() {
       if (!canImport) return
       const toImport = [...newRows, ...updateRows]
       startTransition(async () => {
-         const result = await importShariahData(toImport)
-         const parts: string[] = []
-         if (result.inserted > 0) parts.push(`${result.inserted} added`)
-         if (result.updated > 0) parts.push(`${result.updated} updated`)
-         toast.success(parts.join(", ") + ".", {
-            description: result.skipped.length > 0
-               ? `${result.skipped.length} row(s) skipped.`
-               : undefined,
-         })
-         handleOpenChange(false)
-         router.refresh()
+         try {
+            const result = await importShariahData(toImport, targetMonth)
+            const parts: string[] = []
+            if (result.inserted > 0) parts.push(`${result.inserted} added`)
+            if (result.updated > 0) parts.push(`${result.updated} updated`)
+            toast.success(parts.join(", ") + ".", {
+               description: result.skipped.length > 0
+                  ? `${result.skipped.length} row(s) skipped.`
+                  : undefined,
+            })
+            handleOpenChange(false)
+            router.refresh()
+         } catch (err) {
+            toast.error("Import failed", {
+               description: err instanceof Error ? err.message : "Please try again.",
+            })
+         }
       })
    }
 
@@ -552,62 +683,114 @@ export function ImportShariahDialog() {
             </DialogHeader>
 
             <div className="flex min-h-0 flex-1 flex-col gap-4">
-               {/* Month indicator */}
-               {currentMonth && (
-                  <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                     <LockIcon className="size-3.5 shrink-0" />
-                     Importing data for&nbsp;
-                     <span className="font-medium text-foreground">{formatMonthLabel(currentMonth)}</span>.
-                     &nbsp;Past months are locked and cannot be modified.
+               {/* Target month selector */}
+               <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">Import data for</span>
+                  <MonthYearPicker
+                     value={targetMonth}
+                     onChange={setTargetMonth}
+                     maxMonth={currentMonth}
+                     monthsWithData={monthsWithDataSet}
+                     disabled={isPending || !canBackdate}
+                  />
+                  {!canBackdate && (
+                     <span className="text-xs text-muted-foreground">
+                        Only the current month can be edited with your role.
+                     </span>
+                  )}
+                  {isPastMonth ? (
+                     <span className="ml-auto rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+                        Back-dated month
+                     </span>
+                  ) : (
+                     <span className="ml-auto rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+                        Current month
+                     </span>
+                  )}
+               </div>
+
+               {/* Warning when editing an already-published past month */}
+               {isPastMonthWithData ? (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-300">
+                     <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+                     <span>
+                        You&apos;re editing already-published data for{" "}
+                        <span className="font-semibold">{formatMonthLabel(targetMonth)}</span>. Matching records will be
+                        overwritten and the previous values <span className="font-semibold">cannot be recovered</span>.
+                     </span>
+                  </div>
+               ) : (
+                  <p className="text-xs text-muted-foreground">
+                     Upload a CSV file with shariah status data. Existing records for{" "}
+                     <span className="font-medium text-foreground">{formatMonthLabel(targetMonth)}</span> will be overwritten.
+                  </p>
+               )}
+
+               {/* File picker — full dropzone before upload, compact bar after */}
+               {fileName ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-primary/40 bg-muted/20 px-3 py-2">
+                     <FileTextIcon className="size-4 shrink-0 text-primary" />
+                     <span className="min-w-0 flex-1 truncate text-sm font-medium">{fileName}</span>
+                     <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5 text-muted-foreground"
+                        onClick={downloadTemplate}
+                     >
+                        <DownloadIcon className="size-3.5" />
+                        Template
+                     </Button>
+                     <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={openFilePicker}
+                        disabled={isFetching}
+                     >
+                        <UploadIcon className="size-3.5" />
+                        Change
+                     </Button>
+                  </div>
+               ) : (
+                  <div className="flex flex-col gap-2">
+                     <Empty
+                        className={cn(
+                           "gap-1 border p-4 transition-colors",
+                           isFetching ? "cursor-wait opacity-60" : "cursor-pointer hover:bg-muted/40",
+                        )}
+                        onClick={openFilePicker}
+                     >
+                        <EmptyMedia variant="icon">
+                           <UploadIcon />
+                        </EmptyMedia>
+                        <EmptyTitle className="text-sm">Click to upload CSV</EmptyTitle>
+                        <EmptyDescription>
+                           {isFetching ? "Loading context…" : "CSV with prowess_id and shariah fields"}
+                        </EmptyDescription>
+                     </Empty>
+                     <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="self-start gap-1.5 text-muted-foreground"
+                        onClick={downloadTemplate}
+                     >
+                        <DownloadIcon className="size-3.5" />
+                        Download template
+                     </Button>
                   </div>
                )}
 
-               <p className="text-xs text-muted-foreground">
-                  Upload a CSV file with shariah status data. Existing records for the current month will be overwritten.
-               </p>
-
-               {/* File picker */}
-               <div className="flex flex-col gap-2">
-                  <Empty
-                     className={cn(
-                        "gap-1 border p-4 transition-colors",
-                        isFetching ? "cursor-wait opacity-60" : "cursor-pointer hover:bg-muted/40",
-                        fileName ? "border-primary/40 bg-muted/20" : "",
-                     )}
-                     onClick={() => {
-                        if (isFetching) return
-                        if (fileInputRef.current) {
-                           fileInputRef.current.value = ""
-                           fileInputRef.current.click()
-                        }
-                     }}
-                  >
-                     <EmptyMedia variant="icon">
-                        {fileName ? <FileTextIcon className="text-primary" /> : <UploadIcon />}
-                     </EmptyMedia>
-                     <EmptyTitle className="text-sm">{fileName ?? "Click to upload CSV"}</EmptyTitle>
-                     <EmptyDescription>
-                        {isFetching ? "Loading context…" : fileName ? "Click to change file" : "CSV with prowess_id and shariah fields"}
-                     </EmptyDescription>
-                     <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".csv,text/csv"
-                        className="hidden"
-                        onChange={handleFileChange}
-                     />
-                  </Empty>
-                  <Button
-                     type="button"
-                     variant="ghost"
-                     size="sm"
-                     className="self-start gap-1.5 text-muted-foreground"
-                     onClick={downloadTemplate}
-                  >
-                     <DownloadIcon className="size-3.5" />
-                     Download template
-                  </Button>
-               </div>
+               {/* Kept mounted in both states so the ref survives the swap */}
+               <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  onChange={handleFileChange}
+               />
 
                {/* Preview */}
                {preview !== null && (
