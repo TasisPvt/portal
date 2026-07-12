@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto"
 import { and, desc, eq, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
+import { headers } from "next/headers"
 
 import { db } from "@/src/db/client"
 import {
@@ -13,6 +14,8 @@ import {
    subscription,
    subscriptionListSnapshot,
 } from "@/src/db/schema"
+import { auth } from "@/src/lib/auth"
+import { Roles } from "@/src/lib/constants"
 import { getCurrentMonth } from "./_utils"
 
 // ---------------------------------------------------------------------------
@@ -83,14 +86,26 @@ export type ExistingShariahEntry = {
    remark: string | null
 }
 
-// Called by the import dialog on open — returns current month, existing prowessIds, prowessId→name map, and existing shariah values
-export async function getImportContext(): Promise<{
+// A target month must be "YYYY-MM" and not in the future (no uploading ahead of time).
+function assertValidTargetMonth(month: string): string {
+   if (!/^\d{4}-\d{2}$/.test(month)) {
+      throw new Error("Invalid month format")
+   }
+   if (month > getCurrentMonth()) {
+      throw new Error("Cannot import data for a future month")
+   }
+   return month
+}
+
+// Called by the import dialog — returns existing prowessIds, prowessId→name map, and
+// existing shariah values for the given target month (current or a back-dated month).
+export async function getImportContext(month: string): Promise<{
    currentMonth: string
    existingProwessIds: Set<string>
    companyNames: Record<string, string>
    existingShariahData: Record<string, ExistingShariahEntry>
 }> {
-   const currentMonth = getCurrentMonth()
+   const targetMonth = assertValidTargetMonth(month)
 
    const [allCompanies, existingRows] = await Promise.all([
       db.select({ prowessId: companyMaster.prowessId, companyName: companyMaster.companyName }).from(companyMaster),
@@ -115,11 +130,11 @@ export async function getImportContext(): Promise<{
          })
          .from(companyShariah)
          .innerJoin(companyMaster, eq(companyShariah.companyId, companyMaster.id))
-         .where(eq(companyShariah.month, currentMonth)),
+         .where(eq(companyShariah.month, targetMonth)),
    ])
 
    return {
-      currentMonth,
+      currentMonth: getCurrentMonth(),
       existingProwessIds: new Set(existingRows.map((r) => r.prowessId)),
       companyNames: Object.fromEntries(allCompanies.map((c) => [c.prowessId, c.companyName])),
       existingShariahData: Object.fromEntries(existingRows.map((r) => [r.prowessId, r])),
@@ -151,12 +166,21 @@ export type ShariahImportRow = {
    lastUpdatedAt?: string | null
 }
 
-export async function importShariahData(records: ShariahImportRow[]): Promise<{
+export async function importShariahData(records: ShariahImportRow[], targetMonth: string): Promise<{
    inserted: number
    updated: number
    skipped: { prowessId: string; reason: string }[]
 }> {
-   const month = getCurrentMonth()
+   const month = assertValidTargetMonth(targetMonth)
+
+   // Back-dated edits are restricted to admin / super-admin. Managers may only
+   // publish or correct the current month.
+   if (month < getCurrentMonth()) {
+      const session = await auth.api.getSession({ headers: await headers() })
+      if (session?.user?.adminRole === Roles.MANAGER) {
+         throw new Error("Your role can only edit the current month's data.")
+      }
+   }
 
    // Resolve prowessId → companyId
    const allCompanies = await db
@@ -250,7 +274,13 @@ export async function importShariahData(records: ShariahImportRow[]): Promise<{
    // for every active quarterly/annual list subscription. This freezes each
    // subscriber's company list to what existed when the admin published this
    // month's data, so later index edits don't affect their view.
-   await snapshotMonthForActiveListSubscriptions(month)
+   //
+   // Only done for a current-month publish. Back-dated corrections to a past
+   // month must NOT re-snapshot: that would stamp today's index membership onto
+   // a historical month and corrupt subscribers' frozen lists.
+   if (month === getCurrentMonth()) {
+      await snapshotMonthForActiveListSubscriptions(month)
+   }
 
    revalidatePath("/admin/company-shariah-status")
    return { inserted, updated, skipped }

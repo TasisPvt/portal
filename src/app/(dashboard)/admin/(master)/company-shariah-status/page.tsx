@@ -1,5 +1,8 @@
+import { headers } from "next/headers"
 import { ShieldCheckIcon } from "lucide-react"
 
+import { auth } from "@/src/lib/auth"
+import { Roles } from "@/src/lib/constants"
 import { SiteHeader } from "@/src/components/site-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card"
 import { getShariahDataForMonth, getAvailableMonths } from "./_actions"
@@ -15,10 +18,14 @@ export default async function CompanyShariahStatusPage({
    const { month: monthParam } = await searchParams
    const currentMonth = getCurrentMonth()
 
-   const [availableMonths, data] = await Promise.all([
+   const [session, availableMonths, data] = await Promise.all([
+      auth.api.getSession({ headers: await headers() }),
       getAvailableMonths(),
       getShariahDataForMonth(monthParam || currentMonth),
    ])
+
+   // Managers may only edit the current month; admins/super-admins can back-date.
+   const canBackdate = session?.user?.adminRole !== Roles.MANAGER
 
    const selectedMonth = monthParam || currentMonth
 
@@ -66,7 +73,11 @@ export default async function CompanyShariahStatusPage({
                         <h2 className="text-xl font-semibold tracking-tight">Shariah Status</h2>
                         <p className="text-sm text-muted-foreground">{formatMonthLabel(selectedMonth)}</p>
                      </div>
-                     <ImportShariahDialog />
+                     <ImportShariahDialog
+                        currentMonth={currentMonth}
+                        monthsWithData={availableMonths}
+                        canBackdate={canBackdate}
+                     />
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 px-4 @2xl/main:grid-cols-3 lg:px-6">
