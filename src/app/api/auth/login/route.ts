@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/src/lib/auth"
+import { ACCOUNT_BLOCKED_MESSAGE } from "@/src/lib/constants"
 import { expireStaleSubscriptions, expireAllStaleSubscriptions } from "@/src/lib/subscription-access"
 
 export async function POST(req: Request) {
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
       // better-auth throws APIError with statusCode for known failures
       if (err?.statusCode === 403) {
          return NextResponse.json(
-            { message: err.body?.message ?? "Your account has been blocked. Contact the admin for further details." },
+            { message: err.body?.message ?? ACCOUNT_BLOCKED_MESSAGE },
             { status: 403 }
          )
       }

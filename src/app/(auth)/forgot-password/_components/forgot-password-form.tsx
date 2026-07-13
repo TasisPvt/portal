@@ -10,6 +10,7 @@ import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
 import { Label } from "@/src/components/ui/label"
 import { AlertDestructive } from "@/src/components/alerts/alertDestructive"
+import { renderAuthError } from "@/src/lib/auth-error"
 import { Spinner } from "@/src/components/ui/spinner"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/src/components/ui/input-otp"
 
@@ -43,7 +44,7 @@ function EmailStep({ onSuccess }: { onSuccess: (email: string) => void }) {
             </p>
          </div>
 
-         {formError && <AlertDestructive className="mb-5" title={formError} />}
+         {formError && <AlertDestructive className="mb-5" title={renderAuthError(formError)} />}
 
          <form
             onSubmit={handleSubmit((data) => { setFormError(null); mutation.mutate(data) })}
@@ -178,7 +179,7 @@ function OtpStep({
             </p>
          </div>
 
-         {formError && <AlertDestructive className="mb-5" title={formError} />}
+         {formError && <AlertDestructive className="mb-5" title={renderAuthError(formError)} />}
          {resendSuccess && !formError && (
             <p className="mb-5 text-center text-sm text-green-600 dark:text-green-400">
                A new code has been sent to your email.
@@ -278,7 +279,7 @@ function PasswordStep({
             <p className="text-sm text-muted-foreground">Choose a strong password for your account.</p>
          </div>
 
-         {formError && <AlertDestructive className="mb-5" title={formError} />}
+         {formError && <AlertDestructive className="mb-5" title={renderAuthError(formError)} />}
 
          <form
             onSubmit={handleSubmit((data) => { setFormError(null); mutation.mutate(data) })}

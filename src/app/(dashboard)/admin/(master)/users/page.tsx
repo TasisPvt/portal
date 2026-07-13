@@ -1,6 +1,8 @@
+import { headers } from "next/headers"
 import { db } from "@/src/db/client"
 import { user } from "@/src/db/schema"
 import { and, eq, ne } from "drizzle-orm"
+import { auth } from "@/src/lib/auth"
 import { SiteHeader } from "@/src/components/site-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card"
 import { UsersIcon, UserCheckIcon, UserXIcon } from "lucide-react"
@@ -9,6 +11,9 @@ import { AddUserDialog } from "./_components/add-user-dialog"
 import { Roles } from "@/src/lib/constants"
 
 export default async function UsersPage() {
+  const session = await auth.api.getSession({ headers: await headers() })
+  const currentUserId = session?.user?.id ?? ""
+
   const users = await db
     .select({
       id: user.id,
@@ -20,7 +25,14 @@ export default async function UsersPage() {
       adminRole: user.adminRole,
     })
     .from(user)
-    .where(and(eq(user.userType, "admin"), ne(user.adminRole, Roles.SUPER_ADMIN)))
+    .where(
+      and(
+        eq(user.userType, "admin"),
+        ne(user.adminRole, Roles.SUPER_ADMIN),
+        // Hide the logged-in admin from the list so they can't edit their own account here.
+        ne(user.id, currentUserId),
+      ),
+    )
     .orderBy(user.createdAt)
 
   const total = users.length

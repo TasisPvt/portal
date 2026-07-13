@@ -1,14 +1,19 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
+import { headers } from "next/headers"
 import { db } from "@/src/db/client"
 import { user } from "@/src/db/schema"
 import { eq } from "drizzle-orm"
+import { auth } from "@/src/lib/auth"
 import { SiteHeader } from "@/src/components/site-header"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card"
 import { Badge } from "@/src/components/ui/badge"
 import { Button } from "@/src/components/ui/button"
 import { StatusToggle } from "./_components/status-toggle"
 import { RoleSelect } from "./_components/role-select"
+import { StatusHistorySheet } from "@/src/components/account/status-history-sheet"
+import { SessionList } from "@/src/components/account/session-list"
+import { getUserStatusHistory, getUserSessions, revokeUserSession } from "./_actions"
 import {
   ArrowLeftIcon,
   MailIcon,
@@ -16,6 +21,7 @@ import {
   ShieldCheckIcon,
   CheckCircle2Icon,
   ClockIcon,
+  MonitorSmartphoneIcon,
 } from "lucide-react"
 import { cn } from "@/src/lib/utils"
 import type { Role } from "@/src/lib/constants"
@@ -125,6 +131,16 @@ export default async function UserDetailPage({
   const u = rows[0]
   if (!u || u.id === undefined) notFound()
 
+  const [session, statusHistory, userSessions] = await Promise.all([
+    auth.api.getSession({ headers: await headers() }),
+    getUserStatusHistory(u.id),
+    getUserSessions(u.id),
+  ])
+
+  // An admin cannot activate/deactivate, change the role of, or revoke sessions
+  // for their own account from here.
+  const isSelf = session?.user?.id === u.id
+
   const joinedDate = u.createdAt.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "long",
@@ -158,7 +174,8 @@ export default async function UserDetailPage({
                 </p>
               </div>
               <div className="ml-auto flex items-center gap-2">
-                <StatusToggle id={u.id} name={u.name} isActive={u.isActive} />
+                <StatusHistorySheet history={statusHistory} />
+                {!isSelf && <StatusToggle id={u.id} name={u.name} isActive={u.isActive} />}
               </div>
             </div>
 
@@ -243,13 +260,45 @@ export default async function UserDetailPage({
                           <ShieldCheckIcon className="size-3.5" />
                           Admin Role
                         </span>
-                        <RoleSelect id={u.id} currentRole={u.adminRole as Role | null} />
+                        {isSelf ? (
+                          <span className="text-sm font-semibold">
+                            {u.adminRole ? ROLE_LABELS[u.adminRole] : "—"}
+                            <span className="ml-2 text-xs font-normal text-muted-foreground">(your account)</span>
+                          </span>
+                        ) : (
+                          <RoleSelect id={u.id} currentRole={u.adminRole as Role | null} />
+                        )}
                       </div>
                       <Field
                         label="Account Status"
                         value={<StatusPill active={u.isActive} />}
                       />
                     </div>
+                  </CardContent>
+                </Card>
+
+                {/* Active logins */}
+                <Card size="sm">
+                  <CardHeader className="border-b">
+                    <CardTitle className="flex items-center gap-2.5 text-sm">
+                      <span className="flex size-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                        <MonitorSmartphoneIcon className="size-4" />
+                      </span>
+                      Active Logins
+                    </CardTitle>
+                    <CardAction>
+                      <span className="text-xs text-muted-foreground">
+                        {userSessions.length} device{userSessions.length === 1 ? "" : "s"}
+                      </span>
+                    </CardAction>
+                  </CardHeader>
+                  <CardContent>
+                    <SessionList
+                      sessions={userSessions}
+                      canRevoke={!isSelf}
+                      onRevokeAction={revokeUserSession.bind(null, u.id)}
+                      emptyText="This user has no active login sessions."
+                    />
                   </CardContent>
                 </Card>
 
