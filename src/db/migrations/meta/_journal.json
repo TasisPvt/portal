@@ -141,6 +141,20 @@
       "when": 1783454920325,
       "tag": "0019_sweet_sabretooth",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1783970519354,
+      "tag": "0020_client_status_history",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1783973229504,
+      "tag": "0021_client_status_history_tstz",
+      "breakpoints": true
     }
   ]
 }

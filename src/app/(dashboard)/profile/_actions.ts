@@ -3,8 +3,8 @@
 import { headers } from "next/headers"
 import { auth } from "@/src/lib/auth"
 import { db } from "@/src/db/client"
-import { user, clientProfile } from "@/src/db/schema"
-import { eq } from "drizzle-orm"
+import { user, clientProfile, session } from "@/src/db/schema"
+import { and, eq, ne } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
 export async function updateDisplayName(name: string) {
@@ -35,6 +35,31 @@ export async function updatePhone(phone: string) {
     if (e.code === "23505") throw new Error("Phone number is already in use.")
     throw e
   }
+
+  revalidatePath("/profile")
+}
+
+// Revoke one of the current user's own sessions ("log out this device"). Scoped
+// to the caller's own userId so nobody can revoke another user's session.
+export async function revokeMySession(sessionId: string) {
+  const current = await auth.api.getSession({ headers: await headers() })
+  if (!current?.user?.id) throw new Error("Unauthorized")
+
+  await db
+    .delete(session)
+    .where(and(eq(session.id, sessionId), eq(session.userId, current.user.id)))
+
+  revalidatePath("/profile")
+}
+
+// Log out every device except the one making this request.
+export async function revokeMyOtherSessions() {
+  const current = await auth.api.getSession({ headers: await headers() })
+  if (!current?.user?.id || !current.session?.id) throw new Error("Unauthorized")
+
+  await db
+    .delete(session)
+    .where(and(eq(session.userId, current.user.id), ne(session.id, current.session.id)))
 
   revalidatePath("/profile")
 }

@@ -16,6 +16,7 @@ import {
 import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
 import { AlertDestructive } from "@/src/components/alerts/alertDestructive"
+import { renderAuthError } from "@/src/lib/auth-error"
 import { Spinner } from "@/src/components/ui/spinner"
 
 type LoginType = {
@@ -82,7 +83,7 @@ export function LoginForm() {
          )}
 
          {formError && (
-            <AlertDestructive className="mb-5" title={formError} />
+            <AlertDestructive className="mb-5" title={renderAuthError(formError)} />
          )}
 
          <form onSubmit={handleSubmit(onSubmit)} noValidate>

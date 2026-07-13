@@ -1,17 +1,21 @@
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
-import { eq, and } from "drizzle-orm"
+import { eq, and, gt, desc } from "drizzle-orm"
+import { MonitorSmartphoneIcon } from "lucide-react"
 import { auth } from "@/src/lib/auth"
 import { db } from "@/src/db/client"
-import { user, clientProfile, account } from "@/src/db/schema"
+import { user, clientProfile, account, session as sessionTable } from "@/src/db/schema"
 import { SiteHeader } from "@/src/components/site-header"
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card"
+import { SessionList } from "@/src/components/account/session-list"
 import { ProfileForm } from "./_components/profile-form"
+import { revokeMySession, revokeMyOtherSessions } from "./_actions"
 
 export default async function ProfilePage() {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user?.id) redirect("/login")
 
-  const [profileRows, accountRows] = await Promise.all([
+  const [profileRows, accountRows, sessionRows] = await Promise.all([
     db
       .select({
         id: user.id,
@@ -43,10 +47,24 @@ export default async function ProfilePage() {
         ),
       )
       .limit(1),
+
+    db
+      .select({
+        id: sessionTable.id,
+        ipAddress: sessionTable.ipAddress,
+        userAgent: sessionTable.userAgent,
+        createdAt: sessionTable.createdAt,
+        updatedAt: sessionTable.updatedAt,
+      })
+      .from(sessionTable)
+      .where(and(eq(sessionTable.userId, session.user.id), gt(sessionTable.expiresAt, new Date())))
+      .orderBy(desc(sessionTable.updatedAt)),
   ])
 
   const profile = profileRows[0]
   if (!profile) redirect("/login")
+
+  const currentSessionId = session.session?.id ?? null
 
   return (
     <>
@@ -59,6 +77,37 @@ export default async function ProfilePage() {
                 profile={profile}
                 passwordUpdatedAt={accountRows[0]?.updatedAt ?? null}
               />
+            </div>
+
+            <div className="px-4 lg:px-6">
+              <Card size="sm">
+                <CardHeader className="border-b">
+                  <CardTitle className="flex items-center gap-2.5 text-sm">
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                      <MonitorSmartphoneIcon className="size-4" />
+                    </span>
+                    Active Logins
+                  </CardTitle>
+                  <CardAction>
+                    <span className="text-xs text-muted-foreground">
+                      {sessionRows.length} device{sessionRows.length === 1 ? "" : "s"}
+                    </span>
+                  </CardAction>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-3">
+                  <p className="text-sm text-muted-foreground">
+                    These are the devices currently signed in to your account. Revoke any you don&apos;t recognise.
+                  </p>
+                  <SessionList
+                    sessions={sessionRows}
+                    currentSessionId={currentSessionId}
+                    canRevoke
+                    onRevokeAction={revokeMySession}
+                    onRevokeOthersAction={revokeMyOtherSessions}
+                    emptyText="No active sessions."
+                  />
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>

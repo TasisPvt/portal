@@ -1,12 +1,18 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
+import { headers } from "next/headers"
 import { db } from "@/src/db/client"
 import { user, clientProfile } from "@/src/db/schema"
 import { eq } from "drizzle-orm"
+import { auth } from "@/src/lib/auth"
+import { Roles } from "@/src/lib/constants"
 import { SiteHeader } from "@/src/components/site-header"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card"
 import { Button } from "@/src/components/ui/button"
 import { StatusToggle } from "./_components/status-toggle"
+import { StatusHistorySheet } from "@/src/components/account/status-history-sheet"
+import { SessionList } from "@/src/components/account/session-list"
+import { getClientStatusHistory, getClientSessions, revokeClientSession } from "./_actions"
 import {
    ArrowLeftIcon,
    MailIcon,
@@ -20,6 +26,7 @@ import {
    ClockIcon,
    HomeIcon,
    ReceiptIcon,
+   MonitorSmartphoneIcon,
 } from "lucide-react"
 import { cn } from "@/src/lib/utils"
 
@@ -114,6 +121,15 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
    const client = rows[0]
    if (!client || client.id === undefined) notFound()
 
+   const [session, statusHistory, clientSessions] = await Promise.all([
+      auth.api.getSession({ headers: await headers() }),
+      getClientStatusHistory(client.id),
+      getClientSessions(client.id),
+   ])
+
+   // Managers may view history/sessions but cannot activate/deactivate or revoke.
+   const canManageStatus = session?.user?.adminRole !== Roles.MANAGER
+
    const joinedDate = client.createdAt.toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "long",
@@ -149,7 +165,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                         </p>
                      </div>
                      <div className="ml-auto flex items-center gap-2">
-                        <StatusToggle id={client.id} name={client.name} isActive={client.isActive} />
+                        <StatusHistorySheet history={statusHistory} />
+                        {canManageStatus && (
+                           <StatusToggle id={client.id} name={client.name} isActive={client.isActive} />
+                        )}
                      </div>
                   </div>
 
@@ -272,6 +291,31 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                                     }
                                  />
                               </div>
+                           </CardContent>
+                        </Card>
+
+                        {/* Active logins */}
+                        <Card size="sm">
+                           <CardHeader className="border-b">
+                              <CardTitle className="flex items-center gap-2.5 text-sm">
+                                 <span className="flex size-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                    <MonitorSmartphoneIcon className="size-4" />
+                                 </span>
+                                 Active Logins
+                              </CardTitle>
+                              <CardAction>
+                                 <span className="text-xs text-muted-foreground">
+                                    {clientSessions.length} device{clientSessions.length === 1 ? "" : "s"}
+                                 </span>
+                              </CardAction>
+                           </CardHeader>
+                           <CardContent>
+                              <SessionList
+                                 sessions={clientSessions}
+                                 canRevoke={canManageStatus}
+                                 onRevokeAction={revokeClientSession.bind(null, client.id)}
+                                 emptyText="This client has no active login sessions."
+                              />
                            </CardContent>
                         </Card>
 

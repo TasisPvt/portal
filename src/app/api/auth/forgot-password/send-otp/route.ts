@@ -4,6 +4,7 @@ import { randomUUID } from "crypto"
 
 import { db } from "@/src/db/client"
 import { user, verification } from "@/src/db/schema"
+import { ACCOUNT_BLOCKED_MESSAGE } from "@/src/lib/constants"
 import { generateOtp, sendOtpEmail } from "@/src/lib/mailer"
 
 const OTP_TTL_MS = 5 * 60 * 1000 // 3 minutes
@@ -30,10 +31,7 @@ export async function POST(req: Request) {
    // }
 
    if (found && !found.isActive) {
-      return NextResponse.json(
-         { message: "Your account has been blocked. Contact the admin for further details." },
-         { status: 403 }
-      )
+      return NextResponse.json({ message: ACCOUNT_BLOCKED_MESSAGE }, { status: 403 })
    }
 
    // Only generate and send an OTP for an existing, active account; otherwise

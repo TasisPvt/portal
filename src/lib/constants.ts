@@ -10,6 +10,15 @@ export const UserType = {
    CLIENT: "client",
 } as const
 
+export const SUPPORT_EMAIL = "support@tasis.in"
+
+// Shown whenever a deactivated (isActive = false) account tries to authenticate.
+// Single source of truth so the sign-in hook, login route, and OTP route stay in
+// sync. This is the plain-text form used in API responses; the auth UIs render it
+// with a clickable "TASIS support" mailto link via renderAuthError().
+export const ACCOUNT_BLOCKED_MESSAGE =
+   `Your account has been blocked. Contact the TASIS support (${SUPPORT_EMAIL}) for further details.`
+
 export const DURATION_LABELS: Record<string, string> = {
    one_time: "One-Time",
    monthly: "Monthly",

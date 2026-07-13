@@ -4,8 +4,10 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { PowerIcon } from "lucide-react"
-import { toggleUserActive } from "../_actions"
+import { toggleUserStatus } from "../_actions"
 import { Button } from "@/src/components/ui/button"
+import { Label } from "@/src/components/ui/label"
+import { Textarea } from "@/src/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -25,27 +27,34 @@ interface Props {
 export function StatusToggle({ id, name, isActive }: Props) {
   const [open, setOpen] = React.useState(false)
   const [pending, setPending] = React.useState(false)
+  const [reason, setReason] = React.useState("")
   const router = useRouter()
 
   const action = isActive ? "deactivate" : "activate"
   const actionLabel = isActive ? "Deactivate" : "Activate"
 
+  function handleOpenChange(val: boolean) {
+    if (!val) setReason("")
+    setOpen(val)
+  }
+
   async function handleConfirm() {
+    if (!reason.trim()) return
     setPending(true)
     try {
-      await toggleUserActive(id, !isActive)
+      await toggleUserStatus(id, !isActive, reason)
       toast.success(`${name} has been ${action}d successfully.`)
-      setOpen(false)
+      handleOpenChange(false)
       router.refresh()
-    } catch {
-      toast.error("Failed to update status. Please try again.")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update status. Please try again.")
     } finally {
       setPending(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
           variant="outline"
@@ -71,13 +80,30 @@ export function StatusToggle({ id, name, isActive }: Props) {
               : " They will regain access to the platform."}
           </DialogDescription>
         </DialogHeader>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="user-status-reason">
+            Reason <span className="text-destructive">*</span>
+          </Label>
+          <Textarea
+            id="user-status-reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder={`Why are you ${action.replace(/e$/, "")}ing this account?`}
+            rows={3}
+            autoFocus
+            disabled={pending}
+          />
+          <p className="text-xs text-muted-foreground">This reason is recorded in the account history.</p>
+        </div>
+
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={pending}>
             Cancel
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={pending}
+            disabled={pending || !reason.trim()}
             className={
               isActive
                 ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"

@@ -8,6 +8,7 @@ import { db } from "@/src/db/client"
 import * as schema from "@/src/db/schema"
 import { user } from "@/src/db/schema"
 import type { AdminRole, UserType } from "@/src/db/schema"
+import { ACCOUNT_BLOCKED_MESSAGE } from "@/src/lib/constants"
 
 export const auth = betterAuth({
    database: drizzleAdapter(db, {
@@ -34,7 +35,7 @@ export const auth = betterAuth({
 
                if (found && !found.isActive) {
                   throw new APIError("FORBIDDEN", {
-                     message: "Your account has been blocked. Contact the admin for further details.",
+                     message: ACCOUNT_BLOCKED_MESSAGE,
                   })
                }
             },
