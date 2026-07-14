@@ -234,7 +234,9 @@ export async function getCompanySnapshot(
 
    const today = new Date().toISOString().slice(0, 10)
 
-   // Log list-plan views (no quota applies) so they surface under "recently viewed".
+   // Log list-plan views (no quota applies) so they surface under "recently
+   // viewed". On a same-day repeat view, bump createdAt so the stock moves back
+   // to the top of the recently-viewed ordering.
    if (listSubId) {
       await db
          .insert(stockViewLog)
@@ -244,7 +246,10 @@ export async function getCompanySnapshot(
             companyId,
             viewedDate: today,
          })
-         .onConflictDoNothing()
+         .onConflictDoUpdate({
+            target: [stockViewLog.subscriptionId, stockViewLog.companyId, stockViewLog.viewedDate],
+            set: { createdAt: new Date() },
+         })
    }
 
    // Quota tracking — only for snapshot-plan views (skipped for list viewers).
@@ -432,7 +437,8 @@ export async function getRecentlyViewed(): Promise<RecentlyViewedCompany[]> {
          companyMaster.nseSymbol,
          companyMaster.bseScripCode,
       )
-      .orderBy(desc(max(stockViewLog.viewedDate)))
+      // createdAt, not viewedDate — same-day views tie on the day-granular date.
+      .orderBy(desc(max(stockViewLog.createdAt)))
       .limit(10)
 
    return rows.filter((r) => r.lastViewed !== null) as RecentlyViewedCompany[]
@@ -481,7 +487,9 @@ export async function getListRecentlyViewed(
          companyMaster.nseSymbol,
          companyMaster.bseScripCode,
       )
-      .orderBy(desc(max(stockViewLog.viewedDate)))
+      // Order by the createdAt timestamp, not viewedDate — the latter is
+      // day-granular, so every stock viewed today would tie and sort randomly.
+      .orderBy(desc(max(stockViewLog.createdAt)))
       .limit(10)
 
    return rows.filter((r) => r.lastViewed !== null) as RecentlyViewedCompany[]

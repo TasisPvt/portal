@@ -60,7 +60,13 @@ function StatusBadge({ status }: { status: number | null }) {
    )
 }
 
-export function WatchlistClient({ items: initialItems }: { items: WatchlistItem[] }) {
+export function WatchlistClient({
+   items: initialItems,
+   hasActiveSnapshot,
+}: {
+   items: WatchlistItem[]
+   hasActiveSnapshot: boolean
+}) {
    const [items, setItems] = React.useState(initialItems)
    const [removingId, setRemovingId] = React.useState<string | null>(null)
    const [search, setSearch] = React.useState("")
@@ -228,9 +234,9 @@ export function WatchlistClient({ items: initialItems }: { items: WatchlistItem[
          )}
 
          {/* Company cards */}
-         <div className="grid grid-cols-1 gap-3 @4xl/main:grid-cols-2">
+         <div className="grid grid-cols-1 gap-3 @4xl/main:grid-cols-2 @5xl/main:grid-cols-3">
             {filtered.length === 0 ? (
-               <div className="col-span-1 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed px-4 py-12 text-center @4xl/main:col-span-2">
+               <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed px-4 py-12 text-center">
                   <p className="text-sm font-medium text-foreground">No companies found</p>
                   <p className="text-xs text-muted-foreground">
                      {search ? `No matches for "${search}"` : "Try adjusting your filter"}
@@ -323,15 +329,25 @@ export function WatchlistClient({ items: initialItems }: { items: WatchlistItem[
                               </div>
                            )}
 
-                           {/* Inactive subscription: lock overlay revealed on hover */}
+                           {/* Locked: overlay revealed on hover. Two distinct cases —
+                               no snapshot plan (upsell) vs. daily view limit reached
+                               (has a plan; just needs to wait for tomorrow). */}
                            {locked && (
                               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card/70 opacity-0 backdrop-blur-[2px] transition-opacity duration-200 group-hover:opacity-100 motion-reduce:transition-none">
                                  <div className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
                                     <LockIcon className="size-5" />
                                  </div>
-                                 <Button asChild size="sm" variant="outline" className="relative z-20">
-                                    <Link href="/plans">Unlock detailed snapshot</Link>
-                                 </Button>
+                                 {hasActiveSnapshot ? (
+                                    <p className="px-4 text-center text-xs font-medium text-muted-foreground">
+                                       Daily view limit reached.
+                                       <br />
+                                       Come back tomorrow to view this snapshot.
+                                    </p>
+                                 ) : (
+                                    <Button asChild size="sm" variant="outline" className="relative z-20">
+                                       <Link href="/plans">Unlock detailed snapshot</Link>
+                                    </Button>
+                                 )}
                               </div>
                            )}
                         </Card>

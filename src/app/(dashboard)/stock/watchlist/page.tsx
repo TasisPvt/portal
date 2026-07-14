@@ -46,7 +46,7 @@ export default async function WatchlistPage() {
          <SiteHeader breadcrumb="Stocks" title="Watchlist" />
          <div className="flex flex-1 flex-col">
             <div className="@container/main">
-               <WatchlistClient items={data.items} />
+               <WatchlistClient items={data.items} hasActiveSnapshot={data.hasActiveSnapshot} />
             </div>
          </div>
       </>
