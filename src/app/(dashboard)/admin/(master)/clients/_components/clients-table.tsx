@@ -79,14 +79,21 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
   const [statusFilter, setStatusFilter] = React.useState("all")
   const [activeFilters, setActiveFilters] = React.useState<{ key: string; label: string }[]>([])
 
-  const uniqueStates = React.useMemo(() => {
-    const states = data.map((c) => c.state).filter(Boolean) as string[]
-    return Array.from(new Set(states)).sort()
-  }, [data])
+  // Only clients who have verified their email have completed registration.
+  // Unverified sign-ups are hidden from the table entirely.
+  const verifiedClients = React.useMemo(
+    () => data.filter((c) => c.emailVerified),
+    [data],
+  )
 
-  // Pre-filter data before passing to table (state + verified + status dropdowns)
+  const uniqueStates = React.useMemo(() => {
+    const states = verifiedClients.map((c) => c.state).filter(Boolean) as string[]
+    return Array.from(new Set(states)).sort()
+  }, [verifiedClients])
+
+  // Pre-filter data before passing to table (state + status dropdowns)
   const preFiltered = React.useMemo(() => {
-    return data.filter((client) => {
+    return verifiedClients.filter((client) => {
       const matchesState = stateFilter === "all" || client.state === stateFilter
       const matchesStatus =
         statusFilter === "all" ||
@@ -94,7 +101,7 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
         (statusFilter === "inactive" && !client.isActive)
       return matchesState && matchesStatus
     })
-  }, [data, stateFilter, statusFilter])
+  }, [verifiedClients, stateFilter, statusFilter])
 
   const columns: ColumnDef<ClientRow>[] = React.useMemo(() => [
     {
@@ -168,22 +175,6 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
       ),
     },
     {
-      id: "emailVerified",
-      accessorFn: (row) => (row.emailVerified ? "Verified" : "Unverified"),
-      header: ({ column }) => <SortableHeader column={column} label="Email" />,
-      cell: ({ row }) => (
-        <DotBadge
-          className={cn(
-            row.original.emailVerified
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400"
-              : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
-          )}
-        >
-          {row.original.emailVerified ? "Verified" : "Unverified"}
-        </DotBadge>
-      ),
-    },
-    {
       id: "isActive",
       accessorFn: (row) => (row.isActive ? "Active" : "Inactive"),
       header: ({ column }) => <SortableHeader column={column} label="Status" />,
@@ -231,7 +222,7 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
 
   function exportCSV() {
     const rows = table.getSortedRowModel().rows
-    const headers = ["Name", "Email", "Phone", "Phone Verified", "State", "PAN", "Email Verified", "Status", "Joined"]
+    const headers = ["Name", "Email", "Phone", "Phone Verified", "State", "PAN", "Status", "Joined"]
     const lines = rows.map(({ original: c }) =>
       [
         c.name,
@@ -240,7 +231,6 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
         c.phoneVerified ? "Yes" : "No",
         c.state ?? "",
         c.panNumber ?? "",
-        c.emailVerified ? "Yes" : "No",
         c.isActive ? "Active" : "Inactive",
         c.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
       ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")

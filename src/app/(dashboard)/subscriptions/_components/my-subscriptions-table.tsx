@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { PackageIcon } from "lucide-react"
+import { PackageIcon, CalendarIcon, XIcon } from "lucide-react"
+import type { DateRange } from "react-day-picker"
 import {
   getCoreRowModel,
   getFilteredRowModel,
@@ -13,7 +14,6 @@ import {
   type SortingState,
 } from "@tanstack/react-table"
 import { Button } from "@/src/components/ui/button"
-import { Input } from "@/src/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -38,6 +38,13 @@ import {
   DataTablePagination,
   SortableHeader,
 } from "@/src/components/ui/data-table-parts"
+import { Calendar } from "@/src/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/src/components/ui/popover"
+import { cn } from "@/src/lib/utils"
 import { PlanTypeBadge as TypeBadge } from "@/src/components/plan-type-badge"
 import { SubscriptionStatusBadge as StatusBadge } from "@/src/components/subscription-status-badge"
 import { formatPrice as fmtPrice, formatDate as fmtDate } from "@/src/lib/format"
@@ -58,18 +65,48 @@ type SubscriptionRow = {
 type TypeFilter = "all" | "list" | "snapshot"
 type ValidityFilter = "all" | "active" | "expired"
 
+const startOfDay = (d: Date) => {
+  const x = new Date(d)
+  x.setHours(0, 0, 0, 0)
+  return x
+}
+
+const endOfDay = (d: Date) => {
+  const x = new Date(d)
+  x.setHours(23, 59, 59, 999)
+  return x
+}
+
 export function MySubscriptionsTable({ data }: { data: SubscriptionRow[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("all")
   const [validityFilter, setValidityFilter] = React.useState<ValidityFilter>("all")
-  const [fromDate, setFromDate] = React.useState("")
-  const [toDate, setToDate] = React.useState("")
+  // `range` is the applied filter; `draft` is the in-progress calendar selection
+  // that only becomes `range` when the user clicks Apply.
+  const [range, setRange] = React.useState<DateRange | undefined>()
+  const [draft, setDraft] = React.useState<DateRange | undefined>()
+  const [pickerOpen, setPickerOpen] = React.useState(false)
+
+  function handlePickerOpenChange(next: boolean) {
+    if (next) setDraft(range) // seed the draft with the currently applied range
+    setPickerOpen(next)
+  }
+
+  function applyRange() {
+    setRange(draft)
+    setPickerOpen(false)
+  }
+
+  function clearRange() {
+    setRange(undefined)
+    setDraft(undefined)
+  }
 
   // Validity is derived from endDate rather than the (unreliable) status column.
   const preFiltered = React.useMemo(() => {
     const now = Date.now()
-    const from = fromDate ? new Date(fromDate) : null
-    const to = toDate ? new Date(`${toDate}T23:59:59`) : null
+    const from = range?.from ? startOfDay(range.from) : null
+    const to = range?.to ? endOfDay(range.to) : null
     return data.filter((row) => {
       if (typeFilter !== "all" && row.planType !== typeFilter) return false
       const expired = row.endDate.getTime() < now
@@ -79,7 +116,7 @@ export function MySubscriptionsTable({ data }: { data: SubscriptionRow[] }) {
       if (to && row.startDate > to) return false
       return true
     })
-  }, [data, typeFilter, validityFilter, fromDate, toDate])
+  }, [data, typeFilter, validityFilter, range])
 
   const columns: ColumnDef<SubscriptionRow>[] = React.useMemo(() => [
     {
@@ -151,7 +188,7 @@ export function MySubscriptionsTable({ data }: { data: SubscriptionRow[] }) {
 
   React.useEffect(() => {
     table.setPageIndex(0)
-  }, [typeFilter, validityFilter, fromDate, toDate, table])
+  }, [typeFilter, validityFilter, range, table])
 
   // Never subscribed — show the onboarding empty state (not the filtered-empty one).
   if (data.length === 0) {
@@ -207,34 +244,77 @@ export function MySubscriptionsTable({ data }: { data: SubscriptionRow[] }) {
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <span className="whitespace-nowrap">Started</span>
-          <Input
-            type="date"
-            aria-label="From date"
-            className="h-8 w-auto rounded-full border-transparent bg-muted/50 text-xs"
-            value={fromDate}
-            max={toDate || undefined}
-            onChange={(e) => setFromDate(e.target.value)}
-          />
-          <span>–</span>
-          <Input
-            type="date"
-            aria-label="To date"
-            className="h-8 w-auto rounded-full border-transparent bg-muted/50 text-xs"
-            value={toDate}
-            min={fromDate || undefined}
-            onChange={(e) => setToDate(e.target.value)}
-          />
-          {(fromDate || toDate) && (
+          <Popover open={pickerOpen} onOpenChange={handlePickerOpenChange}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-8 justify-start gap-2 rounded-full border-transparent bg-muted/50 text-xs font-normal",
+                  !range?.from && "text-muted-foreground",
+                )}
+              >
+                <CalendarIcon className="size-3.5" />
+                {range?.from ? (
+                  range.to ? (
+                    <span className="whitespace-nowrap">
+                      {fmtDate(range.from)} – {fmtDate(range.to)}
+                    </span>
+                  ) : (
+                    <span className="whitespace-nowrap">{fmtDate(range.from)} – …</span>
+                  )
+                ) : (
+                  <span>Pick a range</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="range"
+                numberOfMonths={2}
+                defaultMonth={draft?.from}
+                selected={draft}
+                onSelect={setDraft}
+                autoFocus
+              />
+              <div className="flex items-center justify-between gap-2 border-t p-3">
+                <span className="text-xs text-muted-foreground">
+                  {draft?.from ? (
+                    draft.to ? (
+                      `${fmtDate(draft.from)} – ${fmtDate(draft.to)}`
+                    ) : (
+                      `${fmtDate(draft.from)} – …`
+                    )
+                  ) : (
+                    "No range selected"
+                  )}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-full text-xs"
+                    onClick={() => setDraft(undefined)}
+                    disabled={!draft?.from}
+                  >
+                    Reset
+                  </Button>
+                  <Button size="sm" className="rounded-full text-xs" onClick={applyRange}>
+                    Apply
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          {range?.from && (
             <Button
               variant="ghost"
-              size="sm"
-              className="rounded-full text-xs"
-              onClick={() => {
-                setFromDate("")
-                setToDate("")
-              }}
+              size="icon"
+              aria-label="Clear date range"
+              className="size-8 rounded-full"
+              onClick={clearRange}
             >
-              Clear
+              <XIcon className="size-3.5" />
             </Button>
           )}
         </div>
