@@ -171,7 +171,7 @@ export async function sendOtpEmail({
                         <td style="padding:40px 40px 24px;">
                            <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#18181b;">Verify your identity</p>
                            <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.6;">
-                              Hi ${name}, use the OTP below to reset your password. It expires in <strong>3 minutes</strong>.
+                              Hi ${name}, use the OTP below to reset your password. It expires in <strong>5 minutes</strong>.
                            </p>
                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
                               <tr>

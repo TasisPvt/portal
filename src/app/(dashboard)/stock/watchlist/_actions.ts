@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache"
 import { auth } from "@/src/lib/auth"
 import { db } from "@/src/db/client"
 import { watchlist, companyMaster, companyShariah, industryGroup } from "@/src/db/schema"
-import { getSubscriptionAccess, canViewSnapshot } from "@/src/lib/subscription-access"
+import { getSubscriptionAccess, canViewCompanySnapshot } from "@/src/lib/subscription-access"
 import { WATCHLIST_LIMIT } from "@/src/lib/constants"
 
 export type ToggleWatchlistResult =
@@ -130,7 +130,7 @@ export async function getWatchlist(): Promise<WatchlistData> {
       bseScripCode: r.bseScripCode,
       industryGroup: r.industryGroup,
       shariahStatus: statusMap.get(r.id) ?? null,
-      canViewSnapshot: canViewSnapshot(access),
+      canViewSnapshot: canViewCompanySnapshot(access, r.id),
    }))
 
    return { noAccess: false, hasActiveSnapshot: access.hasActiveSnapshot, items }

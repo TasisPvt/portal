@@ -297,6 +297,7 @@ export async function verifyPayment(args: {
    revalidatePath("/payments")
    revalidatePath("/stock/list")
    revalidatePath("/stock/snapshot")
+   revalidatePath("/stock/watchlist")
    return { success: true, orderId: args.razorpayOrderId }
 }
 

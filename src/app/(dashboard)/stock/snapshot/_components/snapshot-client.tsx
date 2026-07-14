@@ -873,7 +873,9 @@ function RecentlyViewedSection({
    onSelect: (c: CompanySearchResult) => void
 }) {
    const [open, setOpen] = React.useState(false)
-   if (items.length === 0) return null
+   // Cap the sheet at the 10 most recently viewed stocks.
+   const recent = items.slice(0, 10)
+   if (recent.length === 0) return null
 
    return (
       <Sheet open={open} onOpenChange={setOpen}>
@@ -882,11 +884,11 @@ function RecentlyViewedSection({
                variant="outline"
                size="icon"
                className="relative text-muted-foreground"
-               aria-label={`Recently viewed (${items.length})`}
+               aria-label={`Recently viewed (${recent.length})`}
             >
                <ClockIcon className="size-3.5 text-foreground" />
                <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground tabular-nums">
-                  {items.length}
+                  {recent.length}
                </span>
             </Button>
          </SheetTrigger>
@@ -896,7 +898,7 @@ function RecentlyViewedSection({
                <SheetDescription>Companies you&apos;ve looked at recently.</SheetDescription>
             </SheetHeader>
             <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-6 pb-6">
-               {items.map((c) => (
+               {recent.map((c) => (
                   <button
                      key={c.id}
                      onClick={() => {

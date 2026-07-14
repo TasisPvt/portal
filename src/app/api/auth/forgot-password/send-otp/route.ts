@@ -7,7 +7,7 @@ import { user, verification } from "@/src/db/schema"
 import { ACCOUNT_BLOCKED_MESSAGE } from "@/src/lib/constants"
 import { generateOtp, sendOtpEmail } from "@/src/lib/mailer"
 
-const OTP_TTL_MS = 5 * 60 * 1000 // 3 minutes
+const OTP_TTL_MS = 5 * 60 * 1000 // 5 minutes
 
 export async function POST(req: Request) {
    const { email } = await req.json()

@@ -15,6 +15,8 @@ import { stockViewLog } from "@/src/db/schema/stock-views"
 export type SnapshotContext = {
    subscriptionId: string
    endDate: Date
+   // Daily view allowance (null = unlimited).
+   stocksPerDay: number | null
    viewedTodayIds: string[]
 }
 
@@ -87,6 +89,7 @@ export async function getSubscriptionAccess(): Promise<SubscriptionAccess | null
          .select({
             id: subscription.id,
             endDate: subscription.endDate,
+            stocksPerDay: subscription.stocksPerDaySnapshot,
          })
          .from(subscription)
          .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
@@ -109,6 +112,7 @@ export async function getSubscriptionAccess(): Promise<SubscriptionAccess | null
       snapshot = {
          subscriptionId: sub.id,
          endDate: sub.endDate,
+         stocksPerDay: sub.stocksPerDay,
          viewedTodayIds: viewedTodayRows.map((r) => r.companyId),
       }
    }
@@ -121,10 +125,16 @@ export async function getSubscriptionAccess(): Promise<SubscriptionAccess | null
    }
 }
 
-// Can the user open the full snapshot detail right now? Snapshot plans have no
-// total cap anymore — access is granted whenever a snapshot plan is in its time
-// window. The daily view limit is enforced (softly, with free same-day re-views)
-// at view time in getCompanySnapshot.
-export function canViewSnapshot(access: SubscriptionAccess): boolean {
-   return access.snapshot !== null
+// Can the user open THIS company's snapshot detail right now? Mirrors the
+// enforcement in getCompanySnapshot so UI affordances match what a click will
+// actually do:
+//   • no snapshot plan in its time window → no
+//   • already viewed today             → yes (free same-day re-view)
+//   • otherwise                        → yes only if the daily cap has room
+export function canViewCompanySnapshot(access: SubscriptionAccess, companyId: string): boolean {
+   const snap = access.snapshot
+   if (!snap) return false
+   if (snap.viewedTodayIds.includes(companyId)) return true
+   if (snap.stocksPerDay === null) return true
+   return snap.viewedTodayIds.length < snap.stocksPerDay
 }
