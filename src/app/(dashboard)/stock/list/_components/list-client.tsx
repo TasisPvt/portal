@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { toast } from "sonner"
-import { SearchIcon, BuildingIcon, FilterIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, BookmarkIcon, LockIcon } from "lucide-react"
+import { SearchIcon, BuildingIcon, FilterIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, BookmarkIcon, LockIcon, ClockIcon } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
 import { Skeleton } from "@/src/components/ui/skeleton"
 import { Spinner } from "@/src/components/ui/spinner"
@@ -20,6 +20,14 @@ import {
    DialogHeader,
    DialogTitle,
 } from "@/src/components/ui/dialog"
+import {
+   Sheet,
+   SheetContent,
+   SheetDescription,
+   SheetHeader,
+   SheetTitle,
+   SheetTrigger,
+} from "@/src/components/ui/sheet"
 import { Button } from "@/src/components/ui/button"
 import {
    Empty,
@@ -46,7 +54,7 @@ import { formatMonth as fmtMonth } from "@/src/lib/format"
 import { getListCompanies, type ListSubscription, type ListCompany } from "../_actions"
 import { toggleWatchlist, getWatchlistedCompanyIds } from "../../watchlist/_actions"
 import { WATCHLIST_LIMIT } from "@/src/lib/constants"
-import { getCompanySnapshot, getFinancialRatioThresholds } from "../../snapshot/_actions"
+import { getCompanySnapshot, getFinancialRatioThresholds, getListRecentlyViewed, type RecentlyViewedCompany } from "../../snapshot/_actions"
 import { SnapshotCard, type SnapshotSuccess } from "../../snapshot/_components/snapshot-client"
 import { Badge } from "@/src/components/ui/badge"
 
@@ -112,6 +120,71 @@ function StatusBadge({ status }: { status: number | null }) {
    )
 }
 
+// ─── Recently Viewed ──────────────────────────────────────────────────────────
+
+function fmtLastViewed(dateStr: string): string {
+   const today = new Date().toISOString().slice(0, 10)
+   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+   if (dateStr === today) return "Today"
+   if (dateStr === yesterday) return "Yesterday"
+   const [y, m, d] = dateStr.split("-")
+   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+   return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`
+}
+
+function RecentlyViewedSection({
+   items,
+   onSelect,
+}: {
+   items: RecentlyViewedCompany[]
+   onSelect: (c: RecentlyViewedCompany) => void
+}) {
+   const [open, setOpen] = React.useState(false)
+   if (items.length === 0) return null
+
+   return (
+      <Sheet open={open} onOpenChange={setOpen}>
+         <SheetTrigger asChild>
+            <Button
+               variant="outline"
+               size="icon"
+               className="relative shrink-0 text-muted-foreground"
+               aria-label={`Recently viewed (${items.length})`}
+            >
+               <ClockIcon className="size-3.5 text-foreground" />
+               <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground tabular-nums">
+                  {items.length}
+               </span>
+            </Button>
+         </SheetTrigger>
+         <SheetContent side="right" className="w-full sm:max-w-md">
+            <SheetHeader>
+               <SheetTitle>Recently Viewed</SheetTitle>
+               <SheetDescription>Companies you&apos;ve looked at recently.</SheetDescription>
+            </SheetHeader>
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-6 pb-6">
+               {items.map((c) => (
+                  <button
+                     key={c.id}
+                     onClick={() => {
+                        onSelect(c)
+                        setOpen(false)
+                     }}
+                     className="flex items-center justify-between gap-3 rounded-xl border bg-card px-3.5 py-3 text-left transition-colors hover:bg-muted/40"
+                  >
+                     <span className="flex min-w-0 flex-col gap-0.5">
+                        <span className="truncate text-sm font-medium leading-tight">{c.companyName}</span>
+                        <span className="text-[11px] text-muted-foreground">{fmtLastViewed(c.lastViewed)}</span>
+                     </span>
+                     <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
+                  </button>
+               ))}
+            </div>
+         </SheetContent>
+      </Sheet>
+   )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface ListClientProps {
@@ -130,18 +203,39 @@ export function ListClient({ subscriptions }: ListClientProps) {
    const [complianceFilter, setComplianceFilter] = React.useState<"all" | "compliant" | "non-compliant">("all")
    const [pageSize, setPageSize] = React.useState(10)
    const [currentPage, setCurrentPage] = React.useState(1)
-   const [selectedCompany, setSelectedCompany] = React.useState<ListCompany | null>(null)
+   const [snapshotTitle, setSnapshotTitle] = React.useState<string | null>(null)
    const [snapshotLoading, setSnapshotLoading] = React.useState(false)
    const [snapshotData, setSnapshotData] = React.useState<SnapshotSuccess | null>(null)
    const [snapshotError, setSnapshotError] = React.useState<string | null>(null)
    const [thresholds, setThresholds] = React.useState<Record<string, number>>({})
    const [watchlistedIds, setWatchlistedIds] = React.useState<Set<string>>(new Set())
    const [togglingId, setTogglingId] = React.useState<string | null>(null)
+   const [recentlyViewed, setRecentlyViewed] = React.useState<RecentlyViewedCompany[]>([])
 
    React.useEffect(() => {
       getFinancialRatioThresholds().then(setThresholds)
       getWatchlistedCompanyIds().then((ids) => setWatchlistedIds(new Set(ids)))
+      getListRecentlyViewed().then(setRecentlyViewed)
    }, [])
+
+   // Open the snapshot dialog for a company and load its screening detail. Used
+   // by both the grid cards and the recently-viewed sheet.
+   function openSnapshot(companyId: string, companyName: string) {
+      setSnapshotTitle(companyName)
+      setSnapshotData(null)
+      setSnapshotError(null)
+      setSnapshotLoading(true)
+      getCompanySnapshot(companyId, false, true)
+         .then((result) => {
+            if ("error" in result && result.error) setSnapshotError(result.error as string)
+            else if ("company" in result) setSnapshotData(result)
+         })
+         .finally(() => {
+            setSnapshotLoading(false)
+            // Refresh so the just-viewed company moves to the top of the list.
+            getListRecentlyViewed().then(setRecentlyViewed)
+         })
+   }
 
    // Optimistic bookmark toggle for a company card.
    async function handleToggleWatchlist(companyId: string) {
@@ -441,6 +535,12 @@ export function ListClient({ subscriptions }: ListClientProps) {
                         {filtered.length} of {companies.length} shown
                      </p>
                   )}
+
+                  {/* Recently viewed — opens a sheet */}
+                  <RecentlyViewedSection
+                     items={recentlyViewed}
+                     onSelect={(c) => openSnapshot(c.id, c.companyName)}
+                  />
                </div>
 
                {/* ── Month selector (quarterly / annual only) ── */}
@@ -505,22 +605,11 @@ export function ListClient({ subscriptions }: ListClientProps) {
                            role="button"
                            tabIndex={0}
                            aria-label={`View details for ${company.companyName}`}
-                           onClick={() => {
-                              setSelectedCompany(company)
-                              setSnapshotData(null)
-                              setSnapshotError(null)
-                              setSnapshotLoading(true)
-                              getCompanySnapshot(company.id, false, true)
-                                 .then((result) => {
-                                    if ("error" in result && result.error) setSnapshotError(result.error as string)
-                                    else if ("company" in result) setSnapshotData(result)
-                                 })
-                                 .finally(() => setSnapshotLoading(false))
-                           }}
+                           onClick={() => openSnapshot(company.id, company.companyName)}
                            onKeyDown={(e) => {
                               if (e.key === "Enter" || e.key === " ") {
                                  e.preventDefault()
-                                 setSelectedCompany(company)
+                                 openSnapshot(company.id, company.companyName)
                               }
                            }}
                            className="group cursor-pointer transition-all hover:border-primary/40 hover:shadow-md"
@@ -653,10 +742,10 @@ export function ListClient({ subscriptions }: ListClientProps) {
 
          {/* ── Company snapshot dialog ── */}
          <Dialog
-            open={selectedCompany !== null}
+            open={snapshotTitle !== null}
             onOpenChange={(open) => {
                if (!open) {
-                  setSelectedCompany(null)
+                  setSnapshotTitle(null)
                   setSnapshotData(null)
                   setSnapshotError(null)
                }
@@ -665,7 +754,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
             <DialogContent className="flex max-h-[90dvh] w-full flex-col overflow-hidden sm:max-w-3xl">
                <DialogHeader className="shrink-0">
                   <DialogTitle className="pr-6 text-base leading-snug">
-                     {selectedCompany?.companyName}
+                     {snapshotTitle}
                   </DialogTitle>
                </DialogHeader>
                <div className="min-h-0 flex-1 overflow-y-auto">
