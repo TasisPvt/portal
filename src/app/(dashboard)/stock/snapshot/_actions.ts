@@ -185,6 +185,7 @@ export async function getCompanySnapshot(
    companyId: string,
    trackQuota = true,
    fromList = false,
+   listSubscriptionId?: string,
 ): Promise<CompanySnapshotResult> {
    const session = await auth.api.getSession({ headers: await headers() })
    if (!session) return { error: "unauthenticated" }
@@ -215,6 +216,10 @@ export async function getCompanySnapshot(
                eq(subscription.status, "active"),
                eq(pricingPlan.type, "list"),
                eq(subscriptionListSnapshot.companyId, companyId),
+               // When the caller specifies which list they're viewing from, log
+               // the view against that exact subscription — a company may belong
+               // to several of the user's lists, so we must not just pick the first.
+               listSubscriptionId ? eq(subscription.id, listSubscriptionId) : undefined,
             ),
          )
          .limit(1)
@@ -436,9 +441,12 @@ export async function getRecentlyViewed(): Promise<RecentlyViewedCompany[]> {
 // Recently viewed companies for the user's active LIST subscriptions. List
 // viewers don't have a snapshot subscription, so this reads view logs scoped to
 // their list subscription(s) instead of resolveActiveSnapshotSub.
-export async function getListRecentlyViewed(): Promise<RecentlyViewedCompany[]> {
+export async function getListRecentlyViewed(
+   subscriptionId: string,
+): Promise<RecentlyViewedCompany[]> {
    const session = await auth.api.getSession({ headers: await headers() })
    if (!session) return []
+   if (!subscriptionId) return []
 
    const rows = await db
       .select({
@@ -456,6 +464,10 @@ export async function getListRecentlyViewed(): Promise<RecentlyViewedCompany[]> 
       .innerJoin(companyMaster, eq(stockViewLog.companyId, companyMaster.id))
       .where(
          and(
+            // Scope to the specific list subscription so each list keeps its own
+            // recently-viewed history. Still constrained to the caller's own
+            // active list subscriptions for authorization.
+            eq(stockViewLog.subscriptionId, subscriptionId),
             eq(subscription.clientId, session.user.id),
             eq(subscription.status, "active"),
             eq(pricingPlan.type, "list"),
