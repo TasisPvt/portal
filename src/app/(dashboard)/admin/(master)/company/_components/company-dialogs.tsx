@@ -4,13 +4,15 @@ import * as React from "react"
 import { useForm, Controller } from "react-hook-form"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { PlusIcon, Pencil, CircleOff, CircleCheck, ChevronsUpDown, Check, ListOrderedIcon } from "lucide-react"
+import { PlusIcon, Pencil, CircleOff, CircleCheck, ChevronsUpDown, Check, ListOrderedIcon, CalendarIcon } from "lucide-react"
 
 import { createCompany, updateCompany, toggleCompanyStatus, getCompanyIndexes, type CompanyInput } from "../_actions"
 import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
 import { Label } from "@/src/components/ui/label"
 import { Spinner } from "@/src/components/ui/spinner"
+import { Calendar } from "@/src/components/ui/calendar"
+import { formatDate } from "@/src/lib/format"
 import {
    Dialog,
    DialogContent,
@@ -36,6 +38,81 @@ import { AlertDestructive } from "@/src/components/alerts/alertDestructive"
 import { cn } from "@/src/lib/utils"
 
 type IndustryGroupOption = { id: string; name: string }
+
+// Bounds for the calendar's year dropdown — listing dates can be decades old.
+const CAL_START = new Date(1950, 0)
+const CAL_END = new Date(new Date().getFullYear() + 1, 11)
+
+/** Parse a "yyyy-mm-dd" form value into a local Date (no timezone shift). */
+function parseDateValue(value?: string | null): Date | undefined {
+   if (!value) return undefined
+   const [y, m, d] = value.split("-").map(Number)
+   if (!y || !m || !d) return undefined
+   return new Date(y, m - 1, d)
+}
+
+/** Serialize a Date back to a "yyyy-mm-dd" string in local time. */
+function formatDateValue(date: Date): string {
+   const y = date.getFullYear()
+   const m = String(date.getMonth() + 1).padStart(2, "0")
+   const d = String(date.getDate()).padStart(2, "0")
+   return `${y}-${m}-${d}`
+}
+
+/**
+ * Single-date picker backed by the shared Calendar, storing its value as a
+ * "yyyy-mm-dd" string so it drops into the existing form/server contract.
+ */
+function DateField({ value, onChange }: { value?: string; onChange: (value: string) => void }) {
+   const [open, setOpen] = React.useState(false)
+   const selected = parseDateValue(value)
+
+   return (
+      <Popover open={open} onOpenChange={setOpen}>
+         <PopoverTrigger asChild>
+            <Button
+               type="button"
+               variant="outline"
+               className={cn("w-full justify-start gap-2 font-normal", !selected && "text-muted-foreground")}
+            >
+               <CalendarIcon className="size-4 opacity-60" />
+               {selected ? formatDate(selected) : "Select date"}
+            </Button>
+         </PopoverTrigger>
+         <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+               mode="single"
+               captionLayout="dropdown"
+               startMonth={CAL_START}
+               endMonth={CAL_END}
+               defaultMonth={selected}
+               selected={selected}
+               onSelect={(d) => {
+                  onChange(d ? formatDateValue(d) : "")
+                  setOpen(false)
+               }}
+               autoFocus
+            />
+            {selected && (
+               <div className="flex justify-end border-t p-2">
+                  <Button
+                     type="button"
+                     variant="ghost"
+                     size="sm"
+                     className="text-xs"
+                     onClick={() => {
+                        onChange("")
+                        setOpen(false)
+                     }}
+                  >
+                     Clear
+                  </Button>
+               </div>
+            )}
+         </PopoverContent>
+      </Popover>
+   )
+}
 
 function FormField({ label, error, optional, children }: {
    label: string
@@ -199,19 +276,35 @@ function CompanyForm({
                </FormField>
 
                <FormField label="NSE Listing Date" optional>
-                  <Input type="date" {...register("nseListingDate")} />
+                  <Controller
+                     name="nseListingDate"
+                     control={control}
+                     render={({ field }) => <DateField value={field.value} onChange={field.onChange} />}
+                  />
                </FormField>
 
                <FormField label="NSE Delisting Date" optional>
-                  <Input type="date" {...register("nseDelistingDate")} />
+                  <Controller
+                     name="nseDelistingDate"
+                     control={control}
+                     render={({ field }) => <DateField value={field.value} onChange={field.onChange} />}
+                  />
                </FormField>
 
                <FormField label="BSE Listing Date" optional>
-                  <Input type="date" {...register("bseListingDate")} />
+                  <Controller
+                     name="bseListingDate"
+                     control={control}
+                     render={({ field }) => <DateField value={field.value} onChange={field.onChange} />}
+                  />
                </FormField>
 
                <FormField label="BSE Delisting Date" optional>
-                  <Input type="date" {...register("bseDelistingDate")} />
+                  <Controller
+                     name="bseDelistingDate"
+                     control={control}
+                     render={({ field }) => <DateField value={field.value} onChange={field.onChange} />}
+                  />
                </FormField>
 
             </div>
