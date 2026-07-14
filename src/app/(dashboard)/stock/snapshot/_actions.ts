@@ -185,6 +185,7 @@ export async function getCompanySnapshot(
    companyId: string,
    trackQuota = true,
    fromList = false,
+   listSubscriptionId?: string,
 ): Promise<CompanySnapshotResult> {
    const session = await auth.api.getSession({ headers: await headers() })
    if (!session) return { error: "unauthenticated" }
@@ -198,6 +199,7 @@ export async function getCompanySnapshot(
    //    quota. When `fromList` is set we authorize against the list snapshot
    //    membership instead and leave `sub` null (no quota accounting applies).
    let sub: { id: string; stocksPerDay: number | null } | null = null
+   let listSubId: string | null = null
 
    if (fromList) {
       const [listAccess] = await db
@@ -214,11 +216,16 @@ export async function getCompanySnapshot(
                eq(subscription.status, "active"),
                eq(pricingPlan.type, "list"),
                eq(subscriptionListSnapshot.companyId, companyId),
+               // When the caller specifies which list they're viewing from, log
+               // the view against that exact subscription — a company may belong
+               // to several of the user's lists, so we must not just pick the first.
+               listSubscriptionId ? eq(subscription.id, listSubscriptionId) : undefined,
             ),
          )
          .limit(1)
 
       if (!listAccess) return { error: "no_subscription" }
+      listSubId = listAccess.id
    } else {
       // Resolve the usable snapshot subscription (endDate-validated; also expires stale ones).
       sub = await resolveActiveSnapshotSub(session.user.id)
@@ -226,6 +233,19 @@ export async function getCompanySnapshot(
    }
 
    const today = new Date().toISOString().slice(0, 10)
+
+   // Log list-plan views (no quota applies) so they surface under "recently viewed".
+   if (listSubId) {
+      await db
+         .insert(stockViewLog)
+         .values({
+            id: randomUUID(),
+            subscriptionId: listSubId,
+            companyId,
+            viewedDate: today,
+         })
+         .onConflictDoNothing()
+   }
 
    // Quota tracking — only for snapshot-plan views (skipped for list viewers).
    if (trackQuota && sub) {
@@ -404,6 +424,55 @@ export async function getRecentlyViewed(): Promise<RecentlyViewedCompany[]> {
       .from(stockViewLog)
       .innerJoin(companyMaster, eq(stockViewLog.companyId, companyMaster.id))
       .where(eq(stockViewLog.subscriptionId, sub.id))
+      .groupBy(
+         companyMaster.id,
+         companyMaster.companyName,
+         companyMaster.prowessId,
+         companyMaster.isinCode,
+         companyMaster.nseSymbol,
+         companyMaster.bseScripCode,
+      )
+      .orderBy(desc(max(stockViewLog.viewedDate)))
+      .limit(10)
+
+   return rows.filter((r) => r.lastViewed !== null) as RecentlyViewedCompany[]
+}
+
+// Recently viewed companies for the user's active LIST subscriptions. List
+// viewers don't have a snapshot subscription, so this reads view logs scoped to
+// their list subscription(s) instead of resolveActiveSnapshotSub.
+export async function getListRecentlyViewed(
+   subscriptionId: string,
+): Promise<RecentlyViewedCompany[]> {
+   const session = await auth.api.getSession({ headers: await headers() })
+   if (!session) return []
+   if (!subscriptionId) return []
+
+   const rows = await db
+      .select({
+         id: companyMaster.id,
+         companyName: companyMaster.companyName,
+         prowessId: companyMaster.prowessId,
+         isinCode: companyMaster.isinCode,
+         nseSymbol: companyMaster.nseSymbol,
+         bseScripCode: companyMaster.bseScripCode,
+         lastViewed: max(stockViewLog.viewedDate),
+      })
+      .from(stockViewLog)
+      .innerJoin(subscription, eq(stockViewLog.subscriptionId, subscription.id))
+      .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
+      .innerJoin(companyMaster, eq(stockViewLog.companyId, companyMaster.id))
+      .where(
+         and(
+            // Scope to the specific list subscription so each list keeps its own
+            // recently-viewed history. Still constrained to the caller's own
+            // active list subscriptions for authorization.
+            eq(stockViewLog.subscriptionId, subscriptionId),
+            eq(subscription.clientId, session.user.id),
+            eq(subscription.status, "active"),
+            eq(pricingPlan.type, "list"),
+         ),
+      )
       .groupBy(
          companyMaster.id,
          companyMaster.companyName,
