@@ -80,7 +80,7 @@ const endOfDay = (d: Date) => {
 export function MySubscriptionsTable({ data }: { data: SubscriptionRow[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("all")
-  const [validityFilter, setValidityFilter] = React.useState<ValidityFilter>("all")
+  const [validityFilter, setValidityFilter] = React.useState<ValidityFilter>("active")
   // `range` is the applied filter; `draft` is the in-progress calendar selection
   // that only becomes `range` when the user clicks Apply.
   const [range, setRange] = React.useState<DateRange | undefined>()

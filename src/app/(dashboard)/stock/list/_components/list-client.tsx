@@ -379,6 +379,14 @@ export function ListClient({ subscriptions }: ListClientProps) {
       [filtered, currentPage, pageSize],
    )
 
+   // Annual-list plan with no month unlocked yet: the "No month unlocked" empty
+   // state is showing, so the filter/search controls have nothing to act on.
+   const noMonthUnlocked = !loading && !!monthViews && availableMonths.length === 0
+   // Show the month dropdown once at least one month is available. For annual
+   // plans that means the first unlock reveals it (so the user always knows which
+   // month they're viewing); other durations only need it when there's a choice.
+   const showMonthSelector = monthViews ? availableMonths.length > 0 : availableMonths.length > 1
+
    // Reset to the first page whenever the result set or page size changes.
    React.useEffect(() => {
       setCurrentPage(1)
@@ -523,7 +531,8 @@ export function ListClient({ subscriptions }: ListClientProps) {
                   </div>
                )}
 
-               {/* ── Filter & Search ── */}
+               {/* ── Filter & Search (hidden while no month is unlocked) ── */}
+               {!noMonthUnlocked && (
                <div className="flex flex-col gap-3 @2xl/main:flex-row @2xl/main:items-center @2xl/main:gap-3">
                   {/* Filter Button */}
                   <DropdownMenu>
@@ -610,9 +619,10 @@ export function ListClient({ subscriptions }: ListClientProps) {
                      onSelect={(c) => openSnapshot(c.id, c.companyName)}
                   />
                </div>
+               )}
 
                {/* ── Month selector (quarterly / annual only) ── */}
-               {availableMonths.length > 1 && (
+               {showMonthSelector && (
                   <div className="flex items-center gap-2.5">
                      <span className="shrink-0 text-sm text-muted-foreground">Viewing month</span>
                      <Select
