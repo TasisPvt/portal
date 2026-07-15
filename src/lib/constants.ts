@@ -29,3 +29,8 @@ export const DURATION_LABELS: Record<string, string> = {
 // Max companies a user may keep bookmarked at once. Enforced server-side in the
 // watchlist toggle action; surfaced in the add-bookmark UI when reached.
 export const WATCHLIST_LIMIT = 100
+
+// Month views included in an annual list subscription. The subscriber picks
+// which months to view (current month only, recorded on first view); once used
+// up, no further months can be unlocked for that subscription.
+export const ANNUAL_LIST_MONTH_VIEWS = 4

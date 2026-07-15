@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { toast } from "sonner"
-import { SearchIcon, BuildingIcon, FilterIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, BookmarkIcon, LockIcon, ClockIcon } from "lucide-react"
+import { SearchIcon, BuildingIcon, FilterIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, BookmarkIcon, LockIcon, ClockIcon, CalendarDaysIcon } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
 import { Skeleton } from "@/src/components/ui/skeleton"
 import { Spinner } from "@/src/components/ui/spinner"
@@ -17,6 +17,7 @@ import {
 import {
    Dialog,
    DialogContent,
+   DialogFooter,
    DialogHeader,
    DialogTitle,
 } from "@/src/components/ui/dialog"
@@ -35,6 +36,7 @@ import {
    EmptyMedia,
    EmptyTitle,
    EmptyDescription,
+   EmptyContent,
 } from "@/src/components/ui/empty"
 import {
    DropdownMenu,
@@ -51,9 +53,9 @@ import {
 } from "@/src/components/ui/card"
 import { cn } from "@/src/lib/utils"
 import { formatMonth as fmtMonth } from "@/src/lib/format"
-import { getListCompanies, type ListSubscription, type ListCompany } from "../_actions"
+import { getListCompanies, unlockCurrentMonth, type ListSubscription, type ListCompany, type ListMonthViews } from "../_actions"
 import { toggleWatchlist, getWatchlistedCompanyIds } from "../../watchlist/_actions"
-import { WATCHLIST_LIMIT } from "@/src/lib/constants"
+import { WATCHLIST_LIMIT, ANNUAL_LIST_MONTH_VIEWS } from "@/src/lib/constants"
 import { getCompanySnapshot, getFinancialRatioThresholds, getListRecentlyViewed, type RecentlyViewedCompany } from "../../snapshot/_actions"
 import { SnapshotCard, type SnapshotSuccess } from "../../snapshot/_components/snapshot-client"
 import { Badge } from "@/src/components/ui/badge"
@@ -213,6 +215,10 @@ export function ListClient({ subscriptions }: ListClientProps) {
    const [watchlistedIds, setWatchlistedIds] = React.useState<Set<string>>(new Set())
    const [togglingId, setTogglingId] = React.useState<string | null>(null)
    const [recentlyViewed, setRecentlyViewed] = React.useState<RecentlyViewedCompany[]>([])
+   const [monthViews, setMonthViews] = React.useState<ListMonthViews | null>(null)
+   const [refreshKey, setRefreshKey] = React.useState(0)
+   const [unlockOpen, setUnlockOpen] = React.useState(false)
+   const [unlocking, setUnlocking] = React.useState(false)
 
    React.useEffect(() => {
       getFinancialRatioThresholds().then(setThresholds)
@@ -284,13 +290,35 @@ export function ListClient({ subscriptions }: ListClientProps) {
       setLoading(true)
       setCompanies([])
       setAvailableMonths([])
+      setMonthViews(null)
       getListCompanies(selectedSubId, selectedMonth ?? undefined)
-         .then(({ companies, availableMonths }) => {
+         .then(({ companies, availableMonths, monthViews }) => {
             setCompanies(companies)
             setAvailableMonths(availableMonths)
+            setMonthViews(monthViews)
          })
          .finally(() => setLoading(false))
-   }, [selectedSubId, selectedMonth])
+   }, [selectedSubId, selectedMonth, refreshKey])
+
+   // Consume one month view to unlock the current month (annual subs only).
+   async function handleUnlockMonth() {
+      if (!selectedSubId) return
+      setUnlocking(true)
+      const res = await unlockCurrentMonth(selectedSubId)
+      setUnlocking(false)
+      setUnlockOpen(false)
+      if (res.ok || res.error === "already_unlocked") {
+         if (res.ok) toast.success(`${fmtMonth(res.month)} list is now available.`)
+         setSelectedMonth(null) // jump to the latest (just-unlocked) month
+         setRefreshKey((k) => k + 1)
+      } else {
+         toast.error(
+            res.error === "limit_reached"
+               ? `All ${monthViews?.limit ?? ANNUAL_LIST_MONTH_VIEWS} month views for this subscription have been used.`
+               : "Couldn't unlock this month. Please try again.",
+         )
+      }
+   }
 
    const selectedSub = subscriptions.find((s) => s.subscriptionId === selectedSubId)
 
@@ -466,6 +494,35 @@ export function ListClient({ subscriptions }: ListClientProps) {
                   </div>
                )}
 
+               {/* ── Month views banner (annual subs only) ── */}
+               {monthViews && !loading && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-3">
+                     <div className="flex items-center gap-3">
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                           <CalendarDaysIcon className="size-4" />
+                        </span>
+                        <div>
+                           <p className="text-sm font-medium">
+                              Month views: {monthViews.used} of {monthViews.limit} used
+                           </p>
+                           <p className="text-xs text-muted-foreground">
+                              Your annual plan includes {monthViews.limit} month views. Unlocked months stay available for the rest of your subscription.
+                           </p>
+                        </div>
+                     </div>
+                     {monthViews.canUnlock ? (
+                        <Button size="sm" onClick={() => setUnlockOpen(true)}>
+                           View {fmtMonth(monthViews.currentMonth)} list
+                        </Button>
+                     ) : !monthViews.currentMonthUnlocked ? (
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                           <LockIcon className="size-3.5" />
+                           All month views used
+                        </span>
+                     ) : null}
+                  </div>
+               )}
+
                {/* ── Filter & Search ── */}
                <div className="flex flex-col gap-3 @2xl/main:flex-row @2xl/main:items-center @2xl/main:gap-3">
                   {/* Filter Button */}
@@ -582,6 +639,30 @@ export function ListClient({ subscriptions }: ListClientProps) {
                   </div>
                )}
 
+               {/* ── No month unlocked yet (annual subs) ── */}
+               {!loading && monthViews && availableMonths.length === 0 ? (
+                  <Empty className="border py-16">
+                     <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                           <CalendarDaysIcon />
+                        </EmptyMedia>
+                        <EmptyTitle>No month unlocked yet</EmptyTitle>
+                        <EmptyDescription>
+                           Your annual plan includes {monthViews.limit} month views. Unlock the current
+                           month to see its company list.
+                        </EmptyDescription>
+                     </EmptyHeader>
+                     {monthViews.canUnlock && (
+                        <EmptyContent>
+                           <Button onClick={() => setUnlockOpen(true)}>
+                              View {fmtMonth(monthViews.currentMonth)} list
+                           </Button>
+                        </EmptyContent>
+                     )}
+                  </Empty>
+               ) : (
+
+               <>
                {/* ── Company list (2-column grid - adaptive to available space) ── */}
                <div className="grid grid-cols-1 @4xl/main:grid-cols-2 @5xl/main:grid-cols-3 gap-3">
                   {loading ? (
@@ -748,6 +829,8 @@ export function ListClient({ subscriptions }: ListClientProps) {
                      </div>
                   </div>
                )}
+               </>
+               )}
             </>
          )}
 
@@ -814,6 +897,34 @@ export function ListClient({ subscriptions }: ListClientProps) {
                      </div>
                   )}
                </div>
+            </DialogContent>
+         </Dialog>
+
+         {/* ── Unlock current month confirmation (annual subs) ── */}
+         <Dialog open={unlockOpen} onOpenChange={(open) => !unlocking && setUnlockOpen(open)}>
+            <DialogContent className="sm:max-w-md">
+               <DialogHeader>
+                  <DialogTitle>
+                     View {monthViews ? fmtMonth(monthViews.currentMonth) : "this month's"} list?
+                  </DialogTitle>
+               </DialogHeader>
+               <p className="text-sm text-muted-foreground">
+                  This will use{" "}
+                  <span className="font-semibold text-foreground">
+                     1 of your {monthViews ? monthViews.limit - monthViews.used : 0} remaining month views
+                  </span>{" "}
+                  for this subscription. The month stays available for the rest of your subscription,
+                  but a used view can&apos;t be returned.
+               </p>
+               <DialogFooter>
+                  <Button variant="outline" onClick={() => setUnlockOpen(false)} disabled={unlocking}>
+                     Cancel
+                  </Button>
+                  <Button onClick={handleUnlockMonth} disabled={unlocking}>
+                     {unlocking ? "Unlocking…" : "Yes, view this month"}
+                     {unlocking && <Spinner className="ml-2" />}
+                  </Button>
+               </DialogFooter>
             </DialogContent>
          </Dialog>
       </div>
