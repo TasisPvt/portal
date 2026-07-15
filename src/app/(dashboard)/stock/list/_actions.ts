@@ -1,5 +1,6 @@
 "use server"
 
+import { randomUUID } from "crypto"
 import { and, desc, eq, inArray, lt, isNotNull } from "drizzle-orm"
 import { headers } from "next/headers"
 
@@ -8,12 +9,15 @@ import { db } from "@/src/db/client"
 import {
    companyMaster,
    companyShariah,
+   indexCompany,
    indexMaster,
    industryGroup,
    pricingPlan,
    subscription,
    subscriptionListSnapshot,
+   subscriptionMonthUnlock,
 } from "@/src/db/schema"
+import { ANNUAL_LIST_MONTH_VIEWS } from "@/src/lib/constants"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -47,9 +51,19 @@ export type ListCompany = {
    marketCap: string | null
 }
 
+// Month-view quota state for annual list subscriptions (null for other durations).
+export type ListMonthViews = {
+   used: number
+   limit: number
+   currentMonth: string // YYYY-MM
+   currentMonthUnlocked: boolean
+   canUnlock: boolean // current month locked and views remaining
+}
+
 export type ListCompaniesResult = {
    companies: ListCompany[]
-   availableMonths: string[] // all snapshotted months, newest first
+   availableMonths: string[] // viewable months, newest first (annual: unlocked only)
+   monthViews: ListMonthViews | null
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
@@ -99,7 +113,7 @@ export async function getListCompanies(
    selectedMonth?: string,
 ): Promise<ListCompaniesResult> {
    const session = await auth.api.getSession({ headers: await headers() })
-   if (!session) return { companies: [], availableMonths: [] }
+   if (!session) return { companies: [], availableMonths: [], monthViews: null }
 
    // Verify the subscription belongs to this user
    const [sub] = await db
@@ -114,19 +128,44 @@ export async function getListCompanies(
       )
       .limit(1)
 
-   if (!sub) return { companies: [], availableMonths: [] }
+   if (!sub) return { companies: [], availableMonths: [], monthViews: null }
 
-   // ── All snapshotted months for this subscription (newest first) ────────────
-   // Written at subscription creation (startMonth) and on every monthly
-   // shariah import for quarterly/annual subscriptions.
-   const monthRows = await db
-      .selectDistinct({ month: subscriptionListSnapshot.month })
-      .from(subscriptionListSnapshot)
-      .where(eq(subscriptionListSnapshot.subscriptionId, subscriptionId))
-      .orderBy(desc(subscriptionListSnapshot.month))
+   // ── Determine viewable months (newest first) ───────────────────────────────
+   // Snapshots are written at subscription creation (startMonth) and on every
+   // monthly shariah import for quarterly/annual subscriptions.
+   // Annual subs are additionally gated: only explicitly unlocked months
+   // (ANNUAL_LIST_MONTH_VIEWS per term) are viewable.
+   let availableMonths: string[]
+   let monthViews: ListMonthViews | null = null
 
-   const availableMonths = monthRows.map((r) => r.month)
-   if (!availableMonths.length) return { companies: [], availableMonths: [] }
+   if (sub.durationType === "annual") {
+      const unlockRows = await db
+         .select({ month: subscriptionMonthUnlock.month })
+         .from(subscriptionMonthUnlock)
+         .where(eq(subscriptionMonthUnlock.subscriptionId, subscriptionId))
+         .orderBy(desc(subscriptionMonthUnlock.month))
+
+      const currentMonth = new Date().toISOString().slice(0, 7)
+      const currentMonthUnlocked = unlockRows.some((r) => r.month === currentMonth)
+      availableMonths = unlockRows.map((r) => r.month)
+      monthViews = {
+         used: unlockRows.length,
+         limit: ANNUAL_LIST_MONTH_VIEWS,
+         currentMonth,
+         currentMonthUnlocked,
+         canUnlock: !currentMonthUnlocked && unlockRows.length < ANNUAL_LIST_MONTH_VIEWS,
+      }
+   } else {
+      const monthRows = await db
+         .selectDistinct({ month: subscriptionListSnapshot.month })
+         .from(subscriptionListSnapshot)
+         .where(eq(subscriptionListSnapshot.subscriptionId, subscriptionId))
+         .orderBy(desc(subscriptionListSnapshot.month))
+
+      availableMonths = monthRows.map((r) => r.month)
+   }
+
+   if (!availableMonths.length) return { companies: [], availableMonths: [], monthViews }
 
    // ── Determine which month to display ──────────────────────────────────────
    // one_time always has exactly one snapshotted month (the effective month).
@@ -165,7 +204,7 @@ export async function getListCompanies(
          ),
       )
 
-   if (!companies.length) return { companies: [], availableMonths }
+   if (!companies.length) return { companies: [], availableMonths, monthViews }
 
    const companyIds = companies.map((c) => c.id)
 
@@ -220,7 +259,98 @@ export async function getListCompanies(
       }
    }
 
-   return { companies: mapCompanies(companies, shariahMap), availableMonths }
+   return { companies: mapCompanies(companies, shariahMap), availableMonths, monthViews }
+}
+
+// ─── Month unlock (annual list subs) ──────────────────────────────────────────
+
+export type UnlockMonthResult =
+   | { ok: true; month: string }
+   | { ok: false; error: "unauthorized" | "not_annual" | "already_unlocked" | "limit_reached" }
+
+// Consumes one of the subscription's month views to make the CURRENT month's
+// list viewable for the rest of the term. Past months can never be unlocked.
+export async function unlockCurrentMonth(subscriptionId: string): Promise<UnlockMonthResult> {
+   const session = await auth.api.getSession({ headers: await headers() })
+   if (!session) return { ok: false, error: "unauthorized" }
+
+   const month = new Date().toISOString().slice(0, 7)
+
+   return db.transaction(async (tx): Promise<UnlockMonthResult> => {
+      // Lock the subscription row so concurrent unlocks can't exceed the quota.
+      const [sub] = await tx
+         .select({
+            id: subscription.id,
+            durationType: subscription.durationType,
+            planType: pricingPlan.type,
+            indexId: pricingPlan.indexId,
+         })
+         .from(subscription)
+         .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
+         .where(
+            and(
+               eq(subscription.id, subscriptionId),
+               eq(subscription.clientId, session.user.id),
+               eq(subscription.status, "active"),
+            ),
+         )
+         .limit(1)
+         .for("update", { of: subscription })
+
+      if (!sub || sub.planType !== "list") return { ok: false, error: "unauthorized" }
+      if (sub.durationType !== "annual") return { ok: false, error: "not_annual" }
+
+      const unlocked = await tx
+         .select({ month: subscriptionMonthUnlock.month })
+         .from(subscriptionMonthUnlock)
+         .where(eq(subscriptionMonthUnlock.subscriptionId, subscriptionId))
+
+      if (unlocked.some((u) => u.month === month)) return { ok: false, error: "already_unlocked" }
+      if (unlocked.length >= ANNUAL_LIST_MONTH_VIEWS) return { ok: false, error: "limit_reached" }
+
+      await tx
+         .insert(subscriptionMonthUnlock)
+         .values({ id: randomUUID(), subscriptionId, month })
+         .onConflictDoNothing()
+
+      // Ensure the month's list snapshot exists. It's normally written by the
+      // monthly shariah import; if the user unlocks before this month's publish,
+      // freeze the index membership now (mirrors the purchase-time snapshot —
+      // shariah data falls back to each company's most recent prior month).
+      const [snapshotExists] = await tx
+         .select({ id: subscriptionListSnapshot.id })
+         .from(subscriptionListSnapshot)
+         .where(
+            and(
+               eq(subscriptionListSnapshot.subscriptionId, subscriptionId),
+               eq(subscriptionListSnapshot.month, month),
+            ),
+         )
+         .limit(1)
+
+      if (!snapshotExists && sub.indexId) {
+         const members = await tx
+            .select({ companyId: indexCompany.companyId })
+            .from(indexCompany)
+            .where(eq(indexCompany.indexId, sub.indexId))
+
+         if (members.length) {
+            await tx
+               .insert(subscriptionListSnapshot)
+               .values(
+                  members.map((m) => ({
+                     id: randomUUID(),
+                     subscriptionId,
+                     companyId: m.companyId,
+                     month,
+                  })),
+               )
+               .onConflictDoNothing()
+         }
+      }
+
+      return { ok: true, month }
+   })
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

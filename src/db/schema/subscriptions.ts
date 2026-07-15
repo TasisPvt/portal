@@ -78,6 +78,28 @@ export const subscriptionListSnapshot = pgTable(
 
 export type SubscriptionListSnapshot = typeof subscriptionListSnapshot.$inferSelect
 
+// One row per month an annual list subscriber has chosen to view. Annual list
+// plans include a fixed quota of month views (ANNUAL_LIST_MONTH_VIEWS): the
+// list page exposes only unlocked months, and unlocking the current month
+// consumes one view. Other durations are not gated by this table.
+export const subscriptionMonthUnlock = pgTable(
+   "subscription_month_unlock",
+   {
+      id: varchar("id", { length: 36 }).primaryKey(),
+      subscriptionId: varchar("subscription_id", { length: 36 })
+         .notNull()
+         .references(() => subscription.id, { onDelete: "cascade" }),
+      month: varchar("month", { length: 7 }).notNull(), // YYYY-MM
+      createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
+   },
+   (table) => [
+      index("smu_sub_idx").on(table.subscriptionId),
+      unique("smu_sub_month_uq").on(table.subscriptionId, table.month),
+   ],
+)
+
+export type SubscriptionMonthUnlock = typeof subscriptionMonthUnlock.$inferSelect
+
 // One row per checkout attempt. Created when a Razorpay order is generated and
 // updated after the browser returns + server-side signature verification.
 // On successful verification a subscription is created and linked back here.
