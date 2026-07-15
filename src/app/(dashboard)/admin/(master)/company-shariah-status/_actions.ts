@@ -195,10 +195,15 @@ export async function importShariahData(records: ShariahImportRow[], targetMonth
       .where(eq(companyShariah.month, month))
    const existingMap = new Map(existing.map((r) => [r.companyId, r.id]))
 
-   let inserted = 0
-   let updated = 0
    const skipped: { prowessId: string; reason: string }[] = []
    const seenProwessIds = new Set<string>()
+
+   // Build the full work list first (pre-validation only), then write it in a
+   // single transaction below — a failed import must not leave the month
+   // half-applied.
+   type ShariahValues = typeof companyShariah.$inferInsert
+   const toInsert: ShariahValues[] = []
+   const toUpdate: { id: string; values: Omit<ShariahValues, "id" | "createdAt"> }[] = []
 
    for (const record of records) {
       if (seenProwessIds.has(record.prowessId)) {
@@ -254,21 +259,33 @@ export async function importShariahData(records: ShariahImportRow[], targetMonth
          }
       }
 
-      try {
-         if (existingMap.has(companyId)) {
-            await db
-               .update(companyShariah)
-               .set(values)
-               .where(eq(companyShariah.id, existingMap.get(companyId)!))
-            updated++
-         } else {
-            await db.insert(companyShariah).values({ id: randomUUID(), ...values, createdAt: new Date() })
-            inserted++
-         }
-      } catch (err: any) {
-         skipped.push({ prowessId: record.prowessId, reason: err?.message ?? "Failed" })
+      if (existingMap.has(companyId)) {
+         toUpdate.push({ id: existingMap.get(companyId)!, values })
+      } else {
+         toInsert.push({ id: randomUUID(), ...values, createdAt: new Date() })
       }
    }
+
+   // Apply atomically: any failure rolls the whole import back instead of
+   // leaving an unknown mix of old and new rows for the month.
+   try {
+      await db.transaction(async (tx) => {
+         if (toInsert.length) {
+            await tx.insert(companyShariah).values(toInsert)
+         }
+         for (const u of toUpdate) {
+            await tx.update(companyShariah).set(u.values).where(eq(companyShariah.id, u.id))
+         }
+      })
+   } catch (err: any) {
+      console.error("[importShariahData]", err)
+      throw new Error(
+         `Import failed — no changes were applied. ${err?.message ?? "Unknown database error."}`,
+      )
+   }
+
+   const inserted = toInsert.length
+   const updated = toUpdate.length
 
    // After import: snapshot the current index state for the uploaded month
    // for every active quarterly/annual list subscription. This freezes each

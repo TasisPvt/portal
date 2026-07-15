@@ -194,32 +194,30 @@ export async function syncIndexCompanies(
 
    const existingMap = new Map(existing.map((r) => [r.companyId, r.id]))
 
-   // Remove members not in the CSV
-   let removed = 0
-   for (const [companyId, rowId] of existingMap) {
-      if (!resolvedIds.has(companyId)) {
-         await db.delete(indexCompany).where(eq(indexCompany.id, rowId))
-         removed++
-      }
-   }
+   // Diff first, then apply as two batched statements inside one transaction —
+   // a mid-sync failure must not leave the index half-updated.
+   const rowIdsToRemove = [...existingMap]
+      .filter(([companyId]) => !resolvedIds.has(companyId))
+      .map(([, rowId]) => rowId)
+   const companyIdsToAdd = [...resolvedIds].filter((companyId) => !existingMap.has(companyId))
+   const unchanged = resolvedIds.size - companyIdsToAdd.length
 
-   // Add members in CSV not yet in index
-   let added = 0
-   let unchanged = 0
-   for (const companyId of resolvedIds) {
-      if (existingMap.has(companyId)) {
-         unchanged++
-      } else {
-         await db.insert(indexCompany).values({
-            id: randomUUID(),
-            indexId,
-            companyId,
-            addedAt: new Date(),
-         })
-         added++
+   await db.transaction(async (tx) => {
+      if (rowIdsToRemove.length) {
+         await tx.delete(indexCompany).where(inArray(indexCompany.id, rowIdsToRemove))
       }
-   }
+      if (companyIdsToAdd.length) {
+         await tx.insert(indexCompany).values(
+            companyIdsToAdd.map((companyId) => ({
+               id: randomUUID(),
+               indexId,
+               companyId,
+               addedAt: new Date(),
+            })),
+         )
+      }
+   })
 
    revalidatePath(`/admin/index/${indexId}`)
-   return { added, removed, unchanged, notFound }
+   return { added: companyIdsToAdd.length, removed: rowIdsToRemove.length, unchanged, notFound }
 }

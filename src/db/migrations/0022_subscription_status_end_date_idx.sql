@@ -1,0 +1,1 @@
+CREATE INDEX "subscription_status_end_date_idx" ON "subscription" USING btree ("status","end_date");
