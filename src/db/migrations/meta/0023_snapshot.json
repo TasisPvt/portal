@@ -1,6 +1,6 @@
 {
-  "id": "614fe787-809e-4137-a1d5-6f400fac087a",
-  "prevId": "f3955a87-3ec7-450f-a4f7-952b6446d9a9",
+  "id": "9fd67cfe-db9a-4ba9-aa10-517419d7c8d4",
+  "prevId": "614fe787-809e-4137-a1d5-6f400fac087a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2094,6 +2094,83 @@
           "columns": [
             "subscription_id",
             "company_id",
+            "month"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.subscription_month_unlock": {
+      "name": "subscription_month_unlock",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "subscription_id": {
+          "name": "subscription_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "month": {
+          "name": "month",
+          "type": "varchar(7)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "smu_sub_idx": {
+          "name": "smu_sub_idx",
+          "columns": [
+            {
+              "expression": "subscription_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "subscription_month_unlock_subscription_id_subscription_id_fk": {
+          "name": "subscription_month_unlock_subscription_id_subscription_id_fk",
+          "tableFrom": "subscription_month_unlock",
+          "tableTo": "subscription",
+          "columnsFrom": [
+            "subscription_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "smu_sub_month_uq": {
+          "name": "smu_sub_month_uq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "subscription_id",
             "month"
           ]
         }

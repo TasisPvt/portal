@@ -2,6 +2,7 @@ import "server-only"
 
 import { randomUUID } from "crypto"
 import { and, eq, gte, inArray, max } from "drizzle-orm"
+import { addMonths, addYears } from "date-fns"
 
 import { db } from "@/src/db/client"
 import {
@@ -29,18 +30,23 @@ export function computeEndDate(
       // A one-time snapshot plan is valid for the day only. A one-time list plan
       // stays valid for a full month (its frozen company list is usable that long).
       if (planType === "list") {
-         return new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000)
+         return addMonths(startDate, 1)
       }
       const end = new Date(startDate)
       end.setHours(23, 59, 59, 999)
       return end
    }
-   const days: Record<Exclude<DurationType, "one_time">, number> = {
-      monthly: 30,
-      quarterly: 90,
-      annual: 365,
+   // Calendar-based windows (Jan 15 → Feb 15), not fixed day counts — date-fns
+   // clamps month-end overflow (Jan 31 + 1 month → Feb 28/29) and handles leap
+   // years, so an annual plan bought Feb 29 ends Feb 28 the next year.
+   switch (durationType) {
+      case "monthly":
+         return addMonths(startDate, 1)
+      case "quarterly":
+         return addMonths(startDate, 3)
+      case "annual":
+         return addYears(startDate, 1)
    }
-   return new Date(startDate.getTime() + days[durationType] * 24 * 60 * 60 * 1000)
 }
 
 // For list plans: snapshot the current index companies so the client's company
