@@ -6,6 +6,7 @@ import { auth } from "@/src/lib/auth"
 import { db } from "@/src/db/client"
 import { user, clientProfile } from "@/src/db/schema"
 import { generatePassword, sendWelcomeEmail } from "@/src/lib/mailer"
+import { isWithinOtpDailyLimit, recordOtpSend, OTP_DAILY_LIMIT } from "@/src/lib/otp-rate-limit"
 
 export async function POST(req: Request) {
    const { name, state, address, gstNumber, email, phone, aadharNumber, panNumber } =
@@ -15,6 +16,17 @@ export async function POST(req: Request) {
       return NextResponse.json(
          { message: "All required fields must be filled" },
          { status: 400 },
+      )
+   }
+
+   // Cap account emails per address per day (shared with the forgot-password
+   // flow) so an inbox can't be spammed by repeated registration attempts.
+   if (!(await isWithinOtpDailyLimit(email))) {
+      return NextResponse.json(
+         {
+            message: `You've reached the daily limit of ${OTP_DAILY_LIMIT} email requests for this address. Please try again after 24 hours.`,
+         },
+         { status: 429 },
       )
    }
 
@@ -76,6 +88,7 @@ export async function POST(req: Request) {
       })
 
       await sendWelcomeEmail({ to: email, name, password: tempPassword })
+      await recordOtpSend(email, "register")
 
       // signUpEmail creates a session automatically — revoke it so the user
       // is redirected to login and must authenticate explicitly.

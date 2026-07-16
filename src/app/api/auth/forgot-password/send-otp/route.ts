@@ -6,6 +6,9 @@ import { db } from "@/src/db/client"
 import { user, verification } from "@/src/db/schema"
 import { ACCOUNT_BLOCKED_MESSAGE } from "@/src/lib/constants"
 import { generateOtp, sendOtpEmail } from "@/src/lib/mailer"
+import { isWithinOtpDailyLimit, recordOtpSend, OTP_DAILY_LIMIT } from "@/src/lib/otp-rate-limit"
+
+const OTP_LIMIT_MESSAGE = `You've reached the daily limit of OTP requests for this email. Please try again after 24 hours.`
 
 const OTP_TTL_MS = 5 * 60 * 1000 // 5 minutes
 
@@ -36,6 +39,12 @@ export async function POST(req: Request) {
 
    // Only generate and send an OTP for an existing, active account; otherwise
    if (found) {
+      // Cap OTP/account emails per address per day (shared with the register
+      // flow) so an inbox can't be spammed by hammering this endpoint.
+      if (!(await isWithinOtpDailyLimit(found.email))) {
+         return NextResponse.json({ message: OTP_LIMIT_MESSAGE }, { status: 429 })
+      }
+
       const otp = generateOtp()
       const identifier = `forgot-password:${email}`
 
@@ -49,6 +58,7 @@ export async function POST(req: Request) {
       })
 
       await sendOtpEmail({ to: found.email, name: found.name, otp })
+      await recordOtpSend(found.email, "forgot_password")
    }
 
    return NextResponse.json({ success: true })

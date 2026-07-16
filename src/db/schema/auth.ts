@@ -99,6 +99,21 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
+// One row per OTP / account email actually sent to an address. Used to enforce
+// a combined per-email daily send cap across the forgot-password and register
+// flows, so a single address can't be spammed with emails.
+export const otpRequest = pgTable(
+  "otp_request",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    email: varchar("email", { length: 255 }).notNull(),
+    // "forgot_password" | "register"
+    purpose: varchar("purpose", { length: 32 }).notNull(),
+    createdAt: timestamp("created_at", { precision: 3 }).defaultNow().notNull(),
+  },
+  (table) => [index("otp_request_email_created_idx").on(table.email, table.createdAt)],
+);
+
 // Stores KYC fields mandatory for client-type users only.
 // Created immediately after a client registers.
 export const clientProfile = pgTable("client_profile", {
