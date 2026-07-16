@@ -13,6 +13,7 @@ import {
    subscriptionListSnapshot,
    payment,
 } from "@/src/db/schema"
+import { chunk } from "@/src/lib/db-batch"
 
 export type DurationType = "one_time" | "monthly" | "quarterly" | "annual"
 
@@ -82,15 +83,19 @@ async function createListSnapshot(
 
    if (!snapshotMonth) return
 
-   await tx
-      .insert(subscriptionListSnapshot)
-      .values(members.map((m) => ({
-         id: randomUUID(),
-         subscriptionId,
-         companyId: m.companyId,
-         month: snapshotMonth!,
-      })))
-      .onConflictDoNothing()
+   // Chunk: a large index can have thousands of members; one INSERT would
+   // overflow Postgres's 65535-parameter cap / Drizzle's query-builder stack.
+   for (const batch of chunk(members)) {
+      await tx
+         .insert(subscriptionListSnapshot)
+         .values(batch.map((m) => ({
+            id: randomUUID(),
+            subscriptionId,
+            companyId: m.companyId,
+            month: snapshotMonth!,
+         })))
+         .onConflictDoNothing()
+   }
 }
 
 // Creates an active subscription (+ list snapshot for list plans). Prices/limits

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache"
 
 import { db } from "@/src/db/client"
 import { indexMaster, indexCompany, companyMaster } from "@/src/db/schema"
+import { chunk } from "@/src/lib/db-batch"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -207,14 +208,18 @@ export async function syncIndexCompanies(
          await tx.delete(indexCompany).where(inArray(indexCompany.id, rowIdsToRemove))
       }
       if (companyIdsToAdd.length) {
-         await tx.insert(indexCompany).values(
-            companyIdsToAdd.map((companyId) => ({
-               id: randomUUID(),
-               indexId,
-               companyId,
-               addedAt: new Date(),
-            })),
-         )
+         // Chunk: a full-universe index sync can add thousands of rows, which
+         // overflows Postgres/Drizzle limits in a single INSERT.
+         for (const batch of chunk(companyIdsToAdd)) {
+            await tx.insert(indexCompany).values(
+               batch.map((companyId) => ({
+                  id: randomUUID(),
+                  indexId,
+                  companyId,
+                  addedAt: new Date(),
+               })),
+            )
+         }
       }
    })
 
