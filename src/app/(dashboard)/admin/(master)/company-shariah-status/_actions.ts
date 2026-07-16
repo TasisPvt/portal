@@ -16,6 +16,7 @@ import {
 } from "@/src/db/schema"
 import { auth } from "@/src/lib/auth"
 import { Roles } from "@/src/lib/constants"
+import { chunk } from "@/src/lib/db-batch"
 import { getCurrentMonth } from "./_utils"
 
 // ---------------------------------------------------------------------------
@@ -270,8 +271,11 @@ export async function importShariahData(records: ShariahImportRow[], targetMonth
    // leaving an unknown mix of old and new rows for the month.
    try {
       await db.transaction(async (tx) => {
-         if (toInsert.length) {
-            await tx.insert(companyShariah).values(toInsert)
+         // Insert in chunks: a single `.values()` for the whole master upload
+         // (~6k rows × ~23 columns) exceeds Postgres's 65535-parameter cap and
+         // overflows Drizzle's query-builder call stack.
+         for (const batch of chunk(toInsert)) {
+            await tx.insert(companyShariah).values(batch)
          }
          for (const u of toUpdate) {
             await tx.update(companyShariah).set(u.values).where(eq(companyShariah.id, u.id))
@@ -348,6 +352,10 @@ async function snapshotMonthForActiveListSubscriptions(month: string) {
          })),
       )
 
-      await db.insert(subscriptionListSnapshot).values(rows).onConflictDoNothing()
+      // Chunk for the same reason as the shariah insert: subs × members can be
+      // large, and one oversized `.values()` overflows Postgres/Drizzle limits.
+      for (const batch of chunk(rows)) {
+         await db.insert(subscriptionListSnapshot).values(batch).onConflictDoNothing()
+      }
    }
 }

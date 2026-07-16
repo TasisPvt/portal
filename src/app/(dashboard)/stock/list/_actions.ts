@@ -18,6 +18,7 @@ import {
    subscriptionMonthUnlock,
 } from "@/src/db/schema"
 import { ANNUAL_LIST_MONTH_VIEWS } from "@/src/lib/constants"
+import { chunk } from "@/src/lib/db-batch"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -335,17 +336,21 @@ export async function unlockCurrentMonth(subscriptionId: string): Promise<Unlock
             .where(eq(indexCompany.indexId, sub.indexId))
 
          if (members.length) {
-            await tx
-               .insert(subscriptionListSnapshot)
-               .values(
-                  members.map((m) => ({
-                     id: randomUUID(),
-                     subscriptionId,
-                     companyId: m.companyId,
-                     month,
-                  })),
-               )
-               .onConflictDoNothing()
+            // Chunk: a large index can have thousands of members; one INSERT
+            // would overflow Postgres/Drizzle limits.
+            for (const batch of chunk(members)) {
+               await tx
+                  .insert(subscriptionListSnapshot)
+                  .values(
+                     batch.map((m) => ({
+                        id: randomUUID(),
+                        subscriptionId,
+                        companyId: m.companyId,
+                        month,
+                     })),
+                  )
+                  .onConflictDoNothing()
+            }
          }
       }
 
