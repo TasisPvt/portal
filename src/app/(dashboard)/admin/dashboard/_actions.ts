@@ -29,12 +29,16 @@ export type TrendPoint = { label: string; total: number }
 // Revenue per month, split by plan type. month = "YYYY-MM", amounts in rupees.
 export type MonthlyRevenue = { month: string; list: number; snapshot: number }
 
+// Revenue per day (current month), split by plan type. day = "YYYY-MM-DD".
+export type DailyRevenue = { day: string; list: number; snapshot: number }
+
 export type AdminDashboardData = {
    totalClients: number
    customersThisMonth: number
    customersLastMonth: number
    clientsTrend: TrendPoint[]
    revenueMonthly: MonthlyRevenue[]
+   revenueDaily: DailyRevenue[]
    subscriptionsThisMonth: ByPlanType
    subscriptionsLastMonthTotal: number
    topClients: TopClientsByPeriod
@@ -117,6 +121,28 @@ async function monthlyRevenue(): Promise<MonthlyRevenue[]> {
    return [...byMonth.values()].sort((a, b) => a.month.localeCompare(b.month))
 }
 
+// Per-day revenue within [start, end) (current month), split by plan type.
+async function dailyRevenue(start: Date, end: Date): Promise<DailyRevenue[]> {
+   const dayExpr = sql<string>`to_char(${payment.createdAt}, 'YYYY-MM-DD')`
+   const rows = await db
+      .select({ day: dayExpr, type: pricingPlan.type, value: sum(payment.amount) })
+      .from(payment)
+      .innerJoin(pricingPlan, eq(payment.planId, pricingPlan.id))
+      .where(and(eq(payment.status, "paid"), gte(payment.createdAt, start), lt(payment.createdAt, end)))
+      .groupBy(dayExpr, pricingPlan.type)
+      .orderBy(dayExpr)
+
+   const byDay = new Map<string, DailyRevenue>()
+   for (const r of rows) {
+      const d = byDay.get(r.day) ?? { day: r.day, list: 0, snapshot: 0 }
+      const amount = Number(r.value ?? 0) / 100
+      if (r.type === "list") d.list += amount
+      else if (r.type === "snapshot") d.snapshot += amount
+      byDay.set(r.day, d)
+   }
+   return [...byDay.values()]
+}
+
 export async function getAdminDashboardData(): Promise<AdminDashboardData> {
    await requireAdmin()
    const now = new Date()
@@ -124,7 +150,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
 
-   const [base, dists, trend, revMonthly] = await Promise.all([
+   const [base, dists, trend, revMonthly, revDaily] = await Promise.all([
       Promise.all([
          db.select({ value: count() }).from(user).where(eq(user.userType, "client")),
          db
@@ -153,6 +179,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       ]),
       clientsTrend(now),
       monthlyRevenue(),
+      dailyRevenue(monthStart, monthEnd),
    ])
 
    const [clientsRow, newThisMonthRow, newPrevMonthRow, subRows, subPrevRow] = base
@@ -164,6 +191,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       customersLastMonth: newPrevMonthRow[0]?.value ?? 0,
       clientsTrend: trend,
       revenueMonthly: revMonthly,
+      revenueDaily: revDaily,
       subscriptionsThisMonth: intoByType(subRows.map((r) => ({ type: r.type, value: Number(r.value) }))),
       subscriptionsLastMonthTotal: subPrevRow[0]?.value ?? 0,
       topClients: { overall, currentMonth, lastMonth },

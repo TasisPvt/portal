@@ -23,6 +23,7 @@ import {
    BookTextIcon,
    PercentIcon,
    BookmarkIcon,
+   IndianRupeeIcon,
 } from "lucide-react"
 import { NavCollapsible } from "@/src/components/sidebar/nav-collapsible"
 import { NavMain } from "@/src/components/sidebar/nav-main"
@@ -94,7 +95,9 @@ const adminNav = {
       { title: "Dashboard", url: "/admin/dashboard", icon: <LayoutDashboardIcon /> },
       { title: "Clients", url: "/admin/clients", icon: <UsersIcon /> },
       { title: "Users", url: "/admin/users", icon: <BarChart3Icon /> },
-      { title: "Subscriptions", url: "/admin/subscriptions", icon: <ReceiptIcon /> },
+   ],
+   navReports: [
+      { title: "Revenue", url: "/admin/reports/revenue", icon: IndianRupeeIcon },
    ],
    navMaster: [
       {
@@ -133,10 +136,10 @@ const adminNav = {
          icon: PercentIcon,
       },
    ],
-   navSecondary: [
-      { title: "Team", url: "/admin/team", icon: <ShieldCheckIcon /> },
-      { title: "Settings", url: "/admin/settings", icon: <Settings2Icon /> },
-   ],
+   // navSecondary: [
+   //    { title: "Team", url: "/admin/team", icon: <ShieldCheckIcon /> },
+   //    { title: "Settings", url: "/admin/settings", icon: <Settings2Icon /> },
+   // ],
 }
 
 export function AppSidebar({
@@ -179,7 +182,10 @@ export function AppSidebar({
             {userType === UserType.ADMIN && (
                <NavCollapsible title="Master" items={adminNav.navMaster} />
             )}
-            <NavSecondary items={userType === UserType.ADMIN ? adminNav.navSecondary : clientNav.navSecondary} className="mt-auto" />
+            {userType === UserType.ADMIN && (
+               <NavCollapsible title="Reports" items={adminNav.navReports} />
+            )}
+            {/* <NavSecondary items={userType === UserType.ADMIN ? adminNav.navSecondary : clientNav.navSecondary} className="mt-auto" /> */}
          </SidebarContent>
 
          <SidebarFooter>

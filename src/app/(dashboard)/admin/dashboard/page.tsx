@@ -19,7 +19,7 @@ export default async function AdminDashboardPage() {
                         className="col-span-12 animate-slide-up motion-reduce:animate-none @4xl:col-span-6"
                         style={{ animationDelay: "0ms" }}
                      >
-                        <RevenueWidget monthly={data.revenueMonthly} />
+                        <RevenueWidget monthly={data.revenueMonthly} daily={data.revenueDaily} />
                      </div>
                      <div
                         className="col-span-12 animate-slide-up motion-reduce:animate-none @2xl:col-span-6 @4xl:col-span-3"
