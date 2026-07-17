@@ -62,6 +62,7 @@ export type ClientDashboard = {
    companiesScreened: number
    subscriptions: DashboardSubscription[]
    watchlist: DashboardWatchItem[]
+   hasWatchlistAccess: boolean
    hasActiveSnapshot: boolean
    mostViewed: DashboardStock[]
    mostPurchasedLists: DashboardList[]
@@ -205,6 +206,7 @@ export async function getClientDashboard(): Promise<ClientDashboard | null> {
       companiesScreened: screenedRow[0]?.c ?? 0,
       subscriptions,
       watchlist,
+      hasWatchlistAccess: !watchlistData.noAccess,
       hasActiveSnapshot: access?.hasActiveSnapshot ?? false,
       mostViewed,
       mostPurchasedLists,

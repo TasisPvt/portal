@@ -67,7 +67,7 @@ export default async function ClientDashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-4 @3xl/main:grid-cols-2 @4xl/main:grid-cols-3">
-               <WatchlistWidget items={data.watchlist} hasActiveSnapshot={data.hasActiveSnapshot} className="@4xl/main:col-span-2" />
+               <WatchlistWidget items={data.watchlist} hasWatchlistAccess={data.hasWatchlistAccess} hasActiveSnapshot={data.hasActiveSnapshot} className="@4xl/main:col-span-2" />
                <MostViewedWidget stocks={data.mostViewed} hasActiveSnapshot={data.hasActiveSnapshot} universe={data.companiesScreened} />
             </div>
          </div>
@@ -273,10 +273,12 @@ function SubscriptionRow({ sub }: { sub: DashboardSubscription }) {
 
 function WatchlistWidget({
    items,
+   hasWatchlistAccess,
    hasActiveSnapshot,
    className,
 }: {
    items: DashboardWatchItem[]
+   hasWatchlistAccess: boolean
    hasActiveSnapshot: boolean
    className?: string
 }) {
@@ -298,7 +300,17 @@ function WatchlistWidget({
             </div>
          </CardHeader>
          <CardContent>
-            {items.length === 0 ? (
+            {!hasWatchlistAccess ? (
+               // No active subscription — bookmarks can't be loaded, so don't
+               // mislead the user with "empty"; nudge them to subscribe instead.
+               <EmptyInline
+                  icon={<LockIcon className="size-5" />}
+                  title="No active subscriptions"
+                  desc="Subscribe to a plan to view and track your bookmarked companies."
+                  href="/plans"
+                  cta="Browse plans"
+               />
+            ) : items.length === 0 ? (
                <EmptyInline
                   icon={<BookmarkIcon className="size-5" />}
                   title="Your watchlist is empty"
@@ -314,8 +326,10 @@ function WatchlistWidget({
                </div>
             ) : (
                // Locked: rows are inert; hovering the whole list reveals a single
-               // lock overlay nudging the user to a Snapshot plan.
-               <div className="group relative flex flex-col gap-2.5">
+               // lock overlay nudging the user to a Snapshot plan. The min-height
+               // guarantees the absolutely-positioned overlay has room to render
+               // even with 1–2 bookmarks (otherwise its content overflows).
+               <div className="group relative flex min-h-64 flex-col gap-2.5">
                   {items.map((it) => (
                      <div key={it.id} className="flex items-center gap-3 rounded-xl border p-3">
                         <WatchRowContent item={it} />
