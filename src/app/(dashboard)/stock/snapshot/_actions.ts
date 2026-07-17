@@ -214,6 +214,9 @@ export async function getCompanySnapshot(
             and(
                eq(subscription.clientId, session.user.id),
                eq(subscription.status, "active"),
+               // endDate-based validity: a lapsed list sub (status not yet swept)
+               // must not authorize opening a company's full screening detail.
+               gte(subscription.endDate, new Date()),
                eq(pricingPlan.type, "list"),
                eq(subscriptionListSnapshot.companyId, companyId),
                // When the caller specifies which list they're viewing from, log
@@ -476,6 +479,7 @@ export async function getListRecentlyViewed(
             eq(stockViewLog.subscriptionId, subscriptionId),
             eq(subscription.clientId, session.user.id),
             eq(subscription.status, "active"),
+            gte(subscription.endDate, new Date()),
             eq(pricingPlan.type, "list"),
          ),
       )

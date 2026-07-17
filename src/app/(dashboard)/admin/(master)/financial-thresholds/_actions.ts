@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache"
 
 import { db } from "@/src/db/client"
 import { screeningFinancialRatioThreshold } from "@/src/db/schema"
+import { requireAdmin } from "@/src/lib/require-admin"
 
 const RATIO_PARAMETERS = [
    { key: "total_debt_total_asset", label: "Total Debt / Total Asset", defaultThreshold: "0.3300" },
@@ -21,6 +22,7 @@ export type FinancialRatioRow = {
 }
 
 export async function getFinancialThresholds(): Promise<FinancialRatioRow[]> {
+   await requireAdmin()
    const rows = await db.select().from(screeningFinancialRatioThreshold)
    const map = new Map(rows.map((r) => [r.parameter, r]))
    return RATIO_PARAMETERS.map(({ key, label, defaultThreshold }) => {
@@ -38,6 +40,7 @@ export async function upsertFinancialThreshold(
    parameter: string,
    threshold: string,
 ): Promise<{ success: boolean; message?: string }> {
+   await requireAdmin()
    const num = parseFloat(threshold)
    if (isNaN(num) || num < 0 || num > 1) {
       return { success: false, message: "Threshold must be a number between 0 and 1." }

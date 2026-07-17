@@ -2,18 +2,16 @@
 
 import { randomUUID } from "crypto"
 import { and, desc, eq, gt } from "drizzle-orm"
-import { headers } from "next/headers"
 import { revalidatePath } from "next/cache"
 
 import { db } from "@/src/db/client"
 import { user, session, clientStatusHistory } from "@/src/db/schema"
-import { auth } from "@/src/lib/auth"
+import { requireAdmin } from "@/src/lib/require-admin"
 
+// Allowlist authorization: only admin-type users pass (a client's null role can
+// never slip through), then returns the acting admin for audit attribution.
 async function requireActor() {
-  const authSession = await auth.api.getSession({ headers: await headers() })
-  const actor = authSession?.user
-  if (!actor) throw new Error("Not authenticated")
-  return actor
+  return requireAdmin()
 }
 
 export async function updateUserRole(id: string, adminRole: "super_admin" | "admin" | "manager") {
@@ -56,6 +54,7 @@ export async function toggleUserStatus(id: string, isActive: boolean, reason: st
 }
 
 export async function getUserStatusHistory(userId: string) {
+  await requireActor()
   return db
     .select({
       id: clientStatusHistory.id,
@@ -71,6 +70,7 @@ export async function getUserStatusHistory(userId: string) {
 
 // Active (non-expired) login sessions for a user, newest activity first.
 export async function getUserSessions(userId: string) {
+  await requireActor()
   return db
     .select({
       id: session.id,

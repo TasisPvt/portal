@@ -7,6 +7,7 @@ import { hashPassword } from "better-auth/crypto"
 import { db } from "@/src/db/client"
 import { user, account } from "@/src/db/schema"
 import { generatePassword, sendWelcomeEmail } from "@/src/lib/mailer"
+import { requireAdmin } from "@/src/lib/require-admin"
 import { revalidatePath } from "next/cache"
 
 type AdminRole = "super_admin" | "admin" | "manager"
@@ -22,6 +23,7 @@ type ActionResult =
   | { success: false; message: string; field?: string }
 
 export async function createAdminUser(input: CreateAdminInput): Promise<ActionResult> {
+  await requireAdmin()
   const { name, email, adminRole } = input
 
   const existing = await db
@@ -72,9 +74,4 @@ export async function createAdminUser(input: CreateAdminInput): Promise<ActionRe
     console.error("[createAdminUser] error:", err)
     return { success: false, message: err?.message ?? "Something went wrong" }
   }
-}
-
-export async function toggleUserStatus(id: string, isActive: boolean) {
-  await db.update(user).set({ isActive }).where(eq(user.id, id))
-  revalidatePath("/admin/users")
 }

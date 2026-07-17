@@ -5,6 +5,7 @@ import { and, count, eq, gte, lt, sum, sql } from "drizzle-orm"
 import { db } from "@/src/db/client"
 import { user, subscription, payment, pricingPlan } from "@/src/db/schema"
 import { MONTHS_SHORT } from "@/src/lib/format"
+import { requireAdmin } from "@/src/lib/require-admin"
 
 export type ByPlanType = { list: number; snapshot: number }
 
@@ -117,6 +118,7 @@ async function monthlyRevenue(): Promise<MonthlyRevenue[]> {
 }
 
 export async function getAdminDashboardData(): Promise<AdminDashboardData> {
+   await requireAdmin()
    const now = new Date()
    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)

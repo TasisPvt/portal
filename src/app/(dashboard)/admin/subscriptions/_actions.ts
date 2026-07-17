@@ -6,10 +6,12 @@ import { revalidatePath } from "next/cache"
 import { db } from "@/src/db/client"
 import { subscription, pricingPlan, user } from "@/src/db/schema"
 import { expireAllStaleSubscriptions } from "@/src/lib/subscription-access"
+import { requireAdmin } from "@/src/lib/require-admin"
 
 type ActionResult = { success: true } | { success: false; message: string }
 
 export async function getAllSubscriptions() {
+   await requireAdmin()
    // Keep every client's status column truthful before rendering the admin view.
    await expireAllStaleSubscriptions()
 
@@ -37,6 +39,7 @@ export async function getAllSubscriptions() {
 }
 
 export async function adminCancelSubscription(subscriptionId: string): Promise<ActionResult> {
+   await requireAdmin()
    const [row] = await db
       .select({ id: subscription.id, status: subscription.status })
       .from(subscription)

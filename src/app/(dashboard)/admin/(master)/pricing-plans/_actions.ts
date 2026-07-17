@@ -3,11 +3,10 @@
 import { randomUUID } from "crypto"
 import { and, eq, isNotNull } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
-import { headers } from "next/headers"
 
 import { db } from "@/src/db/client"
 import { pricingPlan, indexMaster, user } from "@/src/db/schema"
-import { auth } from "@/src/lib/auth"
+import { requireAdmin } from "@/src/lib/require-admin"
 
 type ActionResult = { success: true } | { success: false; message: string }
 
@@ -40,6 +39,7 @@ export type PlanInput = {
 // ---------------------------------------------------------------------------
 
 export async function getPricingPlans() {
+   await requireAdmin()
    const rows = await db
       .select({
          id: pricingPlan.id,
@@ -70,6 +70,7 @@ export async function getPricingPlans() {
 }
 
 export async function getAvailableIndexes() {
+   await requireAdmin()
    return db
       .select({ id: indexMaster.id, name: indexMaster.name })
       .from(indexMaster)
@@ -79,6 +80,7 @@ export async function getAvailableIndexes() {
 // Distinct, existing category names (list plans only) — used to power the
 // "pick existing or type new" combobox in the create/edit dialog.
 export async function getPricingPlanCategories(): Promise<string[]> {
+   await requireAdmin()
    const rows = await db
       .selectDistinct({ category: pricingPlan.category })
       .from(pricingPlan)
@@ -114,8 +116,7 @@ function buildValues(input: PlanInput) {
 // ---------------------------------------------------------------------------
 
 export async function createPricingPlan(input: PlanInput): Promise<ActionResult> {
-   const session = await auth.api.getSession({ headers: await headers() })
-   if (!session?.user?.id) return { success: false, message: "Unauthorized" }
+   const actor = await requireAdmin()
 
    if (input.type === "list" && !input.indexId) {
       return { success: false, message: "An index must be selected for list plans" }
@@ -135,7 +136,7 @@ export async function createPricingPlan(input: PlanInput): Promise<ActionResult>
       await db.insert(pricingPlan).values({
          id: randomUUID(),
          isActive: true,
-         createdById: session.user.id,
+         createdById: actor.id,
          createdAt: new Date(),
          updatedAt: new Date(),
          ...buildValues(input),
@@ -153,6 +154,7 @@ export async function createPricingPlan(input: PlanInput): Promise<ActionResult>
 // ---------------------------------------------------------------------------
 
 export async function updatePricingPlan(id: string, input: PlanInput): Promise<ActionResult> {
+   await requireAdmin()
    if (input.type === "list" && !input.indexId) {
       return { success: false, message: "An index must be selected for list plans" }
    }
@@ -185,6 +187,7 @@ export async function updatePricingPlan(id: string, input: PlanInput): Promise<A
 // ---------------------------------------------------------------------------
 
 export async function togglePricingPlanStatus(id: string, isActive: boolean): Promise<ActionResult> {
+   await requireAdmin()
    try {
       await db
          .update(pricingPlan)
@@ -203,6 +206,7 @@ export async function togglePricingPlanStatus(id: string, isActive: boolean): Pr
 // ---------------------------------------------------------------------------
 
 export async function deletePricingPlan(id: string): Promise<ActionResult> {
+   await requireAdmin()
    try {
       await db.delete(pricingPlan).where(eq(pricingPlan.id, id))
       revalidatePath("/admin/pricing-plans")
