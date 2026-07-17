@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache"
 
 import { db } from "@/src/db/client"
 import { companyMaster, companyNameHistory, industryGroup, indexCompany, indexMaster } from "@/src/db/schema"
+import { requireAdmin } from "@/src/lib/require-admin"
 
 export type CompanyForBulkValidation = {
    id: string
@@ -26,6 +27,7 @@ export type CompanyForBulkValidation = {
 }
 
 export async function getCompanyDetail(id: string) {
+   await requireAdmin()
    const [company] = await db
       .select({
          id: companyMaster.id,
@@ -72,6 +74,7 @@ export async function getCompanyDetail(id: string) {
 }
 
 export async function getCompaniesForBulkValidation(): Promise<CompanyForBulkValidation[]> {
+   await requireAdmin()
    return db
       .select({
          id: companyMaster.id,
@@ -113,6 +116,7 @@ export type CompanyInput = {
 type ActionResult = { success: true } | { success: false; message: string; field?: string }
 
 export async function createCompany(input: CompanyInput): Promise<ActionResult> {
+   await requireAdmin()
    const prowessDup = await db
       .select({ id: companyMaster.id })
       .from(companyMaster)
@@ -165,6 +169,7 @@ export async function createCompany(input: CompanyInput): Promise<ActionResult> 
 }
 
 export async function updateCompany(id: string, input: CompanyInput): Promise<ActionResult> {
+   await requireAdmin()
    const prowessDup = await db
       .select({ id: companyMaster.id })
       .from(companyMaster)
@@ -232,6 +237,7 @@ export async function updateCompany(id: string, input: CompanyInput): Promise<Ac
 }
 
 export async function getCompanyIndexes(id: string): Promise<{ id: string; name: string }[]> {
+   await requireAdmin()
    return db
       .select({ id: indexMaster.id, name: indexMaster.name })
       .from(indexCompany)
@@ -241,6 +247,7 @@ export async function getCompanyIndexes(id: string): Promise<{ id: string; name:
 }
 
 export async function toggleCompanyStatus(id: string, isActive: boolean): Promise<ActionResult> {
+   await requireAdmin()
    try {
       await db.update(companyMaster).set({ isActive, updatedAt: new Date() }).where(eq(companyMaster.id, id))
 
@@ -272,6 +279,7 @@ export async function bulkUpsertCompanies(
    inserts: CompanyInput[],
    updates: { id: string; input: CompanyInput }[],
 ): Promise<{ inserted: number; updated: number; skipped: { prowessId: string; reason: string }[] }> {
+   await requireAdmin()
    const existing = await db
       .select({ id: companyMaster.id, prowessId: companyMaster.prowessId, isinCode: companyMaster.isinCode })
       .from(companyMaster)

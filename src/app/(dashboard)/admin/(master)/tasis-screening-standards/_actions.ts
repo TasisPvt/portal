@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache"
 
 import { db } from "@/src/db/client"
 import { appSettings, screeningStandardRemark } from "@/src/db/schema"
+import { requireAdmin } from "@/src/lib/require-admin"
 
 const COMMON_REMARK_KEY = "snapshot_common_remark"
 
@@ -26,6 +27,7 @@ export type ScreeningStandardRow = {
 }
 
 export async function getScreeningStandards(): Promise<ScreeningStandardRow[]> {
+   await requireAdmin()
    const rows = await db.select().from(screeningStandardRemark)
    const map = new Map(rows.map((r) => [r.parameter, r]))
    return SCREENING_PARAMETERS.map(({ key, label }) => {
@@ -45,6 +47,7 @@ export async function upsertScreeningStandard(
    passRemark: string,
    failRemark: string,
 ): Promise<{ success: boolean; message?: string }> {
+   await requireAdmin()
    try {
       const existing = await db
          .select({ id: screeningStandardRemark.id })
@@ -79,6 +82,7 @@ export async function upsertScreeningStandard(
 }
 
 export async function getCommonRemark(): Promise<string | null> {
+   await requireAdmin()
    const rows = await db
       .select()
       .from(appSettings)
@@ -90,6 +94,7 @@ export async function getCommonRemark(): Promise<string | null> {
 export async function upsertCommonRemark(
    value: string,
 ): Promise<{ success: boolean; message?: string }> {
+   await requireAdmin()
    try {
       await db
          .insert(appSettings)

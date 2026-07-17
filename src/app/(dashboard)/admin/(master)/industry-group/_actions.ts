@@ -6,10 +6,12 @@ import { revalidatePath } from "next/cache"
 
 import { db } from "@/src/db/client"
 import { industryGroup } from "@/src/db/schema"
+import { requireAdmin } from "@/src/lib/require-admin"
 
 type ActionResult = { success: true } | { success: false; message: string; field?: string }
 
 export async function createIndustryGroup(input: { name: string }): Promise<ActionResult> {
+   await requireAdmin()
    const { name } = input
 
    const existing = await db
@@ -41,6 +43,7 @@ export async function updateIndustryGroup(
    id: string,
    input: { name: string },
 ): Promise<ActionResult> {
+   await requireAdmin()
    const { name } = input
 
    const duplicate = await db
@@ -69,6 +72,7 @@ export type BulkCreateResult = {
 }
 
 export async function bulkCreateIndustryGroups(names: string[]): Promise<BulkCreateResult> {
+   await requireAdmin()
    // Fetch all existing names in one query
    const existing = await db.select({ name: industryGroup.name }).from(industryGroup)
    const existingSet = new Set(existing.map((r) => r.name.toLowerCase()))
@@ -95,6 +99,7 @@ export async function bulkCreateIndustryGroups(names: string[]): Promise<BulkCre
 }
 
 export async function deleteIndustryGroup(id: string): Promise<ActionResult> {
+   await requireAdmin()
    try {
       await db.delete(industryGroup).where(eq(industryGroup.id, id))
       revalidatePath("/admin/industry-group")

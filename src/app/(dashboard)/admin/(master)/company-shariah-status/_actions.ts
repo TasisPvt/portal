@@ -3,7 +3,6 @@
 import { randomUUID } from "crypto"
 import { and, desc, eq, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
-import { headers } from "next/headers"
 
 import { db } from "@/src/db/client"
 import {
@@ -14,8 +13,8 @@ import {
    subscription,
    subscriptionListSnapshot,
 } from "@/src/db/schema"
-import { auth } from "@/src/lib/auth"
 import { Roles } from "@/src/lib/constants"
+import { requireAdmin } from "@/src/lib/require-admin"
 import { chunk } from "@/src/lib/db-batch"
 import { getCurrentMonth } from "./_utils"
 
@@ -24,6 +23,7 @@ import { getCurrentMonth } from "./_utils"
 // ---------------------------------------------------------------------------
 
 export async function getShariahDataForMonth(month: string) {
+   await requireAdmin()
    const rows = await db
       .select({
          companyId: companyMaster.id,
@@ -62,6 +62,7 @@ export async function getShariahDataForMonth(month: string) {
 }
 
 export async function getAvailableMonths(): Promise<string[]> {
+   await requireAdmin()
    const rows = await db
       .selectDistinct({ month: companyShariah.month })
       .from(companyShariah)
@@ -106,6 +107,7 @@ export async function getImportContext(month: string): Promise<{
    companyNames: Record<string, string>
    existingShariahData: Record<string, ExistingShariahEntry>
 }> {
+   await requireAdmin()
    const targetMonth = assertValidTargetMonth(month)
 
    const [allCompanies, existingRows] = await Promise.all([
@@ -172,15 +174,13 @@ export async function importShariahData(records: ShariahImportRow[], targetMonth
    updated: number
    skipped: { prowessId: string; reason: string }[]
 }> {
+   const actor = await requireAdmin()
    const month = assertValidTargetMonth(targetMonth)
 
    // Back-dated edits are restricted to admin / super-admin. Managers may only
    // publish or correct the current month.
-   if (month < getCurrentMonth()) {
-      const session = await auth.api.getSession({ headers: await headers() })
-      if (session?.user?.adminRole === Roles.MANAGER) {
-         throw new Error("Your role can only edit the current month's data.")
-      }
+   if (month < getCurrentMonth() && actor.adminRole === Roles.MANAGER) {
+      throw new Error("Your role can only edit the current month's data.")
    }
 
    // Resolve prowessId → companyId

@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache"
 import { db } from "@/src/db/client"
 import { indexMaster, indexCompany, companyMaster } from "@/src/db/schema"
 import { chunk } from "@/src/lib/db-batch"
+import { requireAdmin } from "@/src/lib/require-admin"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -24,6 +25,7 @@ type ActionResult = { success: true } | { success: false; message: string }
 // ---------------------------------------------------------------------------
 
 export async function getIndexes() {
+   await requireAdmin()
    const rows = await db
       .select({
          id: indexMaster.id,
@@ -46,6 +48,7 @@ export async function getIndexes() {
 // ---------------------------------------------------------------------------
 
 export async function getIndexDetail(id: string) {
+   await requireAdmin()
    const [idx] = await db
       .select({
          id: indexMaster.id,
@@ -84,6 +87,7 @@ export async function getIndexDetail(id: string) {
 // ---------------------------------------------------------------------------
 
 export async function createIndex(input: IndexInput): Promise<ActionResult> {
+   await requireAdmin()
    const dup = await db
       .select({ id: indexMaster.id })
       .from(indexMaster)
@@ -110,6 +114,7 @@ export async function createIndex(input: IndexInput): Promise<ActionResult> {
 }
 
 export async function updateIndex(id: string, input: IndexInput): Promise<ActionResult> {
+   await requireAdmin()
    const dup = await db
       .select({ id: indexMaster.id })
       .from(indexMaster)
@@ -134,6 +139,7 @@ export async function updateIndex(id: string, input: IndexInput): Promise<Action
 }
 
 export async function deleteIndex(id: string): Promise<ActionResult> {
+   await requireAdmin()
    try {
       await db.delete(indexMaster).where(eq(indexMaster.id, id))
       revalidatePath("/admin/index")
@@ -148,6 +154,7 @@ export async function deleteIndex(id: string): Promise<ActionResult> {
 // ---------------------------------------------------------------------------
 
 export async function removeCompanyFromIndex(indexCompanyId: string, indexId: string): Promise<ActionResult> {
+   await requireAdmin()
    try {
       await db.delete(indexCompany).where(eq(indexCompany.id, indexCompanyId))
       revalidatePath(`/admin/index/${indexId}`)
@@ -158,6 +165,7 @@ export async function removeCompanyFromIndex(indexCompanyId: string, indexId: st
 }
 
 export async function getAllCompanyNames(): Promise<{ name: string; isActive: boolean }[]> {
+   await requireAdmin()
    const rows = await db
       .select({ companyName: companyMaster.companyName, isActive: companyMaster.isActive })
       .from(companyMaster)
@@ -171,6 +179,7 @@ export async function syncIndexCompanies(
    indexId: string,
    companyNames: string[],
 ): Promise<{ added: number; removed: number; unchanged: number; notFound: string[] }> {
+   await requireAdmin()
    // Resolve company names -> ids (case-insensitive)
    const allCompanies = await db
       .select({ id: companyMaster.id, companyName: companyMaster.companyName })

@@ -1,7 +1,7 @@
 "use server"
 
 import { randomUUID } from "crypto"
-import { and, desc, eq, inArray, lt, isNotNull } from "drizzle-orm"
+import { and, desc, eq, gte, inArray, lt, isNotNull } from "drizzle-orm"
 import { headers } from "next/headers"
 
 import { auth } from "@/src/lib/auth"
@@ -90,6 +90,9 @@ export async function getListSubscriptions(): Promise<ListSubscription[]> {
          and(
             eq(subscription.clientId, session.user.id),
             eq(subscription.status, "active"),
+            // Validity is endDate-based; `status` is only lazily expired (login),
+            // so a session that outlives the term must not keep list access.
+            gte(subscription.endDate, new Date()),
             eq(pricingPlan.type, "list"),
             isNotNull(pricingPlan.indexId),
          ),
@@ -125,6 +128,7 @@ export async function getListCompanies(
             eq(subscription.id, subscriptionId),
             eq(subscription.clientId, session.user.id),
             eq(subscription.status, "active"),
+            gte(subscription.endDate, new Date()),
          ),
       )
       .limit(1)
@@ -293,6 +297,7 @@ export async function unlockCurrentMonth(subscriptionId: string): Promise<Unlock
                eq(subscription.id, subscriptionId),
                eq(subscription.clientId, session.user.id),
                eq(subscription.status, "active"),
+               gte(subscription.endDate, new Date()),
             ),
          )
          .limit(1)

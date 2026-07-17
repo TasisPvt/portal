@@ -7,6 +7,7 @@ import { hashPassword } from "better-auth/crypto"
 import { db } from "@/src/db/client"
 import { user, account, clientProfile } from "@/src/db/schema"
 import { generatePassword, sendWelcomeEmail } from "@/src/lib/mailer"
+import { requireAdmin } from "@/src/lib/require-admin"
 
 type CreateClientInput = {
    name: string
@@ -24,6 +25,7 @@ type ActionResult =
    | { success: false; message: string; field?: string }
 
 export async function createClient(input: CreateClientInput): Promise<ActionResult> {
+   await requireAdmin()
    const { name, email, phone, aadharNumber, panNumber, state, address, gstNumber } = input
 
    // ── Check clientProfile-level unique fields ────────────────────────────────
