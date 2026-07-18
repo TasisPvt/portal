@@ -13,16 +13,12 @@ import {
    RefreshCwIcon,
    XCircleIcon,
    MinusCircleIcon,
-   CalendarIcon,
-   ChevronDownIcon,
-   ChevronLeftIcon,
-   ChevronRightIcon,
 } from "lucide-react"
 
 import { getImportContext, importShariahData, type ShariahImportRow, type ExistingShariahEntry } from "../_actions"
 import { formatMonthLabel } from "../_utils"
 import { Button } from "@/src/components/ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "@/src/components/ui/popover"
+import { MonthYearPicker } from "@/src/components/month-year-picker"
 import { Spinner } from "@/src/components/ui/spinner"
 import { Badge } from "@/src/components/ui/badge"
 import {
@@ -422,97 +418,6 @@ type PreviewRow = ShariahImportRow & {
    _missingFields?: string[]
    _changedFields?: string[]
    _parseIssues?: ParseIssue[]
-}
-
-// ---------------------------------------------------------------------------
-// Month / year picker
-// ---------------------------------------------------------------------------
-
-const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-
-// Compact "YYYY-MM" picker: year stepper + 12-month grid. Caps at maxMonth
-// (no future). Months that already hold data are marked with a dot.
-function MonthYearPicker({
-   value,
-   onChange,
-   maxMonth,
-   monthsWithData,
-   disabled,
-}: {
-   value: string
-   onChange: (month: string) => void
-   maxMonth: string
-   monthsWithData: Set<string>
-   disabled?: boolean
-}) {
-   const [open, setOpen] = React.useState(false)
-   const [viewYear, setViewYear] = React.useState(() => Number(value.slice(0, 4)))
-
-   // Re-centre the year view on the selected month whenever the picker opens.
-   React.useEffect(() => {
-      if (open) setViewYear(Number(value.slice(0, 4)))
-   }, [open, value])
-
-   const maxYear = Number(maxMonth.slice(0, 4))
-   const maxMon = Number(maxMonth.slice(5, 7))
-   const selYear = Number(value.slice(0, 4))
-   const selMon = Number(value.slice(5, 7))
-
-   return (
-      <Popover open={open} onOpenChange={setOpen}>
-         <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" disabled={disabled} className="gap-2">
-               <CalendarIcon className="size-3.5" />
-               {formatMonthLabel(value)}
-               <ChevronDownIcon className="size-3.5 opacity-60" />
-            </Button>
-         </PopoverTrigger>
-         <PopoverContent align="start" className="w-64 gap-3">
-            <div className="flex items-center justify-between">
-               <Button variant="ghost" size="icon" className="size-7" onClick={() => setViewYear((y) => y - 1)}>
-                  <ChevronLeftIcon className="size-4" />
-               </Button>
-               <span className="text-sm font-semibold tabular-nums">{viewYear}</span>
-               <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-7"
-                  disabled={viewYear >= maxYear}
-                  onClick={() => setViewYear((y) => y + 1)}
-               >
-                  <ChevronRightIcon className="size-4" />
-               </Button>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5">
-               {MONTH_LABELS.map((label, i) => {
-                  const m = i + 1
-                  const key = `${viewYear}-${String(m).padStart(2, "0")}`
-                  const isFuture = viewYear > maxYear || (viewYear === maxYear && m > maxMon)
-                  const isSelected = viewYear === selYear && m === selMon
-                  const hasData = monthsWithData.has(key)
-                  return (
-                     <Button
-                        key={key}
-                        variant={isSelected ? "default" : "ghost"}
-                        size="sm"
-                        disabled={isFuture}
-                        onClick={() => {
-                           onChange(key)
-                           setOpen(false)
-                        }}
-                        className="relative"
-                     >
-                        {label}
-                        {hasData && !isSelected && (
-                           <span className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-primary" />
-                        )}
-                     </Button>
-                  )
-               })}
-            </div>
-         </PopoverContent>
-      </Popover>
-   )
 }
 
 // ---------------------------------------------------------------------------
