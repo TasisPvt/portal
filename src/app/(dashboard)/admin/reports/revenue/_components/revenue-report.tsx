@@ -18,6 +18,8 @@ import {
    SearchIcon,
    BarChart3Icon,
    CalendarIcon,
+   ChevronRightIcon,
+   LayersIcon,
 } from "lucide-react"
 
 import { MONTHS_SHORT } from "@/src/lib/format"
@@ -78,6 +80,14 @@ type DateFilter = "current" | "last" | "custom"
 type ServiceFilter = "all" | "list" | "snapshot"
 type TypeFilter = "all" | "one_time" | "monthly" | "quarterly" | "annual"
 
+type ClientGroup = {
+   clientId: string
+   clientName: string
+   payments: RevenuePayment[]
+   total: number
+   txns: number
+}
+
 const PAGE_SIZE = 10
 
 // CSV-escape a field (quote if it contains a comma, quote, or newline).
@@ -97,12 +107,28 @@ function download(content: string, filename: string) {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export function RevenueReport({ payments }: { payments: RevenuePayment[] }) {
+export function RevenueReport({
+   payments,
+   initialGroupByClient = false,
+}: {
+   payments: RevenuePayment[]
+   initialGroupByClient?: boolean
+}) {
    const [dateFilter, setDateFilter] = React.useState<DateFilter>("current")
    const [service, setService] = React.useState<ServiceFilter>("all")
    const [type, setType] = React.useState<TypeFilter>("all")
    const [stateFilter, setStateFilter] = React.useState("all")
    const [search, setSearch] = React.useState("")
+   const [groupByClient, setGroupByClient] = React.useState(initialGroupByClient)
+   const [expanded, setExpanded] = React.useState<Set<string>>(new Set())
+
+   const toggleExpand = (id: string) =>
+      setExpanded((prev) => {
+         const next = new Set(prev)
+         if (next.has(id)) next.delete(id)
+         else next.add(id)
+         return next
+      })
 
    // Distinct non-empty places of supply, for the state dropdown.
    const uniqueStates = React.useMemo(
@@ -229,6 +255,43 @@ export function RevenueReport({ payments }: { payments: RevenuePayment[] }) {
    }, [tableRows, table])
 
    const pageRows = table.getRowModel().rows
+
+   // Group-by-client view: one collapsible row per client (total revenue),
+   // expanding to that client's payments (newest first). A separate table drives
+   // pagination over client groups so the shared footer stays consistent.
+   const groups = React.useMemo<ClientGroup[]>(() => {
+      const map = new Map<string, ClientGroup>()
+      for (const p of tableRows) {
+         const g =
+            map.get(p.clientId) ??
+            { clientId: p.clientId, clientName: p.clientName, payments: [], total: 0, txns: 0 }
+         g.payments.push(p)
+         g.total += p.gross
+         g.txns += 1
+         map.set(p.clientId, g)
+      }
+      const arr = [...map.values()]
+      for (const g of arr) {
+         g.payments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      }
+      arr.sort((a, b) => b.total - a.total)
+      return arr
+   }, [tableRows])
+
+   const groupColumns = React.useMemo<ColumnDef<ClientGroup>[]>(
+      () => [{ accessorKey: "clientName" }, { accessorKey: "txns" }, { accessorKey: "total" }],
+      [],
+   )
+   const groupTable = useReactTable({
+      data: groups,
+      columns: groupColumns,
+      getCoreRowModel: getCoreRowModel(),
+      getPaginationRowModel: getPaginationRowModel(),
+      initialState: { pagination: { pageSize: PAGE_SIZE } },
+   })
+   React.useEffect(() => {
+      groupTable.setPageIndex(0)
+   }, [groups, groupTable])
 
    function exportCsv() {
       const headers = ["Date", "Client", "Plan", "State", "Service", "Type", "Gross (INR)", "GST (INR)"]
@@ -441,7 +504,11 @@ export function RevenueReport({ payments }: { payments: RevenuePayment[] }) {
                      </span>
                      <div className="space-y-0.5">
                         <CardTitle className="text-base">Payments</CardTitle>
-                        <CardDescription>{tableRows.length.toLocaleString("en-IN")} in this view</CardDescription>
+                        <CardDescription>
+                           {groupByClient
+                              ? `${groups.length.toLocaleString("en-IN")} client${groups.length === 1 ? "" : "s"}`
+                              : `${tableRows.length.toLocaleString("en-IN")} in this view`}
+                        </CardDescription>
                      </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -454,6 +521,16 @@ export function RevenueReport({ payments }: { payments: RevenuePayment[] }) {
                            className="h-8 w-52 pl-8"
                         />
                      </div>
+                     <Button
+                        variant={groupByClient ? "default" : "outline"}
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => setGroupByClient((v) => !v)}
+                        aria-pressed={groupByClient}
+                     >
+                        <LayersIcon className="size-3.5" />
+                        Group by client
+                     </Button>
                      <Button
                         variant="outline"
                         size="sm"
@@ -482,57 +559,118 @@ export function RevenueReport({ payments }: { payments: RevenuePayment[] }) {
                         </TableRow>
                      </TableHeader>
                      <TableBody>
-                        {pageRows.length === 0 ? (
+                        {groupByClient ? (
+                           groupTable.getRowModel().rows.length === 0 ? (
+                              <TableRow>
+                                 <TableCell colSpan={7} className="h-24 text-center text-sm text-muted-foreground">
+                                    No payments match the current filters.
+                                 </TableCell>
+                              </TableRow>
+                           ) : (
+                              groupTable.getRowModel().rows.map(({ original: g }) => (
+                                 <React.Fragment key={g.clientId}>
+                                    <ClientGroupRow
+                                       group={g}
+                                       expanded={expanded.has(g.clientId)}
+                                       onToggle={() => toggleExpand(g.clientId)}
+                                    />
+                                    {expanded.has(g.clientId) &&
+                                       g.payments.map((p) => <PaymentRow key={p.id} p={p} grouped />)}
+                                 </React.Fragment>
+                              ))
+                           )
+                        ) : pageRows.length === 0 ? (
                            <TableRow>
                               <TableCell colSpan={7} className="h-24 text-center text-sm text-muted-foreground">
                                  No payments match the current filters.
                               </TableCell>
                            </TableRow>
                         ) : (
-                           pageRows.map(({ original: p }) => (
-                              <TableRow key={p.id}>
-                                 <TableCell className="pl-4 text-xs text-muted-foreground whitespace-nowrap tabular-nums">
-                                    {new Date(p.date).toLocaleDateString("en-IN", {
-                                       day: "2-digit",
-                                       month: "short",
-                                       year: "numeric",
-                                    })}
-                                 </TableCell>
-                                 <TableCell className="text-sm font-medium">{p.clientName}</TableCell>
-                                 <TableCell className="text-sm">{p.planName}</TableCell>
-                                 <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                                    {p.state || <span className="opacity-40">—</span>}
-                                 </TableCell>
-                                 <TableCell>
-                                    <Badge
-                                       variant="outline"
-                                       className={cn(
-                                          "text-xs",
-                                          p.service === "snapshot"
-                                             ? "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-400"
-                                             : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400",
-                                       )}
-                                    >
-                                       {p.service === "snapshot" ? "Snapshot" : "List"}
-                                    </Badge>
-                                 </TableCell>
-                                 <TableCell className="text-xs text-muted-foreground">
-                                    {DURATION_LABELS[p.durationType] ?? p.durationType}
-                                 </TableCell>
-                                 <TableCell className="pr-4 text-right text-sm font-medium tabular-nums">
-                                    {inr(p.gross)}
-                                 </TableCell>
-                              </TableRow>
-                           ))
+                           pageRows.map(({ original: p }) => <PaymentRow key={p.id} p={p} />)
                         )}
                      </TableBody>
                   </Table>
                </div>
 
-               {tableRows.length > 0 && <DataTablePagination table={table} />}
+               {groupByClient
+                  ? groups.length > 0 && <DataTablePagination table={groupTable} />
+                  : tableRows.length > 0 && <DataTablePagination table={table} />}
             </CardContent>
          </Card>
       </div>
+   )
+}
+
+// ─── Table rows ───────────────────────────────────────────────────────────────
+
+function ServiceBadge({ service }: { service: RevenuePayment["service"] }) {
+   return (
+      <Badge
+         variant="outline"
+         className={cn(
+            "text-xs",
+            service === "snapshot"
+               ? "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-400"
+               : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400",
+         )}
+      >
+         {service === "snapshot" ? "Snapshot" : "List"}
+      </Badge>
+   )
+}
+
+// A single payment row. In grouped mode the client column is blank (the client
+// is the parent group row) and the date is indented to show nesting.
+function PaymentRow({ p, grouped = false }: { p: RevenuePayment; grouped?: boolean }) {
+   return (
+      <TableRow>
+         <TableCell className={cn("pl-4 text-xs text-muted-foreground whitespace-nowrap tabular-nums", grouped && "pl-10")}>
+            {new Date(p.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+         </TableCell>
+         <TableCell className="text-sm font-medium">
+            {grouped ? <span className="text-muted-foreground opacity-40">—</span> : p.clientName}
+         </TableCell>
+         <TableCell className="text-sm">{p.planName}</TableCell>
+         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+            {p.state || <span className="opacity-40">—</span>}
+         </TableCell>
+         <TableCell>
+            <ServiceBadge service={p.service} />
+         </TableCell>
+         <TableCell className="text-xs text-muted-foreground">
+            {DURATION_LABELS[p.durationType] ?? p.durationType}
+         </TableCell>
+         <TableCell className="pr-4 text-right text-sm font-medium tabular-nums">{inr(p.gross)}</TableCell>
+      </TableRow>
+   )
+}
+
+// Collapsible client header row: shows the client + their total revenue; the
+// whole row toggles the expanded payment list.
+function ClientGroupRow({
+   group,
+   expanded,
+   onToggle,
+}: {
+   group: ClientGroup
+   expanded: boolean
+   onToggle: () => void
+}) {
+   return (
+      <TableRow className="cursor-pointer bg-muted/30 hover:bg-muted/50" onClick={onToggle} aria-expanded={expanded}>
+         <TableCell colSpan={6} className="pl-4">
+            <div className="flex items-center gap-2">
+               <ChevronRightIcon
+                  className={cn("size-4 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-90")}
+               />
+               <span className="text-sm font-semibold">{group.clientName}</span>
+               <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
+                  {group.txns} {group.txns === 1 ? "payment" : "payments"}
+               </Badge>
+            </div>
+         </TableCell>
+         <TableCell className="pr-4 text-right text-sm font-bold tabular-nums">{inr(group.total)}</TableCell>
+      </TableRow>
    )
 }
 

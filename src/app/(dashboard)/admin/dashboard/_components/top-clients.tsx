@@ -1,31 +1,18 @@
 "use client"
 
-import * as React from "react"
-import { TrophyIcon } from "lucide-react"
+import Link from "next/link"
+import { TrophyIcon, ArrowRightIcon } from "lucide-react"
 
+import { Button } from "@/src/components/ui/button"
 import {
    Card,
+   CardAction,
    CardContent,
    CardDescription,
    CardHeader,
    CardTitle,
 } from "@/src/components/ui/card"
-import {
-   Select,
-   SelectContent,
-   SelectItem,
-   SelectTrigger,
-   SelectValue,
-} from "@/src/components/ui/select"
 import type { TopClientsByPeriod } from "../_actions"
-
-type Period = "overall" | "currentMonth" | "lastMonth"
-
-const PERIOD_LABEL: Record<Period, string> = {
-   overall: "All-time",
-   currentMonth: "This month",
-   lastMonth: "Last month",
-}
 
 // One color per ranked client; Others is a neutral grey.
 const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"]
@@ -34,8 +21,9 @@ const OTHERS_COLOR = "#94a3b8"
 const inr = (v: number) => `₹${v.toLocaleString("en-IN")}`
 
 export function TopClients({ data }: { data: TopClientsByPeriod }) {
-   const [period, setPeriod] = React.useState<Period>("overall")
-   const dist = data[period]
+   // Current month only. Full history + per-period breakdowns live on the linked
+   // Revenue report (which can group revenue by client).
+   const dist = data.currentMonth
 
    const segments = [
       ...dist.clients.map((c, i) => ({ share: c.share, color: COLORS[i % COLORS.length] })),
@@ -45,41 +33,36 @@ export function TopClients({ data }: { data: TopClientsByPeriod }) {
    return (
       <Card>
          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-               <div className="flex items-center gap-2.5">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
-                     <TrophyIcon className="size-4" />
-                  </span>
-                  <div className="space-y-0.5">
-                     <CardTitle className="text-base">Top Clients</CardTitle>
-                     <CardDescription>Revenue contribution</CardDescription>
-                  </div>
+            <div className="flex items-center gap-2.5">
+               <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
+                  <TrophyIcon className="size-4" />
+               </span>
+               <div className="space-y-0.5">
+                  <CardTitle className="text-base">Top Clients</CardTitle>
+                  <CardDescription>This month</CardDescription>
                </div>
-               <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
-                  <SelectTrigger size="sm" className="w-36">
-                     <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                     <SelectItem value="overall">Overall</SelectItem>
-                     <SelectItem value="currentMonth">Current month</SelectItem>
-                     <SelectItem value="lastMonth">Last month</SelectItem>
-                  </SelectContent>
-               </Select>
             </div>
+            <CardAction>
+               <Button asChild variant="ghost" size="sm" className="text-xs text-muted-foreground">
+                  <Link href="/admin/reports/revenue?group=clients">
+                     View all <ArrowRightIcon className="ml-1 size-3" />
+                  </Link>
+               </Button>
+            </CardAction>
          </CardHeader>
 
          <CardContent>
             {dist.periodTotal === 0 ? (
                <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
                   <TrophyIcon className="size-8 text-muted-foreground/30" />
-                  <p className="text-sm text-muted-foreground">No revenue {PERIOD_LABEL[period].toLowerCase()}</p>
+                  <p className="text-sm text-muted-foreground">No revenue this month</p>
                </div>
             ) : (
                <div className="flex flex-col gap-5">
                   {/* Total */}
                   <div>
                      <p className="text-2xl font-bold tracking-tight tabular-nums">{inr(dist.periodTotal)}</p>
-                     <p className="text-xs text-muted-foreground">Total revenue · {PERIOD_LABEL[period]}</p>
+                     <p className="text-xs text-muted-foreground">Total revenue · This month</p>
                   </div>
 
                   {/* Distribution bar */}
