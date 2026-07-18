@@ -15,6 +15,8 @@ export type RevenuePayment = {
    planName: string
    service: RevenueService
    durationType: string
+   // Place of supply (client's state at order time); "" when unknown.
+   state: string
    // Gross amount collected in rupees (GST-inclusive — payment.amount is paise).
    gross: number
    // GST portion of the gross, in rupees (cgst + sgst + igst).
@@ -36,6 +38,7 @@ export async function getPaidPayments(): Promise<RevenuePayment[]> {
          planName: pricingPlan.name,
          service: pricingPlan.type,
          durationType: payment.durationType,
+         state: payment.placeOfSupply,
          amount: payment.amount,
          cgst: payment.cgst,
          sgst: payment.sgst,
@@ -55,6 +58,7 @@ export async function getPaidPayments(): Promise<RevenuePayment[]> {
       planName: r.planName ?? "—",
       service: r.service as RevenueService,
       durationType: r.durationType,
+      state: r.state ?? "",
       gross: r.amount / 100,
       gst: Number(r.cgst) + Number(r.sgst) + Number(r.igst),
       date: r.createdAt.toISOString(),

@@ -101,7 +101,14 @@ export function RevenueReport({ payments }: { payments: RevenuePayment[] }) {
    const [dateFilter, setDateFilter] = React.useState<DateFilter>("current")
    const [service, setService] = React.useState<ServiceFilter>("all")
    const [type, setType] = React.useState<TypeFilter>("all")
+   const [stateFilter, setStateFilter] = React.useState("all")
    const [search, setSearch] = React.useState("")
+
+   // Distinct non-empty places of supply, for the state dropdown.
+   const uniqueStates = React.useMemo(
+      () => Array.from(new Set(payments.map((p) => p.state).filter(Boolean))).sort(),
+      [payments],
+   )
 
    const now = new Date()
    const initialRange = (): DateRange => ({
@@ -140,9 +147,10 @@ export function RevenueReport({ payments }: { payments: RevenuePayment[] }) {
          if (Number.isNaN(t) || t < s || t > e) return false
          if (service !== "all" && p.service !== service) return false
          if (type !== "all" && p.durationType !== type) return false
+         if (stateFilter !== "all" && p.state !== stateFilter) return false
          return true
       })
-   }, [payments, range, service, type])
+   }, [payments, range, service, type, stateFilter])
 
    // List plans only offer one-time & annual durations — if the user narrows to
    // the List service while a List-invalid type is selected, reset it to "all".
@@ -223,12 +231,13 @@ export function RevenueReport({ payments }: { payments: RevenuePayment[] }) {
    const pageRows = table.getRowModel().rows
 
    function exportCsv() {
-      const headers = ["Date", "Client", "Plan", "Service", "Type", "Gross (INR)", "GST (INR)"]
+      const headers = ["Date", "Client", "Plan", "State", "Service", "Type", "Gross (INR)", "GST (INR)"]
       const lines = tableRows.map((p) =>
          [
             new Date(p.date).toLocaleString("en-IN"),
             csv(p.clientName),
             csv(p.planName),
+            csv(p.state || "—"),
             p.service === "list" ? "List" : "Snapshot",
             DURATION_LABELS[p.durationType] ?? p.durationType,
             p.gross.toFixed(2),
@@ -325,6 +334,20 @@ export function RevenueReport({ payments }: { payments: RevenuePayment[] }) {
                   {service !== "list" && <SelectItem value="monthly">Monthly</SelectItem>}
                   {service !== "list" && <SelectItem value="quarterly">Quarterly</SelectItem>}
                   <SelectItem value="annual">Annual</SelectItem>
+               </SelectContent>
+            </Select>
+
+            <Select value={stateFilter} onValueChange={setStateFilter}>
+               <SelectTrigger size="sm" className="w-40">
+                  <SelectValue placeholder="State" />
+               </SelectTrigger>
+               <SelectContent>
+                  <SelectItem value="all">All states</SelectItem>
+                  {uniqueStates.map((s) => (
+                     <SelectItem key={s} value={s}>
+                        {s}
+                     </SelectItem>
+                  ))}
                </SelectContent>
             </Select>
          </div>
@@ -452,6 +475,7 @@ export function RevenueReport({ payments }: { payments: RevenuePayment[] }) {
                            <TableHead className="pl-4 text-muted-foreground">Date</TableHead>
                            <TableHead className="text-muted-foreground">Client</TableHead>
                            <TableHead className="text-muted-foreground">Plan</TableHead>
+                           <TableHead className="text-muted-foreground">State</TableHead>
                            <TableHead className="text-muted-foreground">Service</TableHead>
                            <TableHead className="text-muted-foreground">Type</TableHead>
                            <TableHead className="pr-4 text-right text-muted-foreground">Amount</TableHead>
@@ -460,7 +484,7 @@ export function RevenueReport({ payments }: { payments: RevenuePayment[] }) {
                      <TableBody>
                         {pageRows.length === 0 ? (
                            <TableRow>
-                              <TableCell colSpan={6} className="h-24 text-center text-sm text-muted-foreground">
+                              <TableCell colSpan={7} className="h-24 text-center text-sm text-muted-foreground">
                                  No payments match the current filters.
                               </TableCell>
                            </TableRow>
@@ -476,6 +500,9 @@ export function RevenueReport({ payments }: { payments: RevenuePayment[] }) {
                                  </TableCell>
                                  <TableCell className="text-sm font-medium">{p.clientName}</TableCell>
                                  <TableCell className="text-sm">{p.planName}</TableCell>
+                                 <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                                    {p.state || <span className="opacity-40">—</span>}
+                                 </TableCell>
                                  <TableCell>
                                     <Badge
                                        variant="outline"
