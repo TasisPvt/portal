@@ -48,7 +48,7 @@ function snapshotFromPlan(
    }
 }
 
-// Logged-in client's state — drives the GST place-of-supply split in the UI.
+// Logged-in client's state - drives the GST place-of-supply split in the UI.
 export async function getCurrentClientState(): Promise<string | null> {
    const session = await auth.api.getSession({ headers: await headers() })
    if (!session?.user?.id) return null
@@ -65,7 +65,7 @@ export async function getSubscribedPlanIds(): Promise<string[]> {
    if (!session?.user?.id) return []
    // A plan counts as "subscribed" (and so locks its card on /plans) only for a
    // standing subscription still inside its validity window. A one-time snapshot
-   // is a consumable day-pass — it never locks the card, so the user can keep
+   // is a consumable day-pass - it never locks the card, so the user can keep
    // buying more (each purchase tops up the day's quota; see finalizePaidOrder).
    // Validity is derived from endDate, not the (unreliable) status column.
    const rows = await db
@@ -143,7 +143,7 @@ export type CreateOrderResult =
      }
    | { success: false; message: string }
 
-// Step 1 — create a Razorpay order + a pending payment row. No subscription is
+// Step 1 - create a Razorpay order + a pending payment row. No subscription is
 // created yet. Amount is always derived server-side from the plan.
 export async function createPaymentOrder(
    planId: string,
@@ -166,11 +166,11 @@ export async function createPaymentOrder(
 
    // Expire any of this user's lapsed subscriptions right here on the purchase
    // path, so the re-purchase check below (and finalize) can't mistake an
-   // expired-but-not-yet-swept subscription for an active one — otherwise a
+   // expired-but-not-yet-swept subscription for an active one - otherwise a
    // re-purchase of an expired plan would be wrongly blocked as "already active".
    await expireStaleSubscriptions(userId)
 
-   // One-time snapshot is a consumable day-pass — re-purchasing tops up the day's
+   // One-time snapshot is a consumable day-pass - re-purchasing tops up the day's
    // quota (see finalizePaidOrder), so it is never blocked as "already active".
    const isOneTimeSnapshot = plan.type === "snapshot" && durationType === "one_time"
    if (!isOneTimeSnapshot && (await hasActiveSubscription(userId, planId, durationType))) {
@@ -183,7 +183,7 @@ export async function createPaymentOrder(
       return { success: false, message: "This plan option is not available for purchase" }
    }
 
-   // Client profile — used for the GST place of supply + Razorpay prefill.
+   // Client profile - used for the GST place of supply + Razorpay prefill.
    const [profile] = await db
       .select({ phone: clientProfile.phone, state: clientProfile.state })
       .from(clientProfile)
@@ -242,7 +242,7 @@ export async function createPaymentOrder(
    }
 }
 
-// Step 2 — verify the checkout signature, then create the subscription. The
+// Step 2 - verify the checkout signature, then create the subscription. The
 // amount is never trusted from the client; we use the row created in step 1.
 export async function verifyPayment(args: {
    razorpayOrderId: string

@@ -34,10 +34,10 @@ import { toggleWatchlist, type WatchlistItem } from "../_actions"
 
 type ComplianceFilter = "all" | "compliant" | "non-compliant"
 
-// Binary status only: compliant (status 1) vs non-compliant — the watchlist
+// Binary status only: compliant (status 1) vs non-compliant - the watchlist
 // doesn't surface the specific non-compliance reason.
 function StatusBadge({ status }: { status: number | null }) {
-   if (status === null) return <span className="text-xs text-muted-foreground">—</span>
+   if (status === null) return <span className="text-xs text-muted-foreground">-</span>
    const compliant = status === 1
    return (
       <span
@@ -206,7 +206,7 @@ export function WatchlistClient({
                   {filtered.length} of {items.length} shown
                </p>
 
-               {/* Capacity indicator — surfaces the watchlist limit */}
+               {/* Capacity indicator - surfaces the watchlist limit */}
                <span
                   className={cn(
                      "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium",
@@ -329,7 +329,7 @@ export function WatchlistClient({
                               </div>
                            )}
 
-                           {/* Locked: overlay revealed on hover. Two distinct cases —
+                           {/* Locked: overlay revealed on hover. Two distinct cases -
                                no snapshot plan (upsell) vs. daily view limit reached
                                (has a plan; just needs to wait for tomorrow). */}
                            {locked && (

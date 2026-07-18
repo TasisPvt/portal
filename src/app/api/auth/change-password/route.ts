@@ -29,7 +29,7 @@ export async function POST(req: Request) {
          headers: req.headers,
       })
 
-      // Clear the forced-change flag — session stays alive, proxy will now allow dashboard access
+      // Clear the forced-change flag - session stays alive, proxy will now allow dashboard access
       await db
          .update(user)
          .set({ mustChangePassword: false })

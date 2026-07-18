@@ -53,7 +53,7 @@ export function NavCollapsible({
          <SidebarGroupLabel>{title}</SidebarGroupLabel>
          <SidebarMenu>
             {items.map((item) => {
-               // Coming soon — non-interactive, no expansion
+               // Coming soon - non-interactive, no expansion
                if (item.comingSoon) {
                   return (
                      <SidebarMenuItem key={item.title}>
@@ -79,7 +79,7 @@ export function NavCollapsible({
                     )
                   : pathname === item.url || pathname.startsWith(item.url + "/")
 
-               // Leaf item (no children) — same in both states
+               // Leaf item (no children) - same in both states
                if (!hasChildren) {
                   return (
                      <SidebarMenuItem key={item.title}>

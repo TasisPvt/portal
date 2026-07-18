@@ -96,11 +96,11 @@ export function SubscribeButton(props: SubscribeButtonProps) {
             currency: order.currency,
             order_id: order.orderId,
             name: "TASIS",
-            description: `${props.planName} — ${DURATION_LABELS[props.durationType]}`,
+            description: `${props.planName} - ${DURATION_LABELS[props.durationType]}`,
             prefill: order.prefill,
             theme: { color: "#1a3a6e" },
             handler: (response) => {
-               // Payment done — cover /plans with the processing overlay while we
+               // Payment done - cover /plans with the processing overlay while we
                // verify server-side and hard-redirect, so the user isn't left
                // staring at a blank page wondering what happened.
                setProcessing(true)
@@ -117,7 +117,7 @@ export function SubscribeButton(props: SubscribeButtonProps) {
             },
             modal: {
                ondismiss: () => {
-                  // User closed checkout without paying — no redirect happens, so
+                  // User closed checkout without paying - no redirect happens, so
                   // make sure the overlay is not showing and mark the order cancelled.
                   setProcessing(false)
                   markPaymentCancelled(order.orderId)

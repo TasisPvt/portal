@@ -24,7 +24,7 @@ export async function updateUserRole(id: string, adminRole: "super_admin" | "adm
 }
 
 // Toggle a user's active status. Records an audit-trail entry (who, why, when),
-// flips the flag, and — on deactivation — revokes the user's existing sessions
+// flips the flag, and - on deactivation - revokes the user's existing sessions
 // so any logged-in device loses access on its next request. Admins cannot change
 // their own status.
 export async function toggleUserStatus(id: string, isActive: boolean, reason: string) {

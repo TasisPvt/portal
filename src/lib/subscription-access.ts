@@ -32,7 +32,7 @@ export type SubscriptionAccess = {
 // Flips any of the user's active-but-past-endDate subscriptions to "expired" so
 // the status column stays truthful. `status` is never updated at expiry time on
 // its own, so this must be run whenever we want the column to be current (login,
-// the subscriptions page, the snapshot page). Cheap — only stale rows are written.
+// the subscriptions page, the snapshot page). Cheap - only stale rows are written.
 export async function expireStaleSubscriptions(userId: string): Promise<void> {
    await db
       .update(subscription)

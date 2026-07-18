@@ -75,7 +75,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL(HOME[user.userType], request.url))
    }
 
-   // Force password change — lock the user to /change-password until done
+   // Force password change - lock the user to /change-password until done
    if (user.mustChangePassword) {
       if (pathname.startsWith("/change-password")) return NextResponse.next()
       return NextResponse.redirect(new URL("/change-password", request.url))

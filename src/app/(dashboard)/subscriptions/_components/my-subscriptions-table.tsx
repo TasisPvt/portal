@@ -125,7 +125,7 @@ export function MySubscriptionsTable({ data }: { data: SubscriptionRow[] }) {
       header: ({ column }) => <SortableHeader column={column} label="Plan" />,
       cell: ({ row }) => (
         <div className="flex flex-col gap-0.5">
-          <span className="font-semibold text-sm leading-tight">{row.original.planName ?? "—"}</span>
+          <span className="font-semibold text-sm leading-tight">{row.original.planName ?? "-"}</span>
           {row.original.planType && <TypeBadge type={row.original.planType} />}
         </div>
       ),
@@ -190,7 +190,7 @@ export function MySubscriptionsTable({ data }: { data: SubscriptionRow[] }) {
     table.setPageIndex(0)
   }, [typeFilter, validityFilter, range, table])
 
-  // Never subscribed — show the onboarding empty state (not the filtered-empty one).
+  // Never subscribed - show the onboarding empty state (not the filtered-empty one).
   if (data.length === 0) {
     return (
       <Empty className="border py-16">

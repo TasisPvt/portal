@@ -131,7 +131,7 @@ export function UsersTable({ data }: { data: UserRow[] }) {
         return role ? (
           <DotBadge className={ROLE_COLORS[role]}>{ROLE_LABELS[role]}</DotBadge>
         ) : (
-          <span className="text-muted-foreground opacity-40">—</span>
+          <span className="text-muted-foreground opacity-40">-</span>
         )
       },
     },

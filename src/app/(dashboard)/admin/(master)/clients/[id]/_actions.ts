@@ -10,7 +10,7 @@ import { requireAdmin, NON_MANAGER_ROLES } from "@/src/lib/require-admin"
 
 // Toggle a client's active status. Records an audit-trail entry (who, why, when)
 // in the same request, then flips the flag. Managers are not permitted to
-// activate/deactivate accounts — only admin / super-admin.
+// activate/deactivate accounts - only admin / super-admin.
 export async function toggleClientStatus(id: string, isActive: boolean, reason: string) {
    // Allowlist: admin-type only (a client's null role can't slip past), and
    // managers are barred from activating/deactivating accounts.
@@ -60,7 +60,7 @@ export async function getClientSessions(clientId: string) {
 }
 
 // Admin-initiated revoke of a client's login session (delete a suspicious login
-// on the client's behalf). Restricted to admin / super-admin — managers cannot.
+// on the client's behalf). Restricted to admin / super-admin - managers cannot.
 export async function revokeClientSession(clientId: string, sessionId: string) {
    // Allowlist: admin-type only; managers cannot revoke login sessions.
    await requireAdmin(NON_MANAGER_ROLES)

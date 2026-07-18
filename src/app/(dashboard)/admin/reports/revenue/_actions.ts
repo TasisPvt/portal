@@ -17,7 +17,7 @@ export type RevenuePayment = {
    durationType: string
    // Place of supply (client's state at order time); "" when unknown.
    state: string
-   // Gross amount collected in rupees (GST-inclusive — payment.amount is paise).
+   // Gross amount collected in rupees (GST-inclusive - payment.amount is paise).
    gross: number
    // GST portion of the gross, in rupees (cgst + sgst + igst).
    gst: number
@@ -54,8 +54,8 @@ export async function getPaidPayments(): Promise<RevenuePayment[]> {
    return rows.map((r) => ({
       id: r.id,
       clientId: r.clientId,
-      clientName: r.clientName ?? "—",
-      planName: r.planName ?? "—",
+      clientName: r.clientName ?? "-",
+      planName: r.planName ?? "-",
       service: r.service as RevenueService,
       durationType: r.durationType,
       state: r.state ?? "",

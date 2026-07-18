@@ -125,7 +125,7 @@ function Stepper({ current }: { current: number }) {
 export function SignupForm() {
    const [step, setStep] = useState(1)
    const [direction, setDirection] = useState<"forward" | "back">("forward")
-   // Only animate after the first step transition — not on initial page load.
+   // Only animate after the first step transition - not on initial page load.
    const [animate, setAnimate] = useState(false)
    const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
    const [formError, setFormError] = useState<string | null>(null)

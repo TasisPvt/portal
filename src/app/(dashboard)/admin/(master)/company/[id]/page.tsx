@@ -23,7 +23,7 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
    return (
       <div className="flex flex-col gap-0.5 py-2.5">
          <span className="text-xs font-medium text-muted-foreground">{label}</span>
-         <span className="text-sm text-foreground">{value ?? <span className="text-muted-foreground/50">—</span>}</span>
+         <span className="text-sm text-foreground">{value ?? <span className="text-muted-foreground/50">-</span>}</span>
       </div>
    )
 }
@@ -181,7 +181,7 @@ export default async function CompanyDetailPage({
                      </CardHeader>
                      <CardContent className="px-4 pb-4">
                         <ol className="relative border-l border-border/60 ml-2 flex flex-col gap-0">
-                           {/* Current name — always at top */}
+                           {/* Current name - always at top */}
                            <li className="mb-4 ml-4">
                               <div className="flex flex-col gap-0.5">
                                  <span className="text-sm font-semibold">{company.companyName}</span>
@@ -198,7 +198,7 @@ export default async function CompanyDetailPage({
                               </div>
                            </li>
 
-                           {/* Old names — newest first */}
+                           {/* Old names - newest first */}
                            {oldNames.length === 0 ? (
                               <li className="ml-4 text-sm text-muted-foreground">No previous names.</li>
                            ) : oldNames.map((h) => (

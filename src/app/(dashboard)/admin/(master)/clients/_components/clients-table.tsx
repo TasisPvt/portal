@@ -133,7 +133,7 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
       header: ({ column }) => <SortableHeader column={column} label="Phone" />,
       cell: ({ row }) => (
         <div className="flex items-center gap-1.5 text-xs">
-          {row.original.phone ?? <span className="text-muted-foreground opacity-40">—</span>}
+          {row.original.phone ?? <span className="text-muted-foreground opacity-40">-</span>}
           {row.original.phone && (
             <span
               title={row.original.phoneVerified ? "Verified" : "Pending"}
@@ -160,7 +160,7 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
         row.original.state ? (
           <span className="font-normal text-xs">{row.original.state}</span>
         ) : (
-          <span className="text-muted-foreground opacity-40">—</span>
+          <span className="text-muted-foreground opacity-40">-</span>
         ),
     },
     {
@@ -170,7 +170,7 @@ export function ClientsTable({ data }: { data: ClientRow[] }) {
       header: () => <span>PAN</span>,
       cell: ({ row }) => (
         <span className="font-mono text-xs text-muted-foreground">
-          {row.original.panNumber ?? <span className="opacity-40">—</span>}
+          {row.original.panNumber ?? <span className="opacity-40">-</span>}
         </span>
       ),
     },

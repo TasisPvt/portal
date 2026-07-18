@@ -100,9 +100,9 @@ const TABS: { key: TabKey; label: string }[] = [
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtMarketCapRaw(val: string | null | undefined): string {
-   if (!val) return "—"
+   if (!val) return "-"
    const n = parseFloat(val)
-   if (isNaN(n)) return "—"
+   if (isNaN(n)) return "-"
    return `₹${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
 }
 
@@ -316,8 +316,8 @@ function RatioChart({
                   )}
                >
                   {isPass
-                     ? `Compliant — at or below ${fmtPct(thresholdPct)}`
-                     : `Non-compliant — exceeds ${fmtPct(thresholdPct)}`}
+                     ? `Compliant - at or below ${fmtPct(thresholdPct)}`
+                     : `Non-compliant - exceeds ${fmtPct(thresholdPct)}`}
                </span>
             )}
             <h4 className="text-center text-sm font-semibold text-blue-700 dark:text-blue-400">
@@ -358,7 +358,7 @@ function RatioChart({
                               : "text-red-600 dark:text-red-400",
                      )}
                   >
-                     {hasValue ? `${numericValue!.toFixed(2)}%` : "—"}
+                     {hasValue ? `${numericValue!.toFixed(2)}%` : "-"}
                   </span>
                   {!isNull && (
                      <span
@@ -400,7 +400,7 @@ function RatioChart({
                )}
                {/* Track */}
                <div className="relative h-4 rounded-full overflow-hidden">
-                  {/* Tinted background — gives context for tiny values */}
+                  {/* Tinted background - gives context for tiny values */}
                   <div
                      className={cn(
                         "absolute inset-0",
@@ -411,7 +411,7 @@ function RatioChart({
                               : "bg-red-100 dark:bg-red-950/30",
                      )}
                   />
-                  {/* Value bar — runs between the 0 baseline and the value */}
+                  {/* Value bar - runs between the 0 baseline and the value */}
                   <div
                      className={cn(
                         "absolute inset-y-0 rounded-full transition-all duration-700",
@@ -423,14 +423,14 @@ function RatioChart({
                      )}
                      style={{ left: `${barLeft}%`, width: `${barWidth}%` }}
                   />
-                  {/* Zero marker — shown when the axis extends into negative values */}
+                  {/* Zero marker - shown when the axis extends into negative values */}
                   {hasNegative && (
                      <div
                         className="absolute inset-y-0 w-[2px] bg-foreground/50 z-10"
                         style={{ left: `calc(${zeroPos}% - 1px)` }}
                      />
                   )}
-                  {/* Threshold line — only when value exceeds threshold */}
+                  {/* Threshold line - only when value exceeds threshold */}
                   {showThresholdLine && (
                      <div
                         className="absolute inset-y-0 w-[2px] bg-white/80 z-10"
@@ -531,7 +531,7 @@ export function SnapshotCard({ data, commonRemark, thresholds, watchlist }: { da
 
    const snapshotDate = shariah?.lastUpdatedAt
       ? shariah.lastUpdatedAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-      : "—"
+      : "-"
 
    function handleTabChange(tab: TabKey) {
       setActiveTab(tab)
@@ -610,7 +610,7 @@ export function SnapshotCard({ data, commonRemark, thresholds, watchlist }: { da
                      },
                      {
                         label: "Reporting Basis",
-                        value: shariah.companyStatus ?? "—",
+                        value: shariah.companyStatus ?? "-",
                         sub: null,
                      },
                   ].map(({ label, value, sub }) => (
@@ -619,7 +619,7 @@ export function SnapshotCard({ data, commonRemark, thresholds, watchlist }: { da
                            {label}
                         </span>
                         <span className="mt-1 text-sm font-bold text-white">
-                           {value ?? "—"}
+                           {value ?? "-"}
                         </span>
                         {sub && (
                            <span className="text-[10px] text-blue-300/50">{sub}</span>
@@ -1099,7 +1099,7 @@ export function SnapshotClient({ access, commonRemark, thresholds, initialCompan
                )}
             </div>
 
-            {/* Compact quota pills — desktop only */}
+            {/* Compact quota pills - desktop only */}
             <CompactQuotaBar
                dailyUsed={quota.dailyUsed}
                dailyLimit={quota.dailyLimit}
@@ -1127,7 +1127,7 @@ export function SnapshotClient({ access, commonRemark, thresholds, initialCompan
                </Dialog>
             )}
 
-            {/* Recently viewed — opens a sheet */}
+            {/* Recently viewed - opens a sheet */}
             <RecentlyViewedSection items={recentlyViewed} onSelect={handleSelectCompany} />
          </div>
 

@@ -249,10 +249,10 @@ function parseCSV(text: string): RawParsedRow[] {
       const row = parseCSVLine(line)
       const issues: ParseIssue[] = []
 
-      // assessment_year is optional — empty or placeholder ("00-Jan-00") are valid nulls
+      // assessment_year is optional - empty or placeholder ("00-Jan-00") are valid nulls
       const assessmentYear = parseDate(col(row, "assessment_year"))
 
-      // last_updated_at is required — flag if a value exists but can't be parsed
+      // last_updated_at is required - flag if a value exists but can't be parsed
       const rawLastUpdatedAt = col(row, "last_updated_at")?.trim()
       const lastUpdatedAt = parseDate(rawLastUpdatedAt)
       if (rawLastUpdatedAt && !lastUpdatedAt) {
@@ -368,7 +368,7 @@ function getMissingFields(row: ShariahImportRow): string[] {
 
    return REQUIRED_FIELDS.filter(({ key }) => {
       const chainIdx = CASCADE_CHAIN.indexOf(key as (typeof CASCADE_CHAIN)[number])
-      // Cascade chain fields beyond the failing step are NA — not required
+      // Cascade chain fields beyond the failing step are NA - not required
       if (chainIdx !== -1 && breakIdx !== -1 && chainIdx > breakIdx) return false
       const v = row[key]
       return v === null || v === undefined || v === ""
@@ -665,7 +665,7 @@ export function ImportShariahDialog({
       const parts: string[] = []
       if (newRows.length > 0) parts.push(`Add ${newRows.length}`)
       if (updateRows.length > 0) parts.push(`Update ${updateRows.length}`)
-      return `Import — ${parts.join(", ")}`
+      return `Import - ${parts.join(", ")}`
    }
 
    return (
@@ -726,7 +726,7 @@ export function ImportShariahDialog({
                   </p>
                )}
 
-               {/* File picker — full dropzone before upload, compact bar after */}
+               {/* File picker - full dropzone before upload, compact bar after */}
                {fileName ? (
                   <div className="flex items-center gap-2 rounded-lg border border-primary/40 bg-muted/20 px-3 py-2">
                      <FileTextIcon className="size-4 shrink-0 text-primary" />
@@ -948,19 +948,19 @@ function PreviewTable({
                         <TableCell className="pl-4 text-sm">
                            {companyNames[row.prowessId]
                               ? <span className="font-medium">{companyNames[row.prowessId]}</span>
-                              : <span className="text-muted-foreground opacity-40">—</span>}
+                              : <span className="text-muted-foreground opacity-40">-</span>}
                         </TableCell>
                         <TableCell className="pl-4 text-xs">
                            {row.shariahStatus
                               ? <span>{row.shariahStatus}. {SHARIAH_STATUS_LABELS[row.shariahStatus]}</span>
-                              : <span className="text-muted-foreground opacity-40">—</span>}
+                              : <span className="text-muted-foreground opacity-40">-</span>}
                         </TableCell>
-                        <TableCell className="pl-4 text-xs">{row.companyStatus ?? <span className="text-muted-foreground opacity-40">—</span>}</TableCell>
-                        <TableCell className="pl-4 text-xs text-muted-foreground whitespace-nowrap">{row.assessmentYear ?? <span className="opacity-40">—</span>}</TableCell>
+                        <TableCell className="pl-4 text-xs">{row.companyStatus ?? <span className="text-muted-foreground opacity-40">-</span>}</TableCell>
+                        <TableCell className="pl-4 text-xs text-muted-foreground whitespace-nowrap">{row.assessmentYear ?? <span className="opacity-40">-</span>}</TableCell>
                         <TableCell className="pl-4 text-xs tabular-nums">
-                           {row.marketCap ? parseFloat(row.marketCap).toLocaleString("en-IN") : <span className="text-muted-foreground opacity-40">—</span>}
+                           {row.marketCap ? parseFloat(row.marketCap).toLocaleString("en-IN") : <span className="text-muted-foreground opacity-40">-</span>}
                         </TableCell>
-                        <TableCell className="pl-4 text-xs text-muted-foreground">{row.lastUpdatedAt ?? <span className="opacity-40">—</span>}</TableCell>
+                        <TableCell className="pl-4 text-xs text-muted-foreground">{row.lastUpdatedAt ?? <span className="opacity-40">-</span>}</TableCell>
                      </TableRow>
                   ))}
                </TableBody>
@@ -979,7 +979,7 @@ function PreviewTable({
 }
 
 // ---------------------------------------------------------------------------
-// Update tab table — shows changed field names as badges (paginated)
+// Update tab table - shows changed field names as badges (paginated)
 // ---------------------------------------------------------------------------
 
 function UpdatedPreviewTable({
@@ -1018,12 +1018,12 @@ function UpdatedPreviewTable({
                         <TableCell className="pl-4 text-sm">
                            {companyNames[row.prowessId]
                               ? <span className="font-medium whitespace-nowrap">{companyNames[row.prowessId]}</span>
-                              : <span className="text-muted-foreground opacity-40">—</span>}
+                              : <span className="text-muted-foreground opacity-40">-</span>}
                         </TableCell>
                         <TableCell className="pl-4 text-xs whitespace-nowrap">
                            {row.shariahStatus
                               ? <span>{row.shariahStatus}. {SHARIAH_STATUS_LABELS[row.shariahStatus]}</span>
-                              : <span className="text-muted-foreground opacity-40">—</span>}
+                              : <span className="text-muted-foreground opacity-40">-</span>}
                         </TableCell>
                         <TableCell className="pl-4">
                            <div className="flex flex-wrap gap-1">
@@ -1094,7 +1094,7 @@ function InvalidTable({
                         <TableCell className="pl-4 text-sm">
                            {companyNames[row.prowessId]
                               ? <span className="font-medium">{companyNames[row.prowessId]}</span>
-                              : <span className="text-muted-foreground opacity-40">—</span>}
+                              : <span className="text-muted-foreground opacity-40">-</span>}
                         </TableCell>
                         <TableCell className="pl-4">
                            <div className="flex flex-wrap gap-1">

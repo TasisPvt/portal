@@ -21,7 +21,7 @@ export const clientStatusHistory = pgTable(
          onDelete: "set null",
       }),
       performedByName: varchar("performed_by_name", { length: 255 }).notNull(),
-      // timestamptz so the instant is stored unambiguously — a naive `timestamp`
+      // timestamptz so the instant is stored unambiguously - a naive `timestamp`
       // gets misread when the DB session tz (IST) differs from the Node tz (UTC),
       // shifting displayed times by the offset.
       createdAt: timestamp("created_at", { precision: 3, withTimezone: true }).defaultNow().notNull(),

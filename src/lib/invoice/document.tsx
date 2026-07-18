@@ -280,7 +280,7 @@ export function InvoiceDocument({ data }: { data: InvoiceData }) {
             </View>
 
             <Text style={{ textAlign: "center", marginTop: 8, fontSize: 8, color: "#6b7280" }}>
-               SUBJECT TO {SELLER.jurisdiction.toUpperCase()} JURISDICTION — This is a Computer Generated invoice
+               SUBJECT TO {SELLER.jurisdiction.toUpperCase()} JURISDICTION - This is a computer-generated invoice and does not require a physical signature.
             </Text>
          </Page>
       </Document>

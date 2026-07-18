@@ -37,7 +37,7 @@ export function computeEndDate(
       end.setHours(23, 59, 59, 999)
       return end
    }
-   // Calendar-based windows (Jan 15 → Feb 15), not fixed day counts — date-fns
+   // Calendar-based windows (Jan 15 → Feb 15), not fixed day counts - date-fns
    // clamps month-end overflow (Jan 31 + 1 month → Feb 28/29) and handles leap
    // years, so an annual plan bought Feb 29 ends Feb 28 the next year.
    switch (durationType) {
@@ -155,7 +155,7 @@ export type FinalizeResult =
  * Idempotent, race-safe finalization of a paid order. Locks the payment row
  * (SELECT … FOR UPDATE) so concurrent calls can't both create a subscription.
  * Creates the subscription (or links an existing active one) and marks the
- * payment paid. Does NOT verify the checkout signature — the caller does that first.
+ * payment paid. Does NOT verify the checkout signature - the caller does that first.
  */
 export async function finalizePaidOrder(args: {
    razorpayOrderId: string
@@ -204,7 +204,7 @@ export async function finalizePaidOrder(args: {
       if (existingActive && isOneTimeSnapshot) {
          subscriptionId = existingActive.id
          // Top up the day-pass by this purchase's per-day allotment. Skip when
-         // either side is null (unlimited) — an unlimited pass already covers it.
+         // either side is null (unlimited) - an unlimited pass already covers it.
          if (existingActive.stocksPerDaySnapshot !== null && pay.stocksPerDaySnapshot !== null) {
             await tx
                .update(subscription)

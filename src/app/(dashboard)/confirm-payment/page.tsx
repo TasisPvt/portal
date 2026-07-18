@@ -69,7 +69,7 @@ function PaidContent({ details }: { details: PaymentDetails }) {
          </div>
 
          <dl className="w-full space-y-2.5 rounded-xl border bg-muted/30 p-4 text-sm">
-            <Row label="Plan" value={details.planName ?? "—"} />
+            <Row label="Plan" value={details.planName ?? "-"} />
             <Row label="Duration" value={DURATION_LABELS[details.durationType] ?? details.durationType} />
             <GstRows details={details} />
             <div className="border-t pt-2.5">

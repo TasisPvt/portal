@@ -4,7 +4,7 @@ import { user } from "./auth"
 import { companyMaster } from "./masters"
 
 // A user's bookmarked companies. Keyed to the user (not a subscription) so it
-// survives subscription renewals/lapses — rows are only ever added or removed
+// survives subscription renewals/lapses - rows are only ever added or removed
 // by the user, never auto-deleted. Access to view/edit is gated separately on
 // the user having an active list or snapshot subscription.
 export const watchlist = pgTable(

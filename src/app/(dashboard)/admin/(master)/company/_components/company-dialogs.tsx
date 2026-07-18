@@ -39,7 +39,7 @@ import { cn } from "@/src/lib/utils"
 
 type IndustryGroupOption = { id: string; name: string }
 
-// Bounds for the calendar's year dropdown — listing dates can be decades old.
+// Bounds for the calendar's year dropdown - listing dates can be decades old.
 const CAL_START = new Date(1950, 0)
 const CAL_END = new Date(new Date().getFullYear() + 1, 11)
 

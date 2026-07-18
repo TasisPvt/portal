@@ -186,7 +186,7 @@ export function ImportCompaniesDialog({
       const parts: string[] = []
       if (addRows.length > 0) parts.push(`Add ${addRows.length}`)
       if (removeRows.length > 0) parts.push(`Remove ${removeRows.length}`)
-      return `Sync — ${parts.join(", ")}`
+      return `Sync - ${parts.join(", ")}`
    }
 
    function handleSync() {

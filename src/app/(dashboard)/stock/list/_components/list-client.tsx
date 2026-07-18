@@ -97,9 +97,9 @@ function getPageRange(current: number, total: number): (number | "ellipsis")[] {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 // Uses Tailwind semantic colors (dark-mode aware) + dot shape so status is
-// never conveyed by color alone — satisfies WCAG color-not-only + contrast rules.
+// never conveyed by color alone - satisfies WCAG color-not-only + contrast rules.
 function StatusBadge({ status }: { status: number | null }) {
-   if (status === null) return <span className="text-xs text-muted-foreground">—</span>
+   if (status === null) return <span className="text-xs text-muted-foreground">-</span>
    const compliant = status === 1
    return (
       <span
@@ -142,7 +142,7 @@ function RecentlyViewedSection({
    onSelect: (c: RecentlyViewedCompany) => void
 }) {
    const [open, setOpen] = React.useState(false)
-   // Cap the sheet at the 10 most recently viewed stocks — the list can grow large.
+   // Cap the sheet at the 10 most recently viewed stocks - the list can grow large.
    const recent = items.slice(0, 10)
    if (recent.length === 0) return null
 
@@ -450,7 +450,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
             </Empty>
          ) : (
             <>
-               {/* ── Index header card (gradient — matches snapshot header) ── */}
+               {/* ── Index header card (gradient - matches snapshot header) ── */}
                {selectedSub && (
                   <div
                      style={{ background: "linear-gradient(160deg, #0d1f3c 0%, #1a3a6e 100%)" }}
@@ -613,7 +613,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
                      </p>
                   )}
 
-                  {/* Recently viewed — opens a sheet */}
+                  {/* Recently viewed - opens a sheet */}
                   <RecentlyViewedSection
                      items={recentlyViewed}
                      onSelect={(c) => openSnapshot(c.id, c.companyName)}

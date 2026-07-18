@@ -142,7 +142,7 @@ export function RevenueReport({
       to: now,
    })
    // `customRange` is the in-calendar draft; `appliedRange` is what actually
-   // drives the chart/table — committed only when the user clicks Apply.
+   // drives the chart/table - committed only when the user clicks Apply.
    const [customRange, setCustomRange] = React.useState<DateRange | undefined>(initialRange)
    const [appliedRange, setAppliedRange] = React.useState<DateRange | undefined>(initialRange)
    const [calendarOpen, setCalendarOpen] = React.useState(false)
@@ -178,7 +178,7 @@ export function RevenueReport({
       })
    }, [payments, range, service, type, stateFilter])
 
-   // List plans only offer one-time & annual durations — if the user narrows to
+   // List plans only offer one-time & annual durations - if the user narrows to
    // the List service while a List-invalid type is selected, reset it to "all".
    React.useEffect(() => {
       if (service === "list" && (type === "monthly" || type === "quarterly")) {
@@ -195,7 +195,7 @@ export function RevenueReport({
       return { gross, gst, clients, txns, aov: txns ? gross / txns : 0 }
    }, [filtered])
 
-   // Chart buckets — daily for ≤ 62-day windows, monthly otherwise.
+   // Chart buckets - daily for ≤ 62-day windows, monthly otherwise.
    const chart = React.useMemo(() => {
       const daily = Math.round((range.end.getTime() - range.start.getTime()) / 86_400_000) <= 62
       const buckets = new Map<string, { label: string; list: number; snapshot: number }>()
@@ -300,7 +300,7 @@ export function RevenueReport({
             new Date(p.date).toLocaleString("en-IN"),
             csv(p.clientName),
             csv(p.planName),
-            csv(p.state || "—"),
+            csv(p.state || "-"),
             p.service === "list" ? "List" : "Snapshot",
             DURATION_LABELS[p.durationType] ?? p.durationType,
             p.gross.toFixed(2),
@@ -628,11 +628,11 @@ function PaymentRow({ p, grouped = false }: { p: RevenuePayment; grouped?: boole
             {new Date(p.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
          </TableCell>
          <TableCell className="text-sm font-medium">
-            {grouped ? <span className="text-muted-foreground opacity-40">—</span> : p.clientName}
+            {grouped ? <span className="text-muted-foreground opacity-40">-</span> : p.clientName}
          </TableCell>
          <TableCell className="text-sm">{p.planName}</TableCell>
          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-            {p.state || <span className="opacity-40">—</span>}
+            {p.state || <span className="opacity-40">-</span>}
          </TableCell>
          <TableCell>
             <ServiceBadge service={p.service} />

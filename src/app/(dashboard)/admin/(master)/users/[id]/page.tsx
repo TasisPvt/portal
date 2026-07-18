@@ -45,7 +45,7 @@ function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((n) => n[0]?.toUpperCase() ?? "").join("")
 }
 
-/** Small pill with a leading dot — green when positive, amber otherwise. */
+/** Small pill with a leading dot - green when positive, amber otherwise. */
 function StatusPill({ active, trueLabel = "Active", falseLabel = "Inactive" }: { active: boolean; trueLabel?: string; falseLabel?: string }) {
   return (
     <span
@@ -262,7 +262,7 @@ export default async function UserDetailPage({
                         </span>
                         {isSelf ? (
                           <span className="text-sm font-semibold">
-                            {u.adminRole ? ROLE_LABELS[u.adminRole] : "—"}
+                            {u.adminRole ? ROLE_LABELS[u.adminRole] : "-"}
                             <span className="ml-2 text-xs font-normal text-muted-foreground">(your account)</span>
                           </span>
                         ) : (

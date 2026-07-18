@@ -240,7 +240,7 @@ export async function getListCompanies(
    // ── Fallback for quarterly/annual ──────────────────────────────────────────
    // If individual companies have no shariah data for targetMonth yet
    // (e.g. they were skipped in the import), show their most recent prior month.
-   // Not applicable for one_time — the effectiveMonth was chosen precisely
+   // Not applicable for one_time - the effectiveMonth was chosen precisely
    // because it had data.
    if (sub.durationType !== "one_time") {
       const missingIds = companyIds.filter((id) => !shariahMap.has(id))
@@ -321,7 +321,7 @@ export async function unlockCurrentMonth(subscriptionId: string): Promise<Unlock
 
       // Ensure the month's list snapshot exists. It's normally written by the
       // monthly shariah import; if the user unlocks before this month's publish,
-      // freeze the index membership now (mirrors the purchase-time snapshot —
+      // freeze the index membership now (mirrors the purchase-time snapshot -
       // shariah data falls back to each company's most recent prior month).
       const [snapshotExists] = await tx
          .select({ id: subscriptionListSnapshot.id })

@@ -52,7 +52,7 @@ export function validatePhone(value: string): true | string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export interface PhoneInputProps {
-  /** Full E.164-style value e.g. "+919876543210" — set by Controller */
+  /** Full E.164-style value e.g. "+919876543210" - set by Controller */
   value?: string
   /** Called with the full number whenever country or local number changes */
   onChange?: (value: string) => void

@@ -220,7 +220,7 @@ export async function getCompanySnapshot(
                eq(pricingPlan.type, "list"),
                eq(subscriptionListSnapshot.companyId, companyId),
                // When the caller specifies which list they're viewing from, log
-               // the view against that exact subscription — a company may belong
+               // the view against that exact subscription - a company may belong
                // to several of the user's lists, so we must not just pick the first.
                listSubscriptionId ? eq(subscription.id, listSubscriptionId) : undefined,
             ),
@@ -255,7 +255,7 @@ export async function getCompanySnapshot(
          })
    }
 
-   // Quota tracking — only for snapshot-plan views (skipped for list viewers).
+   // Quota tracking - only for snapshot-plan views (skipped for list viewers).
    if (trackQuota && sub) {
       // Check if already viewed today (free repeat view)
       const viewedTodayRows = await db
@@ -387,7 +387,7 @@ export async function getCompanySnapshot(
       return { parameter, label, value, remark, passRemark: entry?.passRemark ?? null, failRemark: entry?.failRemark ?? null }
    })
 
-   // Updated quota — only meaningful for snapshot-plan views. List viewers have
+   // Updated quota - only meaningful for snapshot-plan views. List viewers have
    // no quota, so report an unlimited/empty quota.
    let quota: QuotaInfo = { dailyUsed: 0, dailyLimit: null }
    if (sub) {
@@ -440,7 +440,7 @@ export async function getRecentlyViewed(): Promise<RecentlyViewedCompany[]> {
          companyMaster.nseSymbol,
          companyMaster.bseScripCode,
       )
-      // createdAt, not viewedDate — same-day views tie on the day-granular date.
+      // createdAt, not viewedDate - same-day views tie on the day-granular date.
       .orderBy(desc(max(stockViewLog.createdAt)))
       .limit(10)
 
@@ -491,7 +491,7 @@ export async function getListRecentlyViewed(
          companyMaster.nseSymbol,
          companyMaster.bseScripCode,
       )
-      // Order by the createdAt timestamp, not viewedDate — the latter is
+      // Order by the createdAt timestamp, not viewedDate - the latter is
       // day-granular, so every stock viewed today would tie and sort randomly.
       .orderBy(desc(max(stockViewLog.createdAt)))
       .limit(10)

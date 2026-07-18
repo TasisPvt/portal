@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Email is required" }, { status: 400 })
    }
 
-   // Look up user — always return the same response to avoid email enumeration
+   // Look up user - always return the same response to avoid email enumeration
    const [found] = await db
       .select({ id: user.id, name: user.name, email: user.email, isActive: user.isActive })
       .from(user)

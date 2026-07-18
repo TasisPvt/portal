@@ -99,7 +99,7 @@ function assertValidTargetMonth(month: string): string {
    return month
 }
 
-// Called by the import dialog — returns existing prowessIds, prowessId→name map, and
+// Called by the import dialog - returns existing prowessIds, prowessId→name map, and
 // existing shariah values for the given target month (current or a back-dated month).
 export async function getImportContext(month: string): Promise<{
    currentMonth: string
@@ -200,7 +200,7 @@ export async function importShariahData(records: ShariahImportRow[], targetMonth
    const seenProwessIds = new Set<string>()
 
    // Build the full work list first (pre-validation only), then write it in a
-   // single transaction below — a failed import must not leave the month
+   // single transaction below - a failed import must not leave the month
    // half-applied.
    type ShariahValues = typeof companyShariah.$inferInsert
    const toInsert: ShariahValues[] = []
@@ -284,7 +284,7 @@ export async function importShariahData(records: ShariahImportRow[], targetMonth
    } catch (err: any) {
       console.error("[importShariahData]", err)
       throw new Error(
-         `Import failed — no changes were applied. ${err?.message ?? "Unknown database error."}`,
+         `Import failed - no changes were applied. ${err?.message ?? "Unknown database error."}`,
       )
    }
 

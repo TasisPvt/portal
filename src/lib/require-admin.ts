@@ -12,10 +12,10 @@ type SessionUser = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>[
  *
  * Allowlist by design: only `userType === "admin"` passes. A client's
  * `adminRole` is null, so a `adminRole === MANAGER` blocklist would fail *open*
- * for clients — this helper never does. Pass `allowedRoles` to further restrict
+ * for clients - this helper never does. Pass `allowedRoles` to further restrict
  * an action to specific admin roles (e.g. keep managers out of destructive ops).
  *
- * Throws on failure — the rejected promise surfaces to the caller. Admin-only
+ * Throws on failure - the rejected promise surfaces to the caller. Admin-only
  * UIs never trigger the throw, so legitimate flows are unaffected.
  */
 export async function requireAdmin(allowedRoles?: Role[]): Promise<SessionUser> {

@@ -37,7 +37,7 @@ export async function toggleWatchlist(companyId: string): Promise<ToggleWatchlis
          return { ok: true, watchlisted: false }
       }
 
-      // Enforce the cap only on additions — the user must free a slot first.
+      // Enforce the cap only on additions - the user must free a slot first.
       const [{ value: current }] = await db
          .select({ value: count() })
          .from(watchlist)
@@ -59,7 +59,7 @@ export async function toggleWatchlist(companyId: string): Promise<ToggleWatchlis
    }
 }
 
-// All companyIds the current user has bookmarked — used to seed the bookmark
+// All companyIds the current user has bookmarked - used to seed the bookmark
 // state on the snapshot and list pages. Reading your own bookmarks is ungated.
 export async function getWatchlistedCompanyIds(): Promise<string[]> {
    const session = await auth.api.getSession({ headers: await headers() })

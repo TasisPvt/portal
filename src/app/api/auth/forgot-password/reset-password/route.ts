@@ -14,7 +14,7 @@ export async function POST(req: Request) {
 
    const identifier = `forgot-password:${email}`
 
-   // ── Re-validate OTP (source of truth — prevents skipping the verify step) ─
+   // ── Re-validate OTP (source of truth - prevents skipping the verify step) ─
    const [record] = await db
       .select()
       .from(verification)

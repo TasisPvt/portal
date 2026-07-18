@@ -123,12 +123,12 @@ async function renderInvoice(
       invoiceNumber,
       date: formatInvoiceDate(row.createdAt),
       buyer: {
-         name: row.clientName ?? "—",
+         name: row.clientName ?? "-",
          addressLines: row.address ? [row.address] : [],
          gstin: row.gstNumber,
-         stateName: placeOfSupply || "—",
+         stateName: placeOfSupply || "-",
          stateCode: getStateCode(placeOfSupply),
-         placeOfSupply: placeOfSupply || "—",
+         placeOfSupply: placeOfSupply || "-",
       },
       item: {
          title: row.planName ?? "Subscription",

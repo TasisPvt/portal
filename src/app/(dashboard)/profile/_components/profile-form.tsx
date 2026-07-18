@@ -31,7 +31,7 @@ function ReadOnlyField({ label, value }: { label: string; value: string | null |
     <div className="flex flex-col gap-1.5">
       <Label className="text-xs font-semibold">{label}</Label>
       <div className="flex h-9 items-center rounded-xl border border-input bg-input/50 px-3 text-sm text-muted-foreground">
-        {value || <span className="opacity-40">—</span>}
+        {value || <span className="opacity-40">-</span>}
       </div>
     </div>
   )
@@ -49,7 +49,7 @@ function MaskedField({ label, value }: { label: string; value: string | null | u
         title={revealed ? "Click to hide" : "Click to reveal"}
       >
         <span className="font-mono tracking-widest">
-          {value ? (revealed ? value : masked) : <span className="opacity-40">—</span>}
+          {value ? (revealed ? value : masked) : <span className="opacity-40">-</span>}
         </span>
         {value && (
           <span className="ml-2 shrink-0 text-xs text-muted-foreground/60">
@@ -239,7 +239,7 @@ export function ProfileForm({
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 @md/pcard:grid-cols-2">
 
-                  {/* Name — editable for both */}
+                  {/* Name - editable for both */}
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="name" className="text-xs font-semibold">Name</Label>
                     <Input
@@ -288,15 +288,15 @@ export function ProfileForm({
                         />
                       </div>
 
-                      {/* Aadhar Number — masked */}
+                      {/* Aadhar Number - masked */}
                       <MaskedField label="Aadhar Number" value={profile.aadharNumber} />
 
-                      {/* PAN Number — masked */}
+                      {/* PAN Number - masked */}
                       <MaskedField label="PAN Number" value={profile.panNumber} />
                     </>
                   ) : (
                     <>
-                      {/* Role — admin only */}
+                      {/* Role - admin only */}
                       <ReadOnlyField
                         label="Role"
                         value={ROLE_LABELS[profile.adminRole ?? ""] ?? "Admin"}
