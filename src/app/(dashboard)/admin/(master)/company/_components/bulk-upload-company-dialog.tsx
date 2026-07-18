@@ -208,11 +208,11 @@ function norm(v: string | null | undefined): string {
 
 // Normalise any date representation to "YYYY-MM-DD".
 // Handles:
-//   "YYYY-MM-DD"              — DB format, pass through
-//   "YYYY-MM-DDTHH:mm:ss..."  — ISO timestamp, strip time
-//   "DD-MM-YYYY"              — CSV input format, reorder parts
-//   "DD-Mon-YY"               — e.g. "06-Oct-08" → "2008-10-06"
-//   empty / null              — return ""
+//   "YYYY-MM-DD"              - DB format, pass through
+//   "YYYY-MM-DDTHH:mm:ss..."  - ISO timestamp, strip time
+//   "DD-MM-YYYY"              - CSV input format, reorder parts
+//   "DD-Mon-YY"               - e.g. "06-Oct-08" → "2008-10-06"
+//   empty / null              - return ""
 const MONTH_MAP: Record<string, string> = {
    jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
    jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
@@ -234,7 +234,7 @@ function normDate(v: string | null | undefined): string {
    // DD-MM-YYYY
    const dmy = s.match(/^(\d{2})-(\d{2})-(\d{4})$/)
    if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`
-   // YYYY-MM-DD or ISO timestamp — take first 10 chars
+   // YYYY-MM-DD or ISO timestamp - take first 10 chars
    const ymd = s.match(/^(\d{4}-\d{2}-\d{2})/)
    if (ymd) return ymd[1]
    return s
@@ -490,7 +490,7 @@ export function BulkUploadCompanyDialog({
       if (updateRows.length > 0)
          parts.push(`update ${updateRows.length}`)
       if (parts.length === 0) return "Nothing to import"
-      return `Import — ${parts.join(", ")}`
+      return `Import - ${parts.join(", ")}`
    }
 
    const BATCH_SIZE = 500
@@ -718,8 +718,8 @@ export function BulkUploadCompanyDialog({
                                        <TableCell className="pl-4 text-xs text-muted-foreground tabular-nums">{row.index}</TableCell>
                                        <TableCell className="pl-4"><span className="font-mono text-xs">{row.prowessId}</span></TableCell>
                                        <TableCell className="pl-4 max-w-44"><span className="text-sm font-medium truncate block">{row.companyName}</span></TableCell>
-                                       <TableCell className="pl-4"><span className="font-mono text-xs">{row.isinCode || <span className="italic text-muted-foreground">—</span>}</span></TableCell>
-                                       <TableCell className="pl-4"><span className="text-sm">{row.serviceGroup || <span className="italic text-muted-foreground">—</span>}</span></TableCell>
+                                       <TableCell className="pl-4"><span className="font-mono text-xs">{row.isinCode || <span className="italic text-muted-foreground">-</span>}</span></TableCell>
+                                       <TableCell className="pl-4"><span className="text-sm">{row.serviceGroup || <span className="italic text-muted-foreground">-</span>}</span></TableCell>
                                     </TableRow>
                                  ))}
                               </TableBody>
@@ -747,11 +747,11 @@ export function BulkUploadCompanyDialog({
                                        <TableCell className="pl-4 text-xs text-muted-foreground tabular-nums">{row.index}</TableCell>
                                        <TableCell className="pl-4"><span className="font-mono text-xs">{row.prowessId}</span></TableCell>
                                        <TableCell className="pl-4 max-w-44"><span className="text-sm font-medium truncate block">{row.companyName}</span></TableCell>
-                                       <TableCell className="pl-4"><span className="font-mono text-xs">{row.isinCode || <span className="italic text-muted-foreground">—</span>}</span></TableCell>
-                                       <TableCell className="pl-4"><span className="text-sm">{row.serviceGroup || <span className="italic text-muted-foreground">—</span>}</span></TableCell>
+                                       <TableCell className="pl-4"><span className="font-mono text-xs">{row.isinCode || <span className="italic text-muted-foreground">-</span>}</span></TableCell>
+                                       <TableCell className="pl-4"><span className="text-sm">{row.serviceGroup || <span className="italic text-muted-foreground">-</span>}</span></TableCell>
                                        <TableCell className="pl-4">
                                           <span className="text-xs text-muted-foreground">
-                                             {row.changes?.map((c) => c.field).join(", ") ?? "—"}
+                                             {row.changes?.map((c) => c.field).join(", ") ?? "-"}
                                           </span>
                                        </TableCell>
                                     </TableRow>
@@ -780,8 +780,8 @@ export function BulkUploadCompanyDialog({
                                        <TableCell className="pl-4 text-xs text-muted-foreground tabular-nums">{row.index}</TableCell>
                                        <TableCell className="pl-4"><span className="font-mono text-xs">{row.prowessId}</span></TableCell>
                                        <TableCell className="pl-4 max-w-44"><span className="text-sm font-medium truncate block">{row.companyName}</span></TableCell>
-                                       <TableCell className="pl-4"><span className="font-mono text-xs">{row.isinCode || <span className="italic text-muted-foreground">—</span>}</span></TableCell>
-                                       <TableCell className="pl-4"><span className="text-sm">{row.serviceGroup || <span className="italic text-muted-foreground">—</span>}</span></TableCell>
+                                       <TableCell className="pl-4"><span className="font-mono text-xs">{row.isinCode || <span className="italic text-muted-foreground">-</span>}</span></TableCell>
+                                       <TableCell className="pl-4"><span className="text-sm">{row.serviceGroup || <span className="italic text-muted-foreground">-</span>}</span></TableCell>
                                     </TableRow>
                                  ))}
                               </TableBody>
@@ -807,8 +807,8 @@ export function BulkUploadCompanyDialog({
                                     return (
                                        <TableRow key={row.index} className="opacity-60">
                                           <TableCell className="pl-4 text-xs text-muted-foreground tabular-nums">{row.index}</TableCell>
-                                          <TableCell className="pl-4"><span className="font-mono text-xs">{row.prowessId || <span className="italic">—</span>}</span></TableCell>
-                                          <TableCell className="pl-4 max-w-44"><span className="text-sm font-medium truncate block line-through decoration-muted-foreground/40">{row.companyName || <span className="italic">—</span>}</span></TableCell>
+                                          <TableCell className="pl-4"><span className="font-mono text-xs">{row.prowessId || <span className="italic">-</span>}</span></TableCell>
+                                          <TableCell className="pl-4 max-w-44"><span className="text-sm font-medium truncate block line-through decoration-muted-foreground/40">{row.companyName || <span className="italic">-</span>}</span></TableCell>
                                           <TableCell className="pl-4">
                                              <div className="flex flex-col gap-0.5">
                                                 <Badge variant="outline" className={cn("gap-1 text-xs font-medium w-fit", cfg.className)}>
@@ -915,8 +915,8 @@ export function BulkUploadCompanyDialog({
                                  ) : importResult.failed.map((row, i) => (
                                     <TableRow key={`${row.prowessId}-${i}`}>
                                        <TableCell className="pl-4 text-xs text-muted-foreground tabular-nums">{i + 1}</TableCell>
-                                       <TableCell className="pl-4"><span className="font-mono text-xs">{row.prowessId || <span className="italic">—</span>}</span></TableCell>
-                                       <TableCell className="pl-4 max-w-44"><span className="text-sm font-medium truncate block">{row.companyName || <span className="italic">—</span>}</span></TableCell>
+                                       <TableCell className="pl-4"><span className="font-mono text-xs">{row.prowessId || <span className="italic">-</span>}</span></TableCell>
+                                       <TableCell className="pl-4 max-w-44"><span className="text-sm font-medium truncate block">{row.companyName || <span className="italic">-</span>}</span></TableCell>
                                        <TableCell className="pl-4">
                                           <span className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
                                              <XCircleIcon className="size-3.5 shrink-0" />

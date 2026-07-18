@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm"
 import { db } from "@/src/db/client"
 import { verification } from "@/src/db/schema"
 
-/** Validates the OTP without consuming it — the password reset step will consume it. */
+/** Validates the OTP without consuming it - the password reset step will consume it. */
 export async function POST(req: Request) {
    const { email, otp } = await req.json()
 

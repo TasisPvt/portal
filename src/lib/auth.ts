@@ -21,7 +21,7 @@ export const auth = betterAuth({
    },
 
    // Block inactive users before a session is ever written to the DB.
-   // Fires after credentials are validated — so wrong passwords still get
+   // Fires after credentials are validated - so wrong passwords still get
    // the generic "invalid" error, not this one.
    databaseHooks: {
       session: {
@@ -57,14 +57,14 @@ export const auth = betterAuth({
          adminRole: {
             type: "string" as const,
             required: false,
-            // Never accepted from the client — set programmatically by super_admin.
+            // Never accepted from the client - set programmatically by super_admin.
             input: false,
          },
          mustChangePassword: {
             type: "boolean" as const,
             required: false,
             defaultValue: false,
-            // Never accepted from the client — set by the server on account creation.
+            // Never accepted from the client - set by the server on account creation.
             input: false,
          },
       },

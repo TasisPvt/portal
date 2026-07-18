@@ -90,7 +90,7 @@ export async function POST(req: Request) {
       await sendWelcomeEmail({ to: email, name, password: tempPassword })
       await recordOtpSend(email, "register")
 
-      // signUpEmail creates a session automatically — revoke it so the user
+      // signUpEmail creates a session automatically - revoke it so the user
       // is redirected to login and must authenticate explicitly.
       await auth.api.signOut({ headers: req.headers })
 

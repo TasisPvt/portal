@@ -1,4 +1,4 @@
-// Lightweight user-agent describer — enough to label a login ("Chrome on
+// Lightweight user-agent describer - enough to label a login ("Chrome on
 // Windows") and pick a device icon, without pulling in a parsing dependency.
 
 export type DeviceKind = "Desktop" | "Mobile" | "Tablet"

@@ -105,7 +105,7 @@ export function PaymentsTable({ data }: { data: PaymentHistoryRow[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [search, setSearch] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all")
-  // Guards against concurrent downloads — the overlay blocks the UI while true.
+  // Guards against concurrent downloads - the overlay blocks the UI while true.
   const [downloading, setDownloading] = React.useState(false)
   // Synchronous re-entrancy guard: state updates are async, so a ref is what
   // actually prevents a second download from starting on a rapid double-click.
@@ -144,7 +144,7 @@ export function PaymentsTable({ data }: { data: PaymentHistoryRow[] }) {
       header: ({ column }) => <SortableHeader column={column} label="Plan" />,
       cell: ({ row }) => (
         <div className="flex flex-col gap-0.5">
-          <span className="font-semibold text-sm leading-tight">{row.original.planName ?? "—"}</span>
+          <span className="font-semibold text-sm leading-tight">{row.original.planName ?? "-"}</span>
           {row.original.planType && <TypeBadge type={row.original.planType} />}
         </div>
       ),
@@ -187,7 +187,7 @@ export function PaymentsTable({ data }: { data: PaymentHistoryRow[] }) {
       enableSorting: false,
       header: () => <span className="text-xs">Payment ID</span>,
       cell: ({ row }) => (
-        <span className="font-mono text-xs text-muted-foreground">{row.original.razorpayPaymentId ?? "—"}</span>
+        <span className="font-mono text-xs text-muted-foreground">{row.original.razorpayPaymentId ?? "-"}</span>
       ),
     },
     {

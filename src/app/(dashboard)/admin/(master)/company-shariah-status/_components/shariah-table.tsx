@@ -53,7 +53,7 @@ export const SHARIAH_STATUS_LABELS: Record<number, string> = {
 }
 
 function ShariahBadge({ status }: { status: number | null | undefined }) {
-  if (!status) return <span className="text-muted-foreground opacity-40 text-xs">—</span>
+  if (!status) return <span className="text-muted-foreground opacity-40 text-xs">-</span>
   const label = SHARIAH_STATUS_LABELS[status] ?? String(status)
   const className =
     status === 1
@@ -79,7 +79,7 @@ function BoolCell({ value }: { value: boolean | null | undefined }) {
 }
 
 function NumCell({ value, decimals = 2 }: { value: string | null | undefined; decimals?: number }) {
-  if (!value) return <span className="text-muted-foreground opacity-40 text-xs">—</span>
+  if (!value) return <span className="text-muted-foreground opacity-40 text-xs">-</span>
   return (
     <span className="text-xs tabular-nums">
       {parseFloat(value).toLocaleString("en-IN", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
@@ -224,7 +224,7 @@ export function ShariahTable({
         ? <span className="text-xs text-muted-foreground whitespace-nowrap">
             {fmtDateStr(row.original.assessmentYear)}
           </span>
-        : <span className="text-muted-foreground opacity-40 text-xs">—</span>,
+        : <span className="text-muted-foreground opacity-40 text-xs">-</span>,
     },
     {
       id: "marketCap",
@@ -238,7 +238,7 @@ export function ShariahTable({
       header: ({ column }) => <SortableHeader column={column} label="Status" />,
       cell: ({ row }) => row.original.companyStatus
         ? <Badge variant="outline" className="rounded-full text-xs font-normal">{row.original.companyStatus}</Badge>
-        : <span className="text-muted-foreground opacity-40 text-xs">—</span>,
+        : <span className="text-muted-foreground opacity-40 text-xs">-</span>,
     },
     {
       id: "lastFinancialData",
@@ -309,7 +309,7 @@ export function ShariahTable({
       header: () => <span>Remark</span>,
       cell: ({ row }) => row.original.remark
         ? <span className="text-xs text-muted-foreground max-w-40 truncate block">{row.original.remark}</span>
-        : <span className="text-muted-foreground opacity-40 text-xs">—</span>,
+        : <span className="text-muted-foreground opacity-40 text-xs">-</span>,
     },
     {
       id: "lastUpdatedAt",
@@ -319,7 +319,7 @@ export function ShariahTable({
         ? <span className="text-xs text-muted-foreground whitespace-nowrap">
             {row.original.lastUpdatedAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
           </span>
-        : <span className="text-muted-foreground opacity-40 text-xs">—</span>,
+        : <span className="text-muted-foreground opacity-40 text-xs">-</span>,
     },
   ], [])
 

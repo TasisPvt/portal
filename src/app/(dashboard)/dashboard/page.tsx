@@ -77,7 +77,7 @@ export default async function ClientDashboardPage() {
 
 // ─── Shared bits ────────────────────────────────────────────────────────────────
 
-// Compact compliance dot — status is never conveyed by color alone (shape + label).
+// Compact compliance dot - status is never conveyed by color alone (shape + label).
 function StatusPill({ status }: { status: number | null }) {
    if (status === null) return <span className="text-xs text-muted-foreground">Unrated</span>
    const compliant = status === 1
@@ -112,7 +112,7 @@ function WidgetTitle({ icon, tone, title, description }: { icon: React.ReactNode
    )
 }
 
-// Rank medal — #1 gets an amber "hot" treatment with a flame flag.
+// Rank medal - #1 gets an amber "hot" treatment with a flame flag.
 function RankMedal({ n }: { n: number }) {
    const top = n === 1
    return (
@@ -243,7 +243,7 @@ function SubscriptionRow({ sub }: { sub: DashboardSubscription }) {
          )}
       >
          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{sub.planName ?? "—"}</p>
+            <p className="truncate text-sm font-medium">{sub.planName ?? "-"}</p>
             <p className="text-xs text-muted-foreground">
                {DURATION_LABELS[sub.durationType] ?? sub.durationType} · until {formatDate(sub.endDate)}
             </p>
@@ -301,7 +301,7 @@ function WatchlistWidget({
          </CardHeader>
          <CardContent>
             {!hasWatchlistAccess ? (
-               // No active subscription — bookmarks can't be loaded, so don't
+               // No active subscription - bookmarks can't be loaded, so don't
                // mislead the user with "empty"; nudge them to subscribe instead.
                <EmptyInline
                   icon={<LockIcon className="size-5" />}
@@ -368,14 +368,14 @@ function WatchRowContent({ item }: { item: DashboardWatchItem }) {
       <>
          <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{item.companyName}</p>
-            <p className="text-xs text-muted-foreground">{item.nseSymbol ? `NSE: ${item.nseSymbol}` : "NSE: —"}</p>
+            <p className="text-xs text-muted-foreground">{item.nseSymbol ? `NSE: ${item.nseSymbol}` : "NSE: -"}</p>
          </div>
          <StatusPill status={item.shariahStatus} />
       </>
    )
 }
 
-// Unlocked watchlist row — the whole row links to the company's snapshot.
+// Unlocked watchlist row - the whole row links to the company's snapshot.
 function WatchRow({ item }: { item: DashboardWatchItem }) {
    return (
       <Link
@@ -534,7 +534,7 @@ function MostPurchasedWidget({ lists }: { lists: DashboardList[] }) {
    )
 }
 
-// #1 seller — premium "award" spotlight, echoing the brand gradient banner.
+// #1 seller - premium "award" spotlight, echoing the brand gradient banner.
 function BestsellerCard({ list }: { list: DashboardList }) {
    return (
       <div

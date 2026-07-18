@@ -284,7 +284,7 @@ export async function bulkUpsertCompanies(
       .select({ id: companyMaster.id, prowessId: companyMaster.prowessId, isinCode: companyMaster.isinCode })
       .from(companyMaster)
 
-   // IDs of companies being updated — exclude their own isinCodes from conflict checks
+   // IDs of companies being updated - exclude their own isinCodes from conflict checks
    const updatedIds = new Set(updates.map((u) => u.id))
    const existingProwessIds = new Set(existing.map((r) => r.prowessId))
    const existingIsinCodes = new Set(

@@ -38,7 +38,7 @@ function getInitials(name: string) {
       .join("")
 }
 
-/** Small pill with a leading dot — green when positive, amber otherwise. */
+/** Small pill with a leading dot - green when positive, amber otherwise. */
 function StatusPill({ active, trueLabel = "Active", falseLabel = "Inactive" }: { active: boolean; trueLabel?: string; falseLabel?: string }) {
    return (
       <span
@@ -136,7 +136,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       year: "numeric",
    })
 
-   // We have no explicit KYC flag — treat KYC as complete once PAN + Aadhaar are on file.
+   // We have no explicit KYC flag - treat KYC as complete once PAN + Aadhaar are on file.
    const kycComplete = !!(client.panNumber && client.aadharNumber)
    const clientId = client.id.slice(0, 8).toUpperCase()
 

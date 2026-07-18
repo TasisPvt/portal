@@ -16,14 +16,14 @@ export function formatDate(d: Date): string {
 }
 
 /** "YYYY-MM-DD" → "3 Jan 2024"; null/empty → fallback. */
-export function formatDateStr(dateStr: string | null | undefined, fallback = "—"): string {
+export function formatDateStr(dateStr: string | null | undefined, fallback = "-"): string {
    if (!dateStr) return fallback
    const [y, m, d] = dateStr.split("-")
    return `${parseInt(d)} ${MONTHS_SHORT[parseInt(m) - 1]} ${y}`
 }
 
 /** "YYYY-MM" → "Jan '24"; null/empty → fallback. */
-export function formatMonth(month: string | null | undefined, fallback = "—"): string {
+export function formatMonth(month: string | null | undefined, fallback = "-"): string {
    if (!month) return fallback
    const [y, m] = month.split("-")
    return `${MONTHS_SHORT[parseInt(m) - 1]} '${y.slice(2)}`

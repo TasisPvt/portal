@@ -5,7 +5,7 @@
 // Place of supply decides the split:
 //   Maharashtra (intra-state) → CGST 9% + SGST 9%
 //   anywhere else (inter-state) → IGST 18%
-// Pure functions only — safe to import on client and server.
+// Pure functions only - safe to import on client and server.
 
 export const GST_RATE = 18
 export const HOME_STATE = "Maharashtra"

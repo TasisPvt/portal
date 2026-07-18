@@ -39,7 +39,7 @@ export const subscription = pgTable(
       index("subscription_plan_idx").on(table.planId),
       index("subscription_status_idx").on(table.status),
       // Serves the stale-subscription sweeps (status = 'active' AND end_date < now())
-      // run on every login — status alone is a weak filter since most rows are active.
+      // run on every login - status alone is a weak filter since most rows are active.
       index("subscription_status_end_date_idx").on(table.status, table.endDate),
    ],
 )

@@ -157,7 +157,7 @@ function PricingPlanForm({
 
    const planType = lockType ?? watch("type") ?? "snapshot"
 
-   // Validation helpers — planType-independent because shouldUnregister: true
+   // Validation helpers - planType-independent because shouldUnregister: true
    // ensures these rules only run when the field is actually rendered.
    const reqPosInt = (v: string) =>
       (!!v && Number.isInteger(Number(v)) && Number(v) > 0) || "Required"
@@ -258,7 +258,7 @@ function PricingPlanForm({
             </div>
          )}
 
-         {/* Category (list only) — pick existing or type a new one */}
+         {/* Category (list only) - pick existing or type a new one */}
          {planType === "list" && (
             <div className="flex flex-col gap-1.5">
                <Label htmlFor="pp-category">Category</Label>

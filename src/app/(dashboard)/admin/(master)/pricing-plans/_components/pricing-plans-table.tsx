@@ -44,7 +44,7 @@ import {
 // ---------------------------------------------------------------------------
 
 function fmt(v: string | null | undefined) {
-  if (!v) return <span className="text-muted-foreground opacity-40 text-xs">—</span>
+  if (!v) return <span className="text-muted-foreground opacity-40 text-xs">-</span>
   return (
     <span className="tabular-nums text-xs">
       ₹{parseFloat(v).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -110,12 +110,12 @@ export function PricingPlansTable({
         if (r.type === "list") {
           return r.indexName
             ? <span className="text-xs text-muted-foreground">{r.indexName}</span>
-            : <span className="text-xs text-muted-foreground opacity-40">—</span>
+            : <span className="text-xs text-muted-foreground opacity-40">-</span>
         }
-        // Snapshot — show the one-time daily limit as a reference; full details are in edit dialog
+        // Snapshot - show the one-time daily limit as a reference; full details are in edit dialog
         return (
           <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
-            <span>{r.oneTimeStocksPerDay ?? "—"}/day (one-time)</span>
+            <span>{r.oneTimeStocksPerDay ?? "-"}/day (one-time)</span>
           </div>
         )
       },
@@ -126,7 +126,7 @@ export function PricingPlansTable({
       header: ({ column }) => <SortableHeader column={column} label="Category" />,
       cell: ({ row }) => {
         const r = row.original
-        if (r.type !== "list") return <span className="text-muted-foreground opacity-40 text-xs">—</span>
+        if (r.type !== "list") return <span className="text-muted-foreground opacity-40 text-xs">-</span>
         return r.category
           ? <Badge variant="outline" className="rounded-full text-xs font-normal">{r.category}</Badge>
           : <span className="text-xs italic text-muted-foreground opacity-60">Uncategorized</span>
@@ -143,7 +143,7 @@ export function PricingPlansTable({
       accessorFn: (r) => r.monthlyPrice ? parseFloat(r.monthlyPrice) : -1,
       header: ({ column }) => <SortableHeader column={column} label="Monthly" />,
       cell: ({ row }) => row.original.type === "list"
-        ? <span className="text-muted-foreground opacity-40 text-xs">—</span>
+        ? <span className="text-muted-foreground opacity-40 text-xs">-</span>
         : fmt(row.original.monthlyPrice),
     },
     {
@@ -151,7 +151,7 @@ export function PricingPlansTable({
       accessorFn: (r) => r.quarterlyPrice ? parseFloat(r.quarterlyPrice) : -1,
       header: ({ column }) => <SortableHeader column={column} label="Quarterly" />,
       cell: ({ row }) => row.original.type === "list"
-        ? <span className="text-muted-foreground opacity-40 text-xs">—</span>
+        ? <span className="text-muted-foreground opacity-40 text-xs">-</span>
         : fmt(row.original.quarterlyPrice),
     },
     {
@@ -166,7 +166,7 @@ export function PricingPlansTable({
       header: ({ column }) => <SortableHeader column={column} label="Created By" />,
       cell: ({ row }) => row.original.createdByName
         ? <span className="text-xs text-muted-foreground">{row.original.createdByName}</span>
-        : <span className="text-muted-foreground opacity-40 text-xs">—</span>,
+        : <span className="text-muted-foreground opacity-40 text-xs">-</span>,
     },
     {
       id: "status",

@@ -137,7 +137,7 @@ export function IndexCompanyTable({
       header: ({ column }) => <SortableHeader column={column} label="BSE Code" />,
       cell: ({ row }) => row.original.bseScripCode
         ? <span className="font-mono text-xs">{row.original.bseScripCode}</span>
-        : <span className="text-muted-foreground opacity-40 text-xs">—</span>,
+        : <span className="text-muted-foreground opacity-40 text-xs">-</span>,
     },
     {
       id: "nseSymbol",
@@ -145,7 +145,7 @@ export function IndexCompanyTable({
       header: ({ column }) => <SortableHeader column={column} label="NSE Symbol" />,
       cell: ({ row }) => row.original.nseSymbol
         ? <span className="font-mono text-xs">{row.original.nseSymbol}</span>
-        : <span className="text-muted-foreground opacity-40 text-xs">—</span>,
+        : <span className="text-muted-foreground opacity-40 text-xs">-</span>,
     },
     {
       id: "addedAt",

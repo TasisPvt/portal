@@ -27,7 +27,7 @@ export type PlanInput = {
    monthlyPrice?: string | null      // snapshot only
    quarterlyPrice?: string | null    // snapshot only
    annualPrice: string
-   // daily view limit (snapshot only — each duration has an independent limit)
+   // daily view limit (snapshot only - each duration has an independent limit)
    oneTimeStocksPerDay?: number | null
    monthlyStocksPerDay?: number | null
    quarterlyStocksPerDay?: number | null
@@ -77,7 +77,7 @@ export async function getAvailableIndexes() {
       .orderBy(indexMaster.name)
 }
 
-// Distinct, existing category names (list plans only) — used to power the
+// Distinct, existing category names (list plans only) - used to power the
 // "pick existing or type new" combobox in the create/edit dialog.
 export async function getPricingPlanCategories(): Promise<string[]> {
    await requireAdmin()

@@ -204,7 +204,7 @@ export async function syncIndexCompanies(
 
    const existingMap = new Map(existing.map((r) => [r.companyId, r.id]))
 
-   // Diff first, then apply as two batched statements inside one transaction —
+   // Diff first, then apply as two batched statements inside one transaction -
    // a mid-sync failure must not leave the index half-updated.
    const rowIdsToRemove = [...existingMap]
       .filter(([companyId]) => !resolvedIds.has(companyId))

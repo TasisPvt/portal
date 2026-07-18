@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
       // Refresh the status column for subscriptions that expired while away.
       // Admins need every client's status current (they manage all of them);
-      // clients only their own. Best-effort — must never fail the login.
+      // clients only their own. Best-effort - must never fail the login.
       if (result?.user?.id) {
          try {
             if (result.user.userType === "admin") {

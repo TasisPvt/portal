@@ -28,7 +28,7 @@ export const user = pgTable("user", {
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
-  // Type discriminator — present on every user
+  // Type discriminator - present on every user
   userType: userTypeEnum("user_type").notNull().default("client"),
   // Only populated for admin-type users; null for clients
   adminRole: adminRoleEnum("admin_role"),

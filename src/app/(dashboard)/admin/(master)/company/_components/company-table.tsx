@@ -117,7 +117,7 @@ export function CompanyTable({
             {row.original.industryGroupName}
           </Badge>
         ) : (
-          <span className="text-muted-foreground opacity-40 text-xs">—</span>
+          <span className="text-muted-foreground opacity-40 text-xs">-</span>
         ),
     },
     {
@@ -136,7 +136,7 @@ export function CompanyTable({
         row.original.bseScripCode ? (
           <span className="font-mono text-xs">{row.original.bseScripCode}</span>
         ) : (
-          <span className="text-muted-foreground opacity-40 text-xs">—</span>
+          <span className="text-muted-foreground opacity-40 text-xs">-</span>
         ),
     },
     {
@@ -151,7 +151,7 @@ export function CompanyTable({
             })}
           </span>
         ) : (
-          <span className="text-muted-foreground opacity-40 text-xs">—</span>
+          <span className="text-muted-foreground opacity-40 text-xs">-</span>
         ),
     },
     {
@@ -166,7 +166,7 @@ export function CompanyTable({
             })}
           </span>
         ) : (
-          <span className="text-muted-foreground opacity-40 text-xs">—</span>
+          <span className="text-muted-foreground opacity-40 text-xs">-</span>
         ),
     },
     {

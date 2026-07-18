@@ -18,7 +18,7 @@ export type PaymentHistoryRow = {
    createdAt: Date
 }
 
-// Every checkout the client has made — the true money trail (one row per
+// Every checkout the client has made - the true money trail (one row per
 // purchase, each with its own emailed invoice). Distinct from /subscriptions,
 // which shows current access. A one-time snapshot day-pass tops up a single
 // subscription but still appears here as separate purchases.
