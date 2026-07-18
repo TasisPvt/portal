@@ -24,6 +24,7 @@ import {
    PercentIcon,
    BookmarkIcon,
    IndianRupeeIcon,
+   FileSpreadsheetIcon,
 } from "lucide-react"
 import { NavCollapsible } from "@/src/components/sidebar/nav-collapsible"
 import { NavMain } from "@/src/components/sidebar/nav-main"
@@ -98,6 +99,7 @@ const adminNav = {
    ],
    navReports: [
       { title: "Revenue", url: "/admin/reports/revenue", icon: IndianRupeeIcon },
+      { title: "Suspense", url: "/admin/reports/suspense", icon: FileSpreadsheetIcon },
    ],
    navMaster: [
       {
