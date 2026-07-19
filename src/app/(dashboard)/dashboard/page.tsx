@@ -2,23 +2,23 @@ import Link from "next/link"
 import {
    ArrowRightIcon,
    ArrowUpRightIcon,
-   AwardIcon,
-   EyeIcon,
-   AlertTriangleIcon,
-   Building2Icon,
-   CheckCircle2Icon,
-   FlameIcon,
-   LockIcon,
-   PackageIcon,
+   BadgeCheckIcon,
    BookmarkIcon,
+   CalculatorIcon,
+   ChevronRightIcon,
+   CreditCardIcon,
+   CrownIcon,
+   EyeIcon,
+   LockIcon,
+   MedalIcon,
+   PackageIcon,
+   StarIcon,
    TrendingUpIcon,
-   TrophyIcon,
-   UsersIcon,
-   ZapIcon,
+   Trophy
 } from "lucide-react"
 
 import { SiteHeader } from "@/src/components/site-header"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card"
 import { Button } from "@/src/components/ui/button"
 import { Badge } from "@/src/components/ui/badge"
 import {
@@ -30,8 +30,10 @@ import {
    EmptyContent,
 } from "@/src/components/ui/empty"
 import { cn } from "@/src/lib/utils"
+import { AnimatedProgress } from "./_components/animated-progress"
+import { AnimatedCounter } from "./_components/animated-counter"
 import { formatDate } from "@/src/lib/format"
-import { DURATION_LABELS } from "@/src/lib/constants"
+import { DURATION_LABELS, SUPPORT_EMAIL } from "@/src/lib/constants"
 import {
    getClientDashboard,
    type DashboardSubscription,
@@ -52,23 +54,66 @@ export default async function ClientDashboardPage() {
       )
    }
 
-   const hour = new Date().getHours()
-   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
-
    return (
       <>
          <SiteHeader title="Dashboard" />
          <div className="@container/main flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-            <CompaniesBanner count={data.companiesScreened} greeting={greeting} firstName={data.firstName} />
+            {/* ── Welcome header ── */}
+            <header>
+               <h1 className="text-2xl font-bold tracking-tight">
+                  Welcome back, <span className="text-primary">{data.firstName}</span>{" "}
+                  <span className="animate-wave motion-reduce:animate-none" role="img" aria-label="waving hand">
+                     👋
+                  </span>
+               </h1>
+               <p className="mt-1 text-sm text-muted-foreground">
+                  Here&apos;s your Shariah screening snapshot for today.
+               </p>
+            </header>
 
-            <div className="grid grid-cols-1 gap-4 @3xl/main:grid-cols-2 @4xl/main:grid-cols-3">
-               <SubscriptionsWidget subscriptions={data.subscriptions} className="@4xl/main:col-span-2" />
-               <MostPurchasedWidget lists={data.mostPurchasedLists} />
+            {/* ── Top summary row ── */}
+            <div className="grid grid-cols-1 gap-4 @3xl/main:grid-cols-3">
+               <div className="animate-slide-up motion-reduce:animate-none" style={{ animationDelay: "0ms" }}>
+                  <TotalPlansCard total={data.totalPlansTillDate} subscriptions={data.subscriptions} />
+               </div>
+               <div className="animate-slide-up motion-reduce:animate-none" style={{ animationDelay: "80ms" }}>
+                  <MarketInsightsCard compliant={data.compliantCompanies} screened={data.companiesScreened} />
+               </div>
+               <div className="animate-slide-up motion-reduce:animate-none" style={{ animationDelay: "160ms" }}>
+                  <PurgingCard />
+               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 @3xl/main:grid-cols-2 @4xl/main:grid-cols-3">
-               <WatchlistWidget items={data.watchlist} hasWatchlistAccess={data.hasWatchlistAccess} hasActiveSnapshot={data.hasActiveSnapshot} className="@4xl/main:col-span-2" />
-               <MostViewedWidget stocks={data.mostViewed} hasActiveSnapshot={data.hasActiveSnapshot} universe={data.companiesScreened} />
+            {/* ── Middle: watchlist + leaderboards rail ── */}
+            <div className="grid grid-cols-1 gap-4 @4xl/main:grid-cols-12">
+               <div
+                  className="animate-slide-up motion-reduce:animate-none @4xl/main:col-span-7"
+                  style={{ animationDelay: "240ms" }}
+               >
+                  <WatchlistWidget
+                     items={data.watchlist}
+                     hasWatchlistAccess={data.hasWatchlistAccess}
+                     hasActiveSnapshot={data.hasActiveSnapshot}
+                     className="h-full"
+                  />
+               </div>
+               <div className="flex flex-col gap-4 @4xl/main:col-span-5">
+                  <div className="animate-slide-up motion-reduce:animate-none" style={{ animationDelay: "320ms" }}>
+                     <TrendingStocksWidget
+                        stocks={data.mostViewed}
+                        hasActiveSnapshot={data.hasActiveSnapshot}
+                        universe={data.companiesScreened}
+                     />
+                  </div>
+                  <div className="animate-slide-up motion-reduce:animate-none" style={{ animationDelay: "400ms" }}>
+                     <PopularListsWidget lists={data.popularLists} />
+                  </div>
+               </div>
+            </div>
+
+            {/* ── Bottom: active subscriptions ── */}
+            <div className="animate-slide-up motion-reduce:animate-none" style={{ animationDelay: "480ms" }}>
+               <SubscriptionsWidget subscriptions={data.subscriptions} />
             </div>
          </div>
       </>
@@ -84,7 +129,7 @@ function StatusPill({ status }: { status: number | null }) {
    return (
       <span
          className={cn(
-            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+            "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold",
             compliant
                ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
                : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
@@ -99,36 +144,16 @@ function StatusPill({ status }: { status: number | null }) {
    )
 }
 
-// Icon tile + title/description, matching the admin dashboard widget headers.
-function WidgetTitle({ icon, tone, title, description }: { icon: React.ReactNode; tone: string; title: string; description: string }) {
+// Mock-style widget header: plain colored icon + title (no tile).
+function WidgetHeading({ icon, title }: { icon: React.ReactNode; title: string }) {
    return (
-      <div className="flex items-start gap-2.5">
-         <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", tone)}>{icon}</span>
-         <div className="space-y-0.5">
-            <CardTitle className="text-base">{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
-         </div>
+      <div className="flex items-center gap-2">
+         <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+            {/* <CreditCardIcon className="size-4" /> */}
+            {icon}
+         </span>
+         <CardTitle className="text-base">{title}</CardTitle>
       </div>
-   )
-}
-
-// Rank medal - #1 gets an amber "hot" treatment with a flame flag.
-function RankMedal({ n }: { n: number }) {
-   const top = n === 1
-   return (
-      <span
-         className={cn(
-            "relative flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums",
-            top
-               ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
-               : "bg-muted text-muted-foreground",
-         )}
-      >
-         {n}
-         {top && (
-            <FlameIcon className="absolute -top-1.5 -right-1.5 size-3.5 fill-amber-500 text-amber-500" aria-hidden="true" />
-         )}
-      </span>
    )
 }
 
@@ -140,9 +165,6 @@ function compactCount(n: number): string {
    }
    return String(n)
 }
-
-// Shared spotlight tint for the #1 row in a ranked widget.
-const spotlight = "border-amber-200 bg-amber-50/60 dark:border-amber-900/50 dark:bg-amber-950/20"
 
 function EmptyInline({ icon, title, desc, href, cta }: { icon: React.ReactNode; title: string; desc: string; href: string; cta: string }) {
    return (
@@ -159,117 +181,125 @@ function EmptyInline({ icon, title, desc, href, cta }: { icon: React.ReactNode; 
    )
 }
 
-// ─── ① Banner ───────────────────────────────────────────────────────────────────
+// ─── ① Total plans subscribed ───────────────────────────────────────────────────
 
-function CompaniesBanner({ count, greeting, firstName }: { count: number; greeting: string; firstName: string }) {
+function TotalPlansCard({ total, subscriptions }: { total: number; subscriptions: DashboardSubscription[] }) {
+   // Soonest-expiring active plan (the action returns them soonest-first).
+   const primary = subscriptions[0]
+
    return (
-      <div
-         style={{ background: "linear-gradient(160deg, #0d1f3c 0%, #1a3a6e 100%)" }}
-         className="relative overflow-hidden rounded-2xl px-6 py-8 shadow-lg sm:px-8"
-      >
-         <Building2Icon className="pointer-events-none absolute -top-8 -right-6 size-44 text-white/[0.04]" aria-hidden="true" />
-         <div className="relative z-10 flex flex-col gap-6 @2xl/main:flex-row @2xl/main:items-end @2xl/main:justify-between">
-            <div>
-               <p className="text-sm text-blue-100/80">
-                  {greeting}, <span className="font-bold">{firstName}</span> 👋
-               </p>
-               <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-blue-300/70">
-                  Shariah-screened universe
-               </p>
-               <h1 className="mt-1 text-4xl font-bold tabular-nums text-white sm:text-5xl">
-                  {count.toLocaleString("en-IN")}
-               </h1>
-               <p className="mt-2 max-w-md text-sm text-blue-100/70">
-                  companies screened for Shariah compliance across Indian equity markets, refreshed every month.
-               </p>
+      <Card className="h-full border-l-4 border-l-primary">
+         <CardContent className="flex h-full flex-col">
+            <div className="flex items-start justify-between gap-2">
+               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+                  <CreditCardIcon className="size-4" />
+               </span>
+               <span className="text-3xl font-bold tabular-nums">{total.toLocaleString("en-IN")}</span>
             </div>
-            <Button asChild variant="secondary" className="w-fit shrink-0">
-               <Link href="/stock/list">
-                  Explore companies <ArrowRightIcon className="ml-1 size-4" />
-               </Link>
-            </Button>
-         </div>
-      </div>
-   )
-}
-
-// ─── ② Active subscriptions ─────────────────────────────────────────────────────
-
-function SubscriptionsWidget({ subscriptions, className }: { subscriptions: DashboardSubscription[]; className?: string }) {
-   return (
-      <Card className={className}>
-        <CardHeader>
-            <div className="flex items-center justify-between gap-2">
-               <WidgetTitle
-                  icon={<PackageIcon className="size-4" />}
-                  tone="bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400"
-                  title="Active Subscriptions"
-                  description="Your current plans and renewals"
-               />
-               <Button asChild variant="ghost" size="sm" className="shrink-0 text-xs text-muted-foreground">
-                  <Link href="/subscriptions">
-                     View all <ArrowRightIcon className="ml-1 size-3" />
-                  </Link>
-               </Button>
+            <p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+               Total Plans Subscribed
+            </p>
+            <div className="mt-auto border-t pt-3">
+               {primary ? (
+                  <>
+                     <p className="text-[11px] font-bold uppercase tracking-wide text-primary">
+                        Active plans ({subscriptions.length})
+                     </p>
+                     <p className="mt-1 text-sm font-semibold leading-tight">{primary.planName ?? "-"}</p>
+                     <p
+                        className={cn(
+                           "mt-1 text-xs",
+                           primary.soonExpiring
+                              ? "font-semibold text-red-600 dark:text-red-400"
+                              : "text-muted-foreground",
+                        )}
+                     >
+                        Expires: {formatDate(primary.endDate)}
+                        {primary.soonExpiring &&
+                           ` · ${primary.daysLeft === 0 ? "today" : `${primary.daysLeft}d left`}`}
+                     </p>
+                  </>
+               ) : (
+                  <>
+                     <p className="text-sm font-semibold">No active plans</p>
+                     <Link
+                        href="/plans"
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+                     >
+                        Browse plans <ArrowRightIcon className="size-3" aria-hidden="true" />
+                     </Link>
+                  </>
+               )}
             </div>
-         </CardHeader>
-         <CardContent>
-            {subscriptions.length === 0 ? (
-               <EmptyInline
-                  icon={<PackageIcon className="size-5" />}
-                  title="No active subscriptions"
-                  desc="Subscribe to a plan to access company lists and snapshots."
-                  href="/plans"
-                  cta="Browse plans"
-               />
-            ) : (
-               <ul className="flex flex-col gap-2.5">
-                  {subscriptions.map((s) => (
-                     <SubscriptionRow key={s.id} sub={s} />
-                  ))}
-               </ul>
-            )}
          </CardContent>
       </Card>
    )
 }
 
-function SubscriptionRow({ sub }: { sub: DashboardSubscription }) {
+// Market insights (compliant companies)
+
+function MarketInsightsCard({ compliant, screened }: { compliant: number; screened: number }) {
+   const pct = screened > 0 ? Math.round((compliant / screened) * 100) : 0
+
    return (
-      <li
-         className={cn(
-            "flex items-center gap-3 rounded-xl border p-3",
-            sub.soonExpiring && "border-amber-300 bg-amber-50 dark:border-amber-800/70 dark:bg-amber-950/30",
-         )}
-      >
-         <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{sub.planName ?? "-"}</p>
-            <p className="text-xs text-muted-foreground">
-               {DURATION_LABELS[sub.durationType] ?? sub.durationType} · until {formatDate(sub.endDate)}
-            </p>
-         </div>
-         {sub.soonExpiring ? (
-            <Badge
-               variant="outline"
-               className="shrink-0 gap-1 border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
-            >
-               <AlertTriangleIcon className="size-3" aria-hidden="true" />
-               {sub.daysLeft === 0 ? "Expires today" : `${sub.daysLeft}d left`}
-            </Badge>
-         ) : (
-            <Badge
-               variant="outline"
-               className="shrink-0 gap-1 border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400"
-            >
-               <CheckCircle2Icon className="size-3" aria-hidden="true" />
-               Active
-            </Badge>
-         )}
-      </li>
+      <Card className="relative h-full overflow-hidden border-transparent bg-primary text-primary-foreground">
+         <CardContent className="relative z-10 flex h-full flex-col justify-between gap-6">
+            <div>
+               <div className="flex items-start justify-between gap-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground/80">
+                     Market Insights
+                  </p>
+                  <BadgeCheckIcon className="size-5 text-primary-foreground/60" aria-hidden="true" />
+               </div>
+               <AnimatedCounter value={compliant} className="mt-2 block text-4xl font-bold tabular-nums" />
+               <p className="mt-1 text-sm font-medium">Shariah Compliant Companies</p>
+            </div>
+            <div>
+               <AnimatedProgress
+                  value={pct}
+                  aria-label="Share of screened companies that are Shariah compliant"
+                  className="h-1.5 bg-primary-foreground/20"
+                  indicatorClassName="bg-primary-foreground"
+               />
+               <p className="mt-2 text-xs text-primary-foreground/80">
+                  Screened from {screened.toLocaleString("en-IN")} total entities
+               </p>
+            </div>
+         </CardContent>
+      </Card>
    )
 }
 
-// ─── ③ Watchlist ────────────────────────────────────────────────────────────────
+// ─── ③ Purging service (coming soon) ────────────────────────────────────────────
+
+function PurgingCard() {
+   return (
+      <Card className="h-full border-dashed">
+         <CardContent className="flex h-full flex-col">
+            <div className="flex items-center justify-between gap-2">
+               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                  <CalculatorIcon className="size-4" />
+               </span>
+               <Badge variant="secondary" className="rounded-full text-[10px] font-bold uppercase tracking-wide">
+                  Coming soon
+               </Badge>
+            </div>
+            <h3 className="mt-3 text-base font-semibold">Purging Service</h3>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+               Automated dividend cleansing reports and Shariah calculators tailored for your portfolio.
+            </p>
+            <a
+               href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Notify me when the Purging Service launches")}`}
+               className="mt-auto inline-flex items-center gap-1 pt-3 text-xs font-bold text-primary hover:underline"
+            >
+               Notify Me <ArrowRightIcon className="size-3.5" aria-hidden="true" />
+            </a>
+         </CardContent>
+      </Card>
+   )
+}
+
+// ─── ④ Watchlist ────────────────────────────────────────────────────────────────
 
 function WatchlistWidget({
    items,
@@ -284,19 +314,12 @@ function WatchlistWidget({
 }) {
    return (
       <Card className={className}>
-         <CardHeader>
+         <CardHeader className="border-b [.border-b]:pb-4">
             <div className="flex items-center justify-between gap-2">
-               <WidgetTitle
-                  icon={<BookmarkIcon className="size-4" />}
-                  tone="bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400"
-                  title="Watchlist"
-                  description="Recently bookmarked companies"
-               />
-               <Button asChild variant="ghost" size="sm" className="shrink-0 text-xs text-muted-foreground">
-                  <Link href="/stock/watchlist">
-                     View all <ArrowRightIcon className="ml-1 size-3" />
-                  </Link>
-               </Button>
+               <WidgetHeading icon={<BookmarkIcon className="size-4.5 text-primary" />} title="Watchlist" />
+               <Link href="/stock/watchlist" className="text-xs font-bold text-primary hover:underline">
+                  View all
+               </Link>
             </div>
          </CardHeader>
          <CardContent>
@@ -366,8 +389,15 @@ function WatchlistWidget({
 function WatchRowContent({ item }: { item: DashboardWatchItem }) {
    return (
       <>
+         {/* Lettered avatar tile, per the reference design. */}
+         <span
+            className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted font-bold text-muted-foreground"
+            aria-hidden="true"
+         >
+            {item.companyName.charAt(0).toUpperCase()}
+         </span>
          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{item.companyName}</p>
+            <p className="truncate text-sm font-semibold">{item.companyName}</p>
             <p className="text-xs text-muted-foreground">{item.nseSymbol ? `NSE: ${item.nseSymbol}` : "NSE: -"}</p>
          </div>
          <StatusPill status={item.shariahStatus} />
@@ -381,7 +411,7 @@ function WatchRow({ item }: { item: DashboardWatchItem }) {
       <Link
          href={`/stock/snapshot?company=${item.id}`}
          aria-label={`View snapshot for ${item.companyName}`}
-         className="group flex items-center gap-3 rounded-xl border p-3 transition-all hover:border-primary/50 hover:bg-muted/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+         className="group flex items-center gap-3 rounded-xl border p-3 transition-all hover:border-primary/40 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
       >
          <WatchRowContent item={item} />
          <ArrowUpRightIcon
@@ -392,9 +422,26 @@ function WatchRow({ item }: { item: DashboardWatchItem }) {
    )
 }
 
-// ─── ④ Most viewed (trending) ───────────────────────────────────────────────────
+// ─── ⑤ Trending stocks ──────────────────────────────────────────────────────────
 
-function MostViewedWidget({
+// Solid podium discs (mock colors) with accessible dark text.
+const MEDAL_SOLID = [
+   "bg-[#FFD700] text-yellow-950",
+   "bg-[#C0C0C0] text-slate-900",
+   "bg-[#CD7F32] text-orange-950",
+] as const
+
+// Tinted discs holding the medal icon in the Popular Lists rail - gold, silver,
+// bronze, podium style.
+const MEDAL_TINT = [
+   "border-[#FFD700]/50 bg-[#FFD700]/10 text-amber-500",
+   "border-[#C0C0C0]/60 bg-[#C0C0C0]/15 text-slate-400 dark:text-slate-300",
+   "border-[#CD7F32]/50 bg-[#CD7F32]/10 text-[#CD7F32]",
+] as const
+
+const MEDAL_NAMES = ["Gold", "Silver", "Bronze"] as const
+
+function TrendingStocksWidget({
    stocks,
    hasActiveSnapshot,
    universe,
@@ -404,32 +451,21 @@ function MostViewedWidget({
    universe: number
 }) {
    return (
-      <Card className="overflow-hidden">
+      <Card>
          <CardHeader>
-            <WidgetTitle
-               icon={<TrendingUpIcon className="size-4" />}
-               tone="bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400"
-               title="Most Viewed Stocks"
-               description="Most-opened snapshots by TASIS clients"
-            />
+            <WidgetHeading icon={<TrendingUpIcon className="size-4.5 text-primary" />} title="Trending Stocks" />
          </CardHeader>
-         <CardContent className="flex flex-col gap-2.5">
+         <CardContent className="flex flex-col gap-2">
             {stocks.length === 0 ? (
                <p className="py-6 text-center text-sm text-muted-foreground">No view activity yet.</p>
             ) : (
                <>
                   {stocks.map((s, i) => (
-                     <ViewedRow key={s.id} stock={s} rank={i + 1} hasActiveSnapshot={hasActiveSnapshot} />
+                     <TrendingRow key={s.id} stock={s} rank={i + 1} hasActiveSnapshot={hasActiveSnapshot} />
                   ))}
                   {!hasActiveSnapshot && (
-                     <Button
-                        asChild
-                        className="mt-1 h-11 w-full bg-gradient-to-r from-primary to-blue-600 text-white shadow-sm hover:opacity-95"
-                     >
-                        <Link href="/plans">
-                           <ZapIcon className="mr-1.5 size-4 fill-current" />
-                           Unlock all {universe.toLocaleString("en-IN")} snapshots
-                        </Link>
+                     <Button asChild className="mt-2 w-full">
+                        <Link href="/plans">Unlock all {universe.toLocaleString("en-IN")} snapshots</Link>
                      </Button>
                   )}
                </>
@@ -439,7 +475,7 @@ function MostViewedWidget({
    )
 }
 
-function ViewedRow({
+function TrendingRow({
    stock,
    rank,
    hasActiveSnapshot,
@@ -448,143 +484,194 @@ function ViewedRow({
    rank: number
    hasActiveSnapshot: boolean
 }) {
-   const inner = (
-      <>
-         <RankMedal n={rank} />
+   return (
+      <div className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/40">
+         <span
+            className={cn(
+               "flex size-10 shrink-0 items-center justify-center rounded-full border",
+               MEDAL_TINT[rank - 1] ?? "border-border bg-muted text-muted-foreground",
+            )}
+            role="img"
+            aria-label={`Rank ${rank}${MEDAL_NAMES[rank - 1] ? ` - ${MEDAL_NAMES[rank - 1]} medal` : ""}`}
+         >
+            <MedalIcon className="size-5" aria-hidden="true" />
+         </span>
          <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{stock.companyName}</p>
-            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-               {stock.nseSymbol && (
-                  <span className="text-xs font-medium text-muted-foreground">{stock.nseSymbol}</span>
-               )}
-               <span className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
+            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+               {stock.nseSymbol && <span className="font-medium">{stock.nseSymbol}</span>}
+               <span className="inline-flex items-center gap-1 tabular-nums">
                   <EyeIcon className="size-3" aria-hidden="true" />
                   {compactCount(stock.views)}
                </span>
-            </div>
+            </p>
          </div>
          {hasActiveSnapshot ? (
-            <ArrowRightIcon
-               className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
-               aria-hidden="true"
-            />
+            <Link
+               href={`/stock/snapshot?company=${stock.id}`}
+               className="shrink-0 text-xs font-bold text-primary hover:underline"
+               aria-label={`View details for ${stock.companyName}`}
+            >
+               View Details
+            </Link>
          ) : (
             <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                <LockIcon className="size-3.5" aria-hidden="true" />
             </span>
          )}
-      </>
-   )
-
-   const base = cn(
-      "flex items-center gap-3 rounded-xl border p-3 transition-all",
-      rank === 1 && spotlight,
-   )
-
-   return hasActiveSnapshot ? (
-      <Link
-         href={`/stock/snapshot?company=${stock.id}`}
-         className={cn(
-            "group hover:border-primary/50 hover:bg-muted/40 hover:shadow-sm",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-            base,
-         )}
-      >
-         {inner}
-      </Link>
-   ) : (
-      <div className={base}>{inner}</div>
+      </div>
    )
 }
 
-// ─── ⑤ Most purchased lists ─────────────────────────────────────────────────────
+// ─── ⑥ Popular lists ────────────────────────────────────────────────────────────
 
-function MostPurchasedWidget({ lists }: { lists: DashboardList[] }) {
+function PopularListsWidget({ lists }: { lists: DashboardList[] }) {
    return (
-      <Card className="overflow-hidden">
+      <Card>
          <CardHeader>
-            <WidgetTitle
-               icon={<TrophyIcon className="size-4" />}
-               tone="bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
-               title="Most Purchased Lists"
-               description="Top-selling screens on TASIS"
-            />
+            <WidgetHeading icon={<Trophy className="size-4.5 text-primary" />} title="Popular Lists" />
          </CardHeader>
-         <CardContent className="flex flex-col gap-2.5">
+         <CardContent className="flex flex-col gap-2">
             {lists.length === 0 ? (
-               <p className="py-6 text-center text-sm text-muted-foreground">No purchases yet.</p>
+               <p className="py-6 text-center text-sm text-muted-foreground">No active subscribers yet.</p>
             ) : (
-               <>
-                  {lists.map((l, i) =>
-                     i === 0 ? (
-                        <BestsellerCard key={l.planId} list={l} />
-                     ) : (
-                        <PurchasedRow key={l.planId} list={l} rank={i + 1} />
-                     ),
-                  )}
-                  <Button asChild variant="outline" className="mt-1 h-11 w-full">
-                     <Link href="/plans">
-                        Browse all plans <ArrowRightIcon className="ml-1 size-3.5" />
-                     </Link>
-                  </Button>
-               </>
+               lists.map((l, i) => <PopularListRow key={l.planId} list={l} rank={i + 1} />)
+            )}
+            <Button asChild variant="outline" className="mt-2 w-full">
+               <Link href="/plans">Browse all plans</Link>
+            </Button>
+         </CardContent>
+      </Card>
+   )
+}
+
+function PopularListRow({ list, rank }: { list: DashboardList; rank: number }) {
+   // #1 is the gold champion: a premium gold-gradient row with a crown badge.
+   // Ranks 2 & 3 keep silver/bronze numbered discs.
+   const gold = rank === 1
+
+   return (
+      <Link
+         href="/plans"
+         className={cn(
+            "group flex items-center gap-3 rounded-lg p-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+            gold
+               ? "bg-gradient-to-r from-amber-50 to-yellow-50/50 shadow-sm ring-1 ring-inset ring-amber-300/70 hover:ring-amber-400 dark:from-amber-950/30 dark:to-yellow-950/15 dark:ring-amber-800/50"
+               : "hover:bg-muted/40",
+         )}
+      >
+         {gold ? (
+            <span
+               className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 text-amber-950 shadow-md ring-2 ring-amber-200/80 dark:ring-amber-900"
+               role="img"
+               aria-label="Rank 1 - gold"
+            >
+               <CrownIcon className="size-5 fill-amber-950/15" aria-hidden="true" />
+            </span>
+         ) : (
+            <span
+               className={cn(
+                  "flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular-nums shadow-sm",
+                  MEDAL_SOLID[rank - 1] ?? "bg-muted text-muted-foreground",
+               )}
+               aria-label={`Rank ${rank}${MEDAL_NAMES[rank - 1] ? ` - ${MEDAL_NAMES[rank - 1]}` : ""}`}
+            >
+               {rank}
+            </span>
+         )}
+         <div className="min-w-0 flex-1">
+            <p className={cn("text-sm font-semibold leading-snug", gold && "text-amber-950 dark:text-amber-100")}>
+               {list.name}
+            </p>
+            <p
+               className={cn(
+                  "mt-0.5 text-xs tabular-nums",
+                  gold ? "font-medium text-amber-700 dark:text-amber-400" : "text-muted-foreground",
+               )}
+            >
+               {list.subscribers.toLocaleString("en-IN")} active subscriber{list.subscribers === 1 ? "" : "s"}
+            </p>
+         </div>
+         <ChevronRightIcon
+            className={cn(
+               "size-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
+               gold ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
+            )}
+            aria-hidden="true"
+         />
+      </Link>
+   )
+}
+
+// ─── ⑦ Active subscriptions ─────────────────────────────────────────────────────
+
+function SubscriptionsWidget({ subscriptions }: { subscriptions: DashboardSubscription[] }) {
+   return (
+      <Card>
+         <CardHeader>
+            <div className="flex items-center justify-between gap-2">
+               <WidgetHeading
+                  icon={<StarIcon className="size-4.5 fill-primary text-primary" />}
+                  title="Active Subscriptions"
+               />
+               <Button asChild variant="outline" size="sm" className="text-xs font-bold text-primary">
+                  <Link href="/subscriptions">View All</Link>
+               </Button>
+            </div>
+         </CardHeader>
+         <CardContent>
+            {subscriptions.length === 0 ? (
+               <EmptyInline
+                  icon={<PackageIcon className="size-5" />}
+                  title="No active subscriptions"
+                  desc="Subscribe to a plan to access company lists and snapshots."
+                  href="/plans"
+                  cta="Browse plans"
+               />
+            ) : (
+               <div className="grid grid-cols-1 gap-4 @3xl/main:grid-cols-2 @5xl/main:grid-cols-3">
+                  {subscriptions.map((s) => (
+                     <SubscriptionCard key={s.id} sub={s} />
+                  ))}
+               </div>
             )}
          </CardContent>
       </Card>
    )
 }
 
-// #1 seller - premium "award" spotlight, echoing the brand gradient banner.
-function BestsellerCard({ list }: { list: DashboardList }) {
+function SubscriptionCard({ sub }: { sub: DashboardSubscription }) {
    return (
       <div
-         style={{ background: "linear-gradient(150deg, #0d1f3c 0%, #1a3a6e 100%)" }}
-         className="relative overflow-hidden rounded-xl p-4 shadow-md"
+         className={cn(
+            "rounded-xl border p-4 transition-colors hover:border-primary/50",
+            sub.soonExpiring && "border-red-300 dark:border-red-900",
+         )}
       >
-         <TrophyIcon className="pointer-events-none absolute -top-4 -right-3 size-24 text-white/[0.05]" aria-hidden="true" />
-         <div className="relative z-10 flex flex-col gap-3">
-            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950">
-               <AwardIcon className="size-3" aria-hidden="true" />
-               Bestseller
-            </span>
-            <h3 className="text-base font-bold leading-snug text-white text-balance">{list.name}</h3>
-            <div className="flex items-center justify-between gap-3 pt-1">
-               <span className="flex items-center gap-1.5 text-sm tabular-nums text-blue-100/80">
-                  <UsersIcon className="size-4" aria-hidden="true" />
-                  {list.purchases.toLocaleString("en-IN")}
-               </span>
-               <Button asChild variant="secondary" className="h-11 shrink-0">
-                  <Link href="/plans">
-                     {list.priceFrom != null ? `Plans from ₹${list.priceFrom.toLocaleString("en-IN")}` : "View plans"}
-                     <ArrowRightIcon className="ml-1 size-3.5" />
-                  </Link>
-               </Button>
+         <div className="flex items-start justify-between gap-2">
+            <h3 className="min-w-0 text-sm font-semibold leading-snug">{sub.planName ?? "-"}</h3>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+               <Badge className="rounded-full border-transparent bg-blue-100 text-[10px] font-bold uppercase text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                  Active
+               </Badge>
+               {sub.soonExpiring && (
+                  <Badge className="rounded-full border-transparent bg-red-100 text-[10px] font-bold uppercase text-red-700 dark:bg-red-950 dark:text-red-300">
+                     Expiring soon
+                  </Badge>
+               )}
+            </div>
+         </div>
+         <div className="mt-4 flex items-center gap-4 text-xs">
+            <div>
+               <p className="text-muted-foreground">Frequency</p>
+               <p className="mt-0.5 font-bold">{DURATION_LABELS[sub.durationType] ?? sub.durationType}</p>
+            </div>
+            <div className="h-8 w-px bg-border" aria-hidden="true" />
+            <div>
+               <p className="text-muted-foreground">Valid Until</p>
+               <p className="mt-0.5 font-bold">{formatDate(sub.endDate)}</p>
             </div>
          </div>
       </div>
-   )
-}
-
-function PurchasedRow({ list, rank }: { list: DashboardList; rank: number }) {
-   return (
-      <Link
-         href="/plans"
-         className="group flex items-center gap-3 rounded-xl border p-3 transition-all hover:border-primary/50 hover:bg-muted/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-      >
-         <RankMedal n={rank} />
-         <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold leading-snug">{list.name}</p>
-            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-               <span className="flex items-center gap-1 tabular-nums">
-                  <UsersIcon className="size-3" aria-hidden="true" />
-                  {list.purchases.toLocaleString("en-IN")}
-               </span>
-            </div>
-         </div>
-         <ArrowRightIcon
-            className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
-            aria-hidden="true"
-         />
-      </Link>
    )
 }

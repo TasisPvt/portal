@@ -1,6 +1,6 @@
 "use server"
 
-import { and, count, countDistinct, desc, eq, inArray } from "drizzle-orm"
+import { and, count, countDistinct, desc, eq, gte, inArray, sql } from "drizzle-orm"
 import { headers } from "next/headers"
 
 import { auth } from "@/src/lib/auth"
@@ -8,7 +8,6 @@ import { db } from "@/src/db/client"
 import {
    companyMaster,
    companyShariah,
-   payment,
    pricingPlan,
    subscription,
 } from "@/src/db/schema"
@@ -20,7 +19,7 @@ import { getWatchlist } from "../stock/watchlist/_actions"
 const SOON_EXPIRING_DAYS = 7
 const WATCHLIST_PREVIEW = 5
 const MOST_VIEWED_LIMIT = 3
-const MOST_PURCHASED_LIMIT = 2
+const POPULAR_LISTS_LIMIT = 3
 const DAY_MS = 24 * 60 * 60 * 1000
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -53,19 +52,23 @@ export type DashboardStock = {
 export type DashboardList = {
    planId: string
    name: string
-   purchases: number
-   priceFrom: number | null
+   // Distinct clients currently holding an active subscription to this plan.
+   subscribers: number
 }
 
 export type ClientDashboard = {
    firstName: string
    companiesScreened: number
+   // KPI row: all-time plans + compliant-company count for the latest month.
+   totalPlansTillDate: number
+   compliantCompanies: number
+   compliantMonth: string | null // "YYYY-MM" of the latest screening
    subscriptions: DashboardSubscription[]
    watchlist: DashboardWatchItem[]
    hasWatchlistAccess: boolean
    hasActiveSnapshot: boolean
    mostViewed: DashboardStock[]
-   mostPurchasedLists: DashboardList[]
+   popularLists: DashboardList[]
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -98,7 +101,7 @@ export async function getClientDashboard(): Promise<ClientDashboard | null> {
    const now = new Date()
    const soonThreshold = new Date(now.getTime() + SOON_EXPIRING_DAYS * DAY_MS)
 
-   const [screenedRow, activeSubs, watchlistData, access, viewedRows, purchasedRows] =
+   const [screenedRow, activeSubs, watchlistData, access, viewedRows, purchasedRows, totalPlansRow, compliant] =
       await Promise.all([
          // ① Distinct companies we have Shariah screening data for.
          db.select({ c: countDistinct(companyShariah.companyId) }).from(companyShariah),
@@ -132,28 +135,41 @@ export async function getClientDashboard(): Promise<ClientDashboard | null> {
             .groupBy(companyMaster.id, companyMaster.companyName, companyMaster.nseSymbol)
             .orderBy(desc(count(stockViewLog.id)))
             .limit(MOST_VIEWED_LIMIT),
-         // ⑤ Most-purchased list plans (paid payments, all-time).
+         // ⑤ Popular list plans - ranked by distinct clients with a live
+         // subscription (status + endDate guard: status alone can be stale).
          db
             .select({
                planId: pricingPlan.id,
                name: pricingPlan.name,
-               purchases: count(payment.id),
-               oneTimePrice: pricingPlan.oneTimePrice,
-               quarterlyPrice: pricingPlan.quarterlyPrice,
-               annualPrice: pricingPlan.annualPrice,
+               subscribers: countDistinct(subscription.clientId),
             })
-            .from(payment)
-            .innerJoin(pricingPlan, eq(payment.planId, pricingPlan.id))
-            .where(and(eq(payment.status, "paid"), eq(pricingPlan.type, "list")))
-            .groupBy(
-               pricingPlan.id,
-               pricingPlan.name,
-               pricingPlan.oneTimePrice,
-               pricingPlan.quarterlyPrice,
-               pricingPlan.annualPrice,
+            .from(subscription)
+            .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
+            .where(
+               and(
+                  eq(pricingPlan.type, "list"),
+                  eq(subscription.status, "active"),
+                  gte(subscription.endDate, now),
+               ),
             )
-            .orderBy(desc(count(payment.id)))
-            .limit(MOST_PURCHASED_LIMIT),
+            .groupBy(pricingPlan.id, pricingPlan.name)
+            .orderBy(desc(countDistinct(subscription.clientId)))
+            .limit(POPULAR_LISTS_LIMIT),
+         // ⑥ Every plan the user has ever subscribed to (any status) - "till date".
+         db.select({ c: count() }).from(subscription).where(eq(subscription.clientId, userId)),
+         // ⑦ Compliant companies in the latest published screening month.
+         (async () => {
+            const [latest] = await db
+               .select({ m: sql<string | null>`max(${companyShariah.month})` })
+               .from(companyShariah)
+            const month = latest?.m ?? null
+            if (!month) return { count: 0, month: null as string | null }
+            const [row] = await db
+               .select({ c: countDistinct(companyShariah.companyId) })
+               .from(companyShariah)
+               .where(and(eq(companyShariah.month, month), eq(companyShariah.shariahStatus, 1)))
+            return { count: row?.c ?? 0, month }
+         })(),
       ])
 
    const statusMap = await latestShariahStatus(viewedRows.map((r) => r.id))
@@ -188,27 +204,19 @@ export async function getClientDashboard(): Promise<ClientDashboard | null> {
       views: r.views,
    }))
 
-   const mostPurchasedLists: DashboardList[] = purchasedRows.map((r) => {
-      // Cheapest advertised entry point for the plan → "from ₹X".
-      const prices = [r.oneTimePrice, r.quarterlyPrice, r.annualPrice]
-         .map((p) => (p != null ? parseFloat(p) : NaN))
-         .filter((n) => Number.isFinite(n) && n > 0)
-      return {
-         planId: r.planId,
-         name: r.name,
-         purchases: r.purchases,
-         priceFrom: prices.length ? Math.min(...prices) : null,
-      }
-   })
+   const popularLists: DashboardList[] = purchasedRows
 
    return {
       firstName,
       companiesScreened: screenedRow[0]?.c ?? 0,
+      totalPlansTillDate: totalPlansRow[0]?.c ?? 0,
+      compliantCompanies: compliant.count,
+      compliantMonth: compliant.month,
       subscriptions,
       watchlist,
       hasWatchlistAccess: !watchlistData.noAccess,
       hasActiveSnapshot: access?.hasActiveSnapshot ?? false,
       mostViewed,
-      mostPurchasedLists,
+      popularLists,
    }
 }
