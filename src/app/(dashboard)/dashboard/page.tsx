@@ -314,7 +314,7 @@ function WatchlistWidget({
 }) {
    return (
       <Card className={className}>
-         <CardHeader className="border-b [.border-b]:pb-4">
+         <CardHeader className="">
             <div className="flex items-center justify-between gap-2">
                <WidgetHeading icon={<BookmarkIcon className="size-4.5 text-primary" />} title="Watchlist" />
                <Link href="/stock/watchlist" className="text-xs font-bold text-primary hover:underline">
