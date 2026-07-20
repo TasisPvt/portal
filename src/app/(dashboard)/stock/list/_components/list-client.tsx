@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { toast } from "sonner"
-import { SearchIcon, BuildingIcon, FilterIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, BookmarkIcon, LockIcon, ClockIcon, CalendarDaysIcon } from "lucide-react"
+import { SearchIcon, BuildingIcon, FilterIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, BookmarkIcon, LockIcon, ClockIcon, CalendarDaysIcon, FactoryIcon } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
 import { Skeleton } from "@/src/components/ui/skeleton"
 import { Spinner } from "@/src/components/ui/spinner"
@@ -50,6 +50,7 @@ import {
    CardTitle,
    CardAction,
    CardContent,
+   CardFooter,
 } from "@/src/components/ui/card"
 import { cn } from "@/src/lib/utils"
 import { formatMonth as fmtMonth } from "@/src/lib/format"
@@ -674,7 +675,7 @@ export function ListClient({ subscriptions }: ListClientProps) {
 
                <>
                {/* ── Company list (2-column grid - adaptive to available space) ── */}
-               <div className="grid grid-cols-1 @4xl/main:grid-cols-2 @5xl/main:grid-cols-3 gap-3">
+               <div className="grid grid-cols-1 @4xl/main:grid-cols-2 @6xl/main:grid-cols-3 gap-3">
                   {loading ? (
                      <>
                         {Array.from({ length: 6 }).map((_, i) => (
@@ -761,13 +762,20 @@ export function ListClient({ subscriptions }: ListClientProps) {
                                     )}
                                  </div>
                               )}
-                              {company.industryGroup && (
-                                 <div className="text-xs">
-                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Industry</p>
-                                    <p className="truncate font-medium text-foreground">{company.industryGroup}</p>
-                                 </div>
-                              )}
                            </CardContent>
+
+                           {/* Industry - icon replaces the "Industry" label */}
+                           {company.industryGroup && (
+                              <CardFooter className="mt-auto gap-1.5 border-t pt-3 text-xs">
+                                 <FactoryIcon
+                                    className="size-3.5 shrink-0 text-primary"
+                                    aria-label="Industry"
+                                 />
+                                 <span className="min-w-0 flex-1 truncate font-medium text-primary">
+                                    {company.industryGroup}
+                                 </span>
+                              </CardFooter>
+                           )}
                         </Card>
                      ))
                   )}

@@ -61,10 +61,10 @@
 
 .dark {
   --background: #0f172a;
-  --dashboard: #0c121a;
+  --dashboard: #081b33;
   --foreground: #e2e8f0;
   --hero-foreground: #e2e8f0;
-  --card: #141b26;
+  --card: #0d233c;
   --card-foreground: #e2e8f0;
   --popover: #1e293b;
   --popover-foreground: #e2e8f0;
@@ -86,7 +86,7 @@
   --chart-3: #22d3ee;
   --chart-4: #34d399;
   --chart-5: #fbbf24;
-  --sidebar: #0f1621;
+  --sidebar: #0d233c;
   --sidebar-foreground: #e2e8f0;
   --sidebar-primary: #3b82f6;
   --sidebar-primary-foreground: #ffffff;

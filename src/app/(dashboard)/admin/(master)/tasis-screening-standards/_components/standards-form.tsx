@@ -206,7 +206,6 @@ export function StandardsForm({
 }) {
    return (
       <div className="flex flex-col gap-3">
-         <div />
          {data.map((row) => (
             <ParameterRow key={row.key} row={row} />
          ))}

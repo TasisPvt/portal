@@ -181,8 +181,8 @@ export default async function UserDetailPage({
 
             <div className="grid grid-cols-1 gap-4 px-4 @4xl/main:grid-cols-3 lg:px-6">
 
-              {/* Profile card */}
-              <Card size="sm" className="h-fit @4xl/main:col-span-1">
+              {/* Profile card - sticks alongside the scrolling details column on wide screens */}
+              <Card size="sm" className="h-fit @4xl/main:sticky @4xl/main:top-6 @4xl/main:col-span-1 @4xl/main:self-start">
                 <CardContent className="flex flex-col gap-5">
                   <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-2xl font-bold text-white">
                     {getInitials(u.name)}

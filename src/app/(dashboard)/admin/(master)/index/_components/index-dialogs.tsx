@@ -19,6 +19,14 @@ import {
    DialogTitle,
    DialogTrigger,
 } from "@/src/components/ui/dialog"
+import {
+   Popover,
+   PopoverContent,
+   PopoverDescription,
+   PopoverHeader,
+   PopoverTitle,
+   PopoverTrigger,
+} from "@/src/components/ui/popover"
 import { AlertDestructive } from "@/src/components/alerts/alertDestructive"
 
 function IndexForm({
@@ -162,7 +170,15 @@ export function EditIndexDialog({ index }: { index: { id: string; name: string; 
    )
 }
 
-export function DeleteIndexButton({ id, name }: { id: string; name: string }) {
+export function DeleteIndexButton({
+   id,
+   name,
+   planNames = [],
+}: {
+   id: string
+   name: string
+   planNames?: string[]
+}) {
    const [open, setOpen] = React.useState(false)
    const [isPending, startTransition] = React.useTransition()
    const router = useRouter()
@@ -178,6 +194,36 @@ export function DeleteIndexButton({ id, name }: { id: string; name: string }) {
             toast.error(result.message)
          }
       })
+   }
+
+   // The index is attached to one or more pricing plans - block the delete up
+   // front. The trigger looks disabled but still opens a popover explaining why,
+   // so the user learns the reason without opening the dialog and confirming.
+   if (planNames.length > 0) {
+      return (
+         <Popover>
+            <PopoverTrigger asChild>
+               <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Cannot delete "${name}" - in use by a pricing plan`}
+                  className="size-7 text-muted-foreground/50 hover:text-muted-foreground/50"
+               >
+                  <Trash2 className="size-3.5" />
+               </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 gap-2">
+               <PopoverHeader>
+                  <PopoverTitle className="text-sm">Can&apos;t delete this index</PopoverTitle>
+                  <PopoverDescription className="text-xs">
+                     It&apos;s used by {planNames.length === 1 ? "the pricing plan" : `${planNames.length} pricing plans`}{" "}
+                     {planNames.map((n) => `"${n}"`).join(", ")}. Remove it from{" "}
+                     {planNames.length === 1 ? "that plan" : "those plans"} first.
+                  </PopoverDescription>
+               </PopoverHeader>
+            </PopoverContent>
+         </Popover>
+      )
    }
 
    return (

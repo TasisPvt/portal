@@ -1,6 +1,7 @@
 import { Suspense } from "react"
 import { ShieldCheck, Microscope, BadgeCheck, Check } from "lucide-react"
 import Logo from "@/src/components/logo"
+import { Card } from "@/src/components/ui/card"
 
 const trustPills = [
    { icon: ShieldCheck, label: "Rooted in Faith" },
@@ -72,9 +73,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                </div>
 
                <div className="w-full max-w-md">
-                  <div className="rounded-2xl border bg-background px-8 py-9 c-box-shadow">
+                  <Card className="px-8 py-9">
                      <Suspense>{children}</Suspense>
-                  </div>
+                  </Card>
 
                   <p className="mt-8 text-center text-xs text-blue-100/70 lg:hidden">
                      © {new Date().getFullYear()} Tasis Pvt Ltd. All rights reserved.

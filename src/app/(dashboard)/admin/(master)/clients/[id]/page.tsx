@@ -174,8 +174,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
                   <div className="grid grid-cols-1 gap-4 px-4 @4xl/main:grid-cols-3 lg:px-6">
 
-                     {/* Profile card */}
-                     <Card size="sm" className="h-fit @4xl/main:col-span-1">
+                     {/* Profile card - sticks alongside the scrolling details column on wide screens */}
+                     <Card size="sm" className="h-fit @4xl/main:sticky @4xl/main:top-6 @4xl/main:col-span-1 @4xl/main:self-start">
                         <CardContent className="flex flex-col gap-5">
                            <div className="flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-2xl font-bold text-white">
                               {getInitials(client.name)}
@@ -250,7 +250,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
                         {/* KYC */}
                         <Card size="sm">
-                           <CardHeader className="border-b">
+                           <CardHeader className="border-b gap-0">
                               <CardTitle className="flex items-center gap-2.5 text-sm">
                                  <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                                     <ShieldCheckIcon className="size-4" />
@@ -296,7 +296,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
                         {/* Active logins */}
                         <Card size="sm">
-                           <CardHeader className="border-b">
+                           <CardHeader className="border-b gap-0">
                               <CardTitle className="flex items-center gap-2.5 text-sm">
                                  <span className="flex size-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                                     <MonitorSmartphoneIcon className="size-4" />

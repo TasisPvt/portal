@@ -5,7 +5,7 @@ import { eq, inArray, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
 import { db } from "@/src/db/client"
-import { indexMaster, indexCompany, companyMaster } from "@/src/db/schema"
+import { indexMaster, indexCompany, companyMaster, pricingPlan } from "@/src/db/schema"
 import { chunk } from "@/src/lib/db-batch"
 import { requireAdmin } from "@/src/lib/require-admin"
 
@@ -40,7 +40,22 @@ export async function getIndexes() {
       .groupBy(indexMaster.id)
       .orderBy(indexMaster.name)
 
-   return rows
+   // Which pricing plans reference each index - used to pre-empt deletion of an
+   // index that is still attached to a plan (the delete button is disabled and
+   // explains why, rather than failing after the user confirms).
+   const planRows = await db
+      .select({ indexId: pricingPlan.indexId, name: pricingPlan.name })
+      .from(pricingPlan)
+
+   const planNamesByIndex = new Map<string, string[]>()
+   for (const p of planRows) {
+      if (!p.indexId) continue
+      const list = planNamesByIndex.get(p.indexId)
+      if (list) list.push(p.name)
+      else planNamesByIndex.set(p.indexId, [p.name])
+   }
+
+   return rows.map((r) => ({ ...r, planNames: planNamesByIndex.get(r.id) ?? [] }))
 }
 
 // ---------------------------------------------------------------------------
@@ -141,6 +156,25 @@ export async function updateIndex(id: string, input: IndexInput): Promise<Action
 export async function deleteIndex(id: string): Promise<ActionResult> {
    await requireAdmin()
    try {
+      // Block deletion while the index is still attached to a pricing plan -
+      // the plan must be pointed at a different index (or the index cleared)
+      // first, otherwise the plan would silently lose its index reference.
+      const plans = await db
+         .select({ name: pricingPlan.name })
+         .from(pricingPlan)
+         .where(eq(pricingPlan.indexId, id))
+
+      if (plans.length > 0) {
+         const names = plans.map((p) => `"${p.name}"`).join(", ")
+         return {
+            success: false,
+            message:
+               plans.length === 1
+                  ? `This index is used by the pricing plan ${names}. Remove it from that plan before deleting.`
+                  : `This index is used by ${plans.length} pricing plans (${names}). Remove it from those plans before deleting.`,
+         }
+      }
+
       await db.delete(indexMaster).where(eq(indexMaster.id, id))
       revalidatePath("/admin/index")
       return { success: true }

@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { toast } from "sonner"
-import { SearchIcon, BookmarkIcon, Trash2Icon, FilterIcon, ChevronDownIcon, LockIcon, ArrowUpRightIcon } from "lucide-react"
+import { SearchIcon, BookmarkIcon, Trash2Icon, FilterIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, LockIcon, ArrowUpRightIcon, FactoryIcon } from "lucide-react"
 
 import { Input } from "@/src/components/ui/input"
 import { Button } from "@/src/components/ui/button"
@@ -14,7 +14,15 @@ import {
    CardTitle,
    CardAction,
    CardContent,
+   CardFooter,
 } from "@/src/components/ui/card"
+import {
+   Select,
+   SelectContent,
+   SelectItem,
+   SelectTrigger,
+   SelectValue,
+} from "@/src/components/ui/select"
 import {
    DropdownMenu,
    DropdownMenuContent,
@@ -33,6 +41,29 @@ import { WATCHLIST_LIMIT } from "@/src/lib/constants"
 import { toggleWatchlist, type WatchlistItem } from "../_actions"
 
 type ComplianceFilter = "all" | "compliant" | "non-compliant"
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+
+// Builds the list of page tokens to render: numbers plus "…" placeholders.
+// Always shows first/last page and a window around the current page.
+function getPageRange(current: number, total: number): (number | "ellipsis")[] {
+   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+   const pages: (number | "ellipsis")[] = [1]
+   let start = Math.max(2, current - 1)
+   let end = Math.min(total - 1, current + 1)
+   if (current <= 3) {
+      start = 2
+      end = 4
+   } else if (current >= total - 2) {
+      start = total - 3
+      end = total - 1
+   }
+   if (start > 2) pages.push("ellipsis")
+   for (let i = start; i <= end; i++) pages.push(i)
+   if (end < total - 1) pages.push("ellipsis")
+   pages.push(total)
+   return pages
+}
 
 // Binary status only: compliant (status 1) vs non-compliant - the watchlist
 // doesn't surface the specific non-compliance reason.
@@ -71,6 +102,8 @@ export function WatchlistClient({
    const [removingId, setRemovingId] = React.useState<string | null>(null)
    const [search, setSearch] = React.useState("")
    const [complianceFilter, setComplianceFilter] = React.useState<ComplianceFilter>("all")
+   const [pageSize, setPageSize] = React.useState(10)
+   const [currentPage, setCurrentPage] = React.useState(1)
 
    const atLimit = items.length >= WATCHLIST_LIMIT
 
@@ -106,6 +139,23 @@ export function WatchlistClient({
             (i.industryGroup?.toLowerCase().includes(q) ?? false),
       )
    }, [items, search, complianceFilter])
+
+   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+
+   const paginated = React.useMemo(
+      () => filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+      [filtered, currentPage, pageSize],
+   )
+
+   // Reset to the first page whenever the filter/search/page-size changes.
+   React.useEffect(() => {
+      setCurrentPage(1)
+   }, [search, complianceFilter, pageSize])
+
+   // Clamp back into range if the result set shrinks (e.g. after a removal).
+   React.useEffect(() => {
+      setCurrentPage((p) => Math.min(p, totalPages))
+   }, [totalPages])
 
    async function handleRemove(id: string) {
       const prev = items
@@ -234,7 +284,7 @@ export function WatchlistClient({
          )}
 
          {/* Company cards */}
-         <div className="grid grid-cols-1 gap-3 @4xl/main:grid-cols-2 @5xl/main:grid-cols-3">
+         <div className="grid grid-cols-1 gap-3 @4xl/main:grid-cols-2 @6xl/main:grid-cols-3">
             {filtered.length === 0 ? (
                <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed px-4 py-12 text-center">
                   <p className="text-sm font-medium text-foreground">No companies found</p>
@@ -243,7 +293,7 @@ export function WatchlistClient({
                   </p>
                </div>
             ) : (
-               filtered.map((item, i) => {
+               paginated.map((item, i) => {
                   const locked = !item.canViewSnapshot
                   return (
                      <div
@@ -275,15 +325,19 @@ export function WatchlistClient({
                                  {item.companyName}
                               </CardTitle>
                               <CardAction>
-                                 <div className="relative z-20 flex items-center">
-                                    <StatusBadge status={item.shariahStatus} />
+                                 <div className="flex items-center">
+                                    {/* Status sits above the click-link when unlocked, but tucks
+                                        behind the lock overlay when locked so the blur covers it. */}
+                                    <span className={cn("relative", locked ? "z-0" : "z-20")}>
+                                       <StatusBadge status={item.shariahStatus} />
+                                    </span>
                                     <button
                                        type="button"
                                        onClick={() => handleRemove(item.id)}
                                        disabled={removingId === item.id}
                                        aria-label="Remove from watchlist"
                                        title="Remove from watchlist"
-                                       className="flex h-7 w-0 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border text-muted-foreground opacity-0 transition-all duration-200 ease-out group-hover:ml-1.5 group-hover:w-7 group-hover:opacity-100 hover:bg-muted hover:text-red-600 focus-visible:ml-1.5 focus-visible:w-7 focus-visible:opacity-100 disabled:opacity-50 motion-reduce:transition-none dark:hover:text-red-400"
+                                       className="relative z-20 flex h-7 w-0 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border text-muted-foreground opacity-0 transition-all duration-200 ease-out group-hover:ml-1.5 group-hover:w-7 group-hover:opacity-100 hover:bg-muted hover:text-red-600 focus-visible:ml-1.5 focus-visible:w-7 focus-visible:opacity-100 disabled:opacity-50 motion-reduce:transition-none dark:hover:text-red-400"
                                     >
                                        <Trash2Icon className="size-3.5" />
                                     </button>
@@ -309,17 +363,20 @@ export function WatchlistClient({
                                     )}
                                  </div>
                               )}
-
-                              {/* Industry */}
-                              {item.industryGroup && (
-                                 <div className="text-xs">
-                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                       Industry
-                                    </p>
-                                    <p className="truncate font-medium text-foreground">{item.industryGroup}</p>
-                                 </div>
-                              )}
                            </CardContent>
+
+                           {/* Industry - icon replaces the "Industry" label */}
+                           {item.industryGroup && (
+                              <CardFooter className="mt-auto gap-1.5 border-t pt-3 text-xs">
+                                 <FactoryIcon
+                                    className="size-3.5 shrink-0 text-primary"
+                                    aria-label="Industry"
+                                 />
+                                 <span className="min-w-0 flex-1 truncate font-medium text-primary">
+                                    {item.industryGroup}
+                                 </span>
+                              </CardFooter>
+                           )}
 
                            {/* Active subscription: hover affordance hinting the card is clickable */}
                            {!locked && (
@@ -334,7 +391,7 @@ export function WatchlistClient({
                                (has a plan; just needs to wait for tomorrow). */}
                            {locked && (
                               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card/70 opacity-0 backdrop-blur-[2px] transition-opacity duration-200 group-hover:opacity-100 motion-reduce:transition-none">
-                                 <div className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                 <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
                                     <LockIcon className="size-5" />
                                  </div>
                                  {hasActiveSnapshot ? (
@@ -344,7 +401,7 @@ export function WatchlistClient({
                                        Come back tomorrow to view this snapshot.
                                     </p>
                                  ) : (
-                                    <Button asChild size="sm" variant="outline" className="relative z-20">
+                                    <Button asChild size="sm" variant="default" className="relative z-20">
                                        <Link href="/plans">Unlock detailed snapshot</Link>
                                     </Button>
                                  )}
@@ -356,6 +413,73 @@ export function WatchlistClient({
                })
             )}
          </div>
+
+         {/* ── Pagination ── */}
+         {filtered.length > 0 && (
+            <div className="flex flex-col gap-4 @2xl/main:flex-row @2xl/main:items-center @2xl/main:justify-between">
+               {/* Page size selector */}
+               <div className="flex items-center gap-2">
+                  <span className="whitespace-nowrap text-sm text-muted-foreground">Companies per page</span>
+                  <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                     <SelectTrigger className="h-9 w-20">
+                        <SelectValue />
+                     </SelectTrigger>
+                     <SelectContent>
+                        {PAGE_SIZE_OPTIONS.map((size) => (
+                           <SelectItem key={size} value={String(size)}>
+                              {size}
+                           </SelectItem>
+                        ))}
+                     </SelectContent>
+                  </Select>
+               </div>
+
+               {/* Page navigation */}
+               <div className="flex items-center gap-1.5">
+                  <Button
+                     variant="outline"
+                     size="icon"
+                     className="size-9"
+                     aria-label="Previous page"
+                     disabled={currentPage === 1}
+                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  >
+                     <ChevronLeftIcon className="size-4" />
+                  </Button>
+
+                  {getPageRange(currentPage, totalPages).map((page, i) =>
+                     page === "ellipsis" ? (
+                        <span key={`ellipsis-${i}`} className="select-none px-1 text-sm text-muted-foreground">
+                           …
+                        </span>
+                     ) : (
+                        <Button
+                           key={page}
+                           variant={page === currentPage ? "default" : "outline"}
+                           size="icon"
+                           className="size-9"
+                           aria-label={`Go to page ${page}`}
+                           aria-current={page === currentPage ? "page" : undefined}
+                           onClick={() => setCurrentPage(page)}
+                        >
+                           {page}
+                        </Button>
+                     ),
+                  )}
+
+                  <Button
+                     variant="outline"
+                     size="icon"
+                     className="size-9"
+                     aria-label="Next page"
+                     disabled={currentPage >= totalPages}
+                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  >
+                     <ChevronRightIcon className="size-4" />
+                  </Button>
+               </div>
+            </div>
+         )}
       </div>
    )
 }

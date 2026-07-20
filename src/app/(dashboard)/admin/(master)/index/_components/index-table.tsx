@@ -31,6 +31,7 @@ export type IndexRow = {
   companyCount: number
   createdAt: Date
   updatedAt: Date
+  planNames: string[]
 }
 
 export function IndexTable({ data }: { data: IndexRow[] }) {
@@ -83,7 +84,7 @@ export function IndexTable({ data }: { data: IndexRow[] }) {
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
           <EditIndexDialog index={row.original} />
-          <DeleteIndexButton id={row.original.id} name={row.original.name} />
+          <DeleteIndexButton id={row.original.id} name={row.original.name} planNames={row.original.planNames} />
         </div>
       ),
     },

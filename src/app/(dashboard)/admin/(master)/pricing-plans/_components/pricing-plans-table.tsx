@@ -10,7 +10,8 @@ import {
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table"
-import { SearchIcon } from "lucide-react"
+import { ArrowUpRightIcon, SearchIcon } from "lucide-react"
+import Link from "next/link"
 
 import { Badge } from "@/src/components/ui/badge"
 import { PlanTypeBadge as TypeBadge } from "@/src/components/plan-type-badge"
@@ -78,7 +79,7 @@ export function PricingPlansTable({
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [typeFilter, setTypeFilter] = React.useState<"all" | "snapshot" | "list">("all")
-  const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "inactive">("all")
+  const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "inactive">("active")
 
   const preFiltered = React.useMemo(() => {
     return data.filter((r) => {
@@ -108,8 +109,16 @@ export function PricingPlansTable({
       cell: ({ row }) => {
         const r = row.original
         if (r.type === "list") {
-          return r.indexName
-            ? <span className="text-xs text-muted-foreground">{r.indexName}</span>
+          return r.indexName && r.indexId
+            ? (
+              <Link
+                href={`/admin/index/${r.indexId}`}
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                {r.indexName}
+                <ArrowUpRightIcon className="size-3" />
+              </Link>
+            )
             : <span className="text-xs text-muted-foreground opacity-40">-</span>
         }
         // Snapshot - show the one-time daily limit as a reference; full details are in edit dialog
