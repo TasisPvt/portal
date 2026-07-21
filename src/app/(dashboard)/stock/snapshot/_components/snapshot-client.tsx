@@ -1138,7 +1138,7 @@ export function SnapshotClient({ access, commonRemark, thresholds, initialCompan
          />
 
          {/* Empty state */}
-         {recentlyViewed.length === 0 && (
+         {!isLoading && !snapshotData && (
             <Empty className="border py-20">
                <EmptyHeader>
                   <EmptyMedia variant="icon">
@@ -1149,8 +1149,6 @@ export function SnapshotClient({ access, commonRemark, thresholds, initialCompan
                </EmptyHeader>
             </Empty>
          )}
-         {/* </>
-         )} */}
 
          {isLoading && (
             <div className="flex items-center justify-center py-16">

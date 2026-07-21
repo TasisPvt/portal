@@ -22,14 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/src/components/ui/select"
-import {
-  Empty,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-  EmptyDescription,
-  EmptyContent,
-} from "@/src/components/ui/empty"
+import { StockEmptyState } from "@/src/components/stock-empty-state"
 import {
   Table,
   DataTableCard,
@@ -193,22 +186,16 @@ export function MySubscriptionsTable({ data }: { data: SubscriptionRow[] }) {
   // Never subscribed - show the onboarding empty state (not the filtered-empty one).
   if (data.length === 0) {
     return (
-      <Empty className="border py-16">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <PackageIcon />
-          </EmptyMedia>
-          <EmptyTitle>No subscriptions yet</EmptyTitle>
-          <EmptyDescription>
-            You haven&apos;t subscribed to any plans yet. Browse our plans to get started.
-          </EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
+      <StockEmptyState
+        icon={PackageIcon}
+        title="No subscriptions yet"
+        description="You haven't subscribed to any plans yet. Browse our plans to get started."
+        action={
           <Button asChild>
             <Link href="/plans">Browse plans</Link>
           </Button>
-        </EmptyContent>
-      </Empty>
+        }
+      />
     )
   }
 

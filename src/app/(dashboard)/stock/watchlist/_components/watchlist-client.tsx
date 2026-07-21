@@ -295,7 +295,7 @@ export function WatchlistClient({
                               "group relative h-full gap-3 transition-all duration-200 ease-out",
                               locked
                                  ? "hover:border-primary/40"
-                                 : "cursor-pointer hover:-translate-y-1 hover:border-primary/50 motion-reduce:hover:translate-y-0",
+                                 : "cursor-pointer hover:border-primary/50",
                            )}
                         >
                            {/* Active subscription: the whole card opens the snapshot */}

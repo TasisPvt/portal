@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowRightIcon, BookmarkPlusIcon } from "lucide-react"
+import { ArrowRightIcon, BookmarkPlusIcon, InfoIcon } from "lucide-react"
 
 import { Button } from "@/src/components/ui/button"
 import { SiteHeader } from "@/src/components/site-header"
@@ -40,6 +40,18 @@ export default async function WatchlistPage() {
          <SiteHeader breadcrumb="Stocks" title="Watchlist" />
          <div className="flex flex-1 flex-col">
             <div className="@container/main flex flex-1 flex-col">
+               {data.hasActiveSnapshot && data.items.length > 0 && (
+                  <div className="px-4 pt-4 sm:px-6 sm:pt-6">
+                     <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/60 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-950/10">
+                        <InfoIcon className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <p className="text-sm leading-relaxed text-amber-800 dark:text-amber-300">
+                           Opening a company&apos;s snapshot from your watchlist uses one of your{" "}
+                           <span className="font-semibold">daily snapshot views</span>. Browsing and
+                           managing the watchlist itself is always free.
+                        </p>
+                     </div>
+                  </div>
+               )}
                <WatchlistClient items={data.items} hasActiveSnapshot={data.hasActiveSnapshot} />
             </div>
          </div>
