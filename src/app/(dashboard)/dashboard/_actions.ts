@@ -17,7 +17,7 @@ import { getWatchlist } from "../stock/watchlist/_actions"
 
 // Widget tuning knobs.
 const SOON_EXPIRING_DAYS = 7
-const WATCHLIST_PREVIEW = 5
+const WATCHLIST_PREVIEW = 7
 const MOST_VIEWED_LIMIT = 3
 const POPULAR_LISTS_LIMIT = 3
 const DAY_MS = 24 * 60 * 60 * 1000
