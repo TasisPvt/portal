@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { toast } from "sonner"
-import { SearchIcon, BuildingIcon, FilterIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, BookmarkIcon, LockIcon, ClockIcon, CalendarDaysIcon, FactoryIcon } from "lucide-react"
+import { SearchIcon, FilterIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, BookmarkIcon, LockIcon, ClockIcon, CalendarDaysIcon, FactoryIcon, ListChecksIcon, PointerIcon } from "lucide-react"
 import { Input } from "@/src/components/ui/input"
 import { Skeleton } from "@/src/components/ui/skeleton"
 import { Spinner } from "@/src/components/ui/spinner"
@@ -52,6 +52,7 @@ import {
    CardContent,
    CardFooter,
 } from "@/src/components/ui/card"
+import { StockEmptyState } from "@/src/components/stock-empty-state"
 import { cn } from "@/src/lib/utils"
 import { formatMonth as fmtMonth } from "@/src/lib/format"
 import { getListCompanies, unlockCurrentMonth, type ListSubscription, type ListCompany, type ListMonthViews } from "../_actions"
@@ -440,15 +441,12 @@ export function ListClient({ subscriptions }: ListClientProps) {
 
          {/* ── Empty state (no sub selected) ── */}
          {!selectedSubId ? (
-            <Empty className="py-24">
-               <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                     <BuildingIcon />
-                  </EmptyMedia>
-                  <EmptyTitle>No List Selected</EmptyTitle>
-                  <EmptyDescription>Select a list above to view its companies</EmptyDescription>
-               </EmptyHeader>
-            </Empty>
+            <StockEmptyState
+               icon={ListChecksIcon}
+               accentTop={PointerIcon}
+               title="No List Selected"
+               description="Select a list from above to view its constituent companies and their Shariah compliance status. Explore real-time ethical screenings and financial metrics."
+            />
          ) : (
             <>
                {/* ── Index header card (gradient - matches snapshot header) ── */}
