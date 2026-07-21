@@ -41,7 +41,7 @@ function getInitials(name: string) {
 }
 
 export function NavUser({ user }: { user: User | null }) {
-   const { isMobile } = useSidebar()
+   const { isMobile, setOpenMobile } = useSidebar()
 
    if (!user) return null
 
@@ -97,7 +97,7 @@ export function NavUser({ user }: { user: User | null }) {
 
                   <DropdownMenuGroup>
                      <DropdownMenuItem asChild>
-                        <Link href="/profile">
+                        <Link href="/profile" onClick={() => isMobile && setOpenMobile(false)}>
                            <CircleUserRoundIcon />
                            Account
                         </Link>

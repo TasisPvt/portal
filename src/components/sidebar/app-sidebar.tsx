@@ -38,6 +38,7 @@ import {
    SidebarMenuButton,
    SidebarMenuItem,
    SidebarRail,
+   useSidebar,
 } from "@/src/components/ui/sidebar"
 import Logo from "@/src/components/logo"
 import type { User } from "@/src/lib/auth"
@@ -150,6 +151,7 @@ export function AppSidebar({
 }: React.ComponentProps<typeof Sidebar> & { user: User | null }) {
    const userType = user?.userType ?? UserType.CLIENT
    const isManager = user?.adminRole === Roles.MANAGER
+   const { isMobile, setOpenMobile } = useSidebar()
 
    const adminMainNav = isManager
       ? adminNav.navMain.filter((item) => item.url !== "/admin/users")
@@ -164,7 +166,10 @@ export function AppSidebar({
                      asChild
                      className="h-auto justify-center overflow-visible py-2 hover:bg-transparent group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-1!"
                   >
-                     <a href={userType === UserType.ADMIN ? "/admin/dashboard" : "/dashboard"}>
+                     <a
+                        href={userType === UserType.ADMIN ? "/admin/dashboard" : "/dashboard"}
+                        onClick={() => isMobile && setOpenMobile(false)}
+                     >
                         <Logo
                            width={50}
                            height={70}

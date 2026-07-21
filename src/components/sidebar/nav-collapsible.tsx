@@ -45,8 +45,13 @@ export function NavCollapsible({
    items: NavItem[]
 }) {
    const pathname = usePathname()
-   const { state } = useSidebar()
+   const { state, isMobile, setOpenMobile } = useSidebar()
    const isCollapsed = state === "collapsed"
+
+   // Close the mobile sheet when a navigation link is chosen.
+   const closeMobileSidebar = () => {
+      if (isMobile) setOpenMobile(false)
+   }
 
    return (
       <SidebarGroup>
@@ -88,7 +93,7 @@ export function NavCollapsible({
                            isActive={isGroupActive}
                            asChild
                         >
-                           <Link href={item.url}>
+                           <Link href={item.url} onClick={closeMobileSidebar}>
                               {item.icon && <item.icon />}
                               <span>{item.title}</span>
                            </Link>
@@ -115,6 +120,7 @@ export function NavCollapsible({
                                  <DropdownMenuItem key={sub.title} asChild>
                                     <Link
                                        href={sub.url}
+                                       onClick={closeMobileSidebar}
                                        className={
                                           pathname === sub.url || pathname.startsWith(sub.url + "/")
                                              ? "font-medium"
@@ -158,7 +164,7 @@ export function NavCollapsible({
                                           pathname.startsWith(subItem.url + "/")
                                        }
                                     >
-                                       <Link href={subItem.url}>
+                                       <Link href={subItem.url} onClick={closeMobileSidebar}>
                                           <span>{subItem.title}</span>
                                        </Link>
                                     </SidebarMenuSubButton>
