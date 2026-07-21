@@ -29,13 +29,7 @@ import {
    DropdownMenuItem,
    DropdownMenuTrigger,
 } from "@/src/components/ui/dropdown-menu"
-import {
-   Empty,
-   EmptyHeader,
-   EmptyMedia,
-   EmptyTitle,
-   EmptyDescription,
-} from "@/src/components/ui/empty"
+import { StockEmptyState } from "@/src/components/stock-empty-state"
 import { cn } from "@/src/lib/utils"
 import { WATCHLIST_LIMIT } from "@/src/lib/constants"
 import { toggleWatchlist, type WatchlistItem } from "../_actions"
@@ -173,17 +167,11 @@ export function WatchlistClient({
 
    if (items.length === 0) {
       return (
-         <Empty className="py-24">
-            <EmptyHeader>
-               <EmptyMedia variant="icon">
-                  <BookmarkIcon />
-               </EmptyMedia>
-               <EmptyTitle>Your watchlist is empty</EmptyTitle>
-               <EmptyDescription>
-                  Bookmark companies from the Snapshot or List screens to track them here.
-               </EmptyDescription>
-            </EmptyHeader>
-         </Empty>
+         <StockEmptyState
+            icon={BookmarkIcon}
+            title="Your watchlist is empty"
+            description="Bookmark companies from the Snapshot or List screens to track them here."
+         />
       )
    }
 
@@ -307,7 +295,7 @@ export function WatchlistClient({
                               "group relative h-full gap-3 transition-all duration-200 ease-out",
                               locked
                                  ? "hover:border-primary/40"
-                                 : "cursor-pointer hover:-translate-y-1 hover:border-primary/50 motion-reduce:hover:translate-y-0",
+                                 : "cursor-pointer hover:border-primary/50",
                            )}
                         >
                            {/* Active subscription: the whole card opens the snapshot */}
