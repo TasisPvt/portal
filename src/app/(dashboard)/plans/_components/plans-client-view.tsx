@@ -104,38 +104,43 @@ function PlanCard({ plan, isSubscribed, customerState }: { plan: PlanRow; isSubs
             </h3>
          </div>
 
-         {/* Duration selector */}
-         <div className="mt-3">
-            <Select
-               value={selectedDuration}
-               onValueChange={(v) => setSelectedDuration(v as DurationType)}
-               disabled={isSubscribed}
-            >
-               <SelectTrigger className="w-full">
-                  <SelectValue />
-               </SelectTrigger>
-               <SelectContent>
-                  {availableDurations.map(({ key, label }) => (
-                     <SelectItem key={key} value={key}>
-                        {label}
-                     </SelectItem>
-                  ))}
-               </SelectContent>
-            </Select>
+         {/* Payment term row */}
+         <div className="mt-4 flex items-center justify-between gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Payment Term</span>
+            {availableDurations.length > 1 ? (
+               <Select
+                  value={selectedDuration}
+                  onValueChange={(v) => setSelectedDuration(v as DurationType)}
+                  disabled={isSubscribed}
+               >
+                  <SelectTrigger size="sm" className="h-8 w-auto gap-1.5 rounded-xl font-semibold">
+                     <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                     {availableDurations.map(({ key, label }) => (
+                        <SelectItem key={key} value={key}>
+                           {label}
+                        </SelectItem>
+                     ))}
+                  </SelectContent>
+               </Select>
+            ) : (
+               <span className="text-sm font-semibold text-foreground">{availableDurations[0].label}</span>
+            )}
          </div>
 
-         {/* Price */}
-         <div className="mt-3">
-            <div className="">
+         {/* Price box */}
+         <div className="mt-2 rounded-xl border border-border/60 bg-primary/10 p-4">
+            <div className="flex items-baseline gap-1.5">
                <span className="text-4xl font-bold tracking-tight text-foreground">
                   ₹{fmtNum(price)}
-               </span><br/>
-               <span className="text-xs text-muted-foreground">inclusive of GST</span>
+               </span>
+               <span className="text-xs text-muted-foreground">/ inclusive of GST</span>
             </div>
          </div>
 
          {/* CTA */}
-         <div className="mt-1">
+         <div className="mt-4">
             {isSubscribed ? (
                <button
                   disabled
@@ -151,7 +156,7 @@ function PlanCard({ plan, isSubscribed, customerState }: { plan: PlanRow; isSubs
                   durationType={selectedDuration}
                   price={price}
                   stocksPerDay={spd}
-                  triggerLabel="Select"
+                  triggerLabel="Select Plan"
                   triggerClassName="w-full h-11"
                   customerState={customerState}
                />
@@ -166,14 +171,14 @@ function PlanCard({ plan, isSubscribed, customerState }: { plan: PlanRow; isSubs
          </div>
 
          {/* What's included */}
-         <div className="mt-3 border-t pt-3">
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+         <div className="mt-4 border-t pt-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                What&apos;s Included
             </p>
-            <ul className="mt-2 space-y-2.5">
+            <ul className="mt-3 space-y-2.5">
                {features.map((f, i) => (
                   <li key={i} className="flex items-center gap-2.5 text-sm">
-                     <CheckCircle2Icon className="size-4 shrink-0 text-emerald-500" />
+                     <CheckCircle2Icon className="size-4 shrink-0 text-primary" />
                      <span>{f.label}</span>
                   </li>
                ))}
@@ -208,64 +213,69 @@ export function PlansClientView({ plans, subscribedPlanIds, customerState }: { p
          ? byType.filter((p) => planCategory(p) === listCategory)
          : byType
 
+   const showCategories = filter === "list" && listCategories.length > 0
+
    return (
       <div className="flex flex-col gap-6">
-         {/* Filter */}
-         <div className="flex items-center gap-2 flex-wrap">
-            {(["all", "snapshot", "list"] as FilterType[]).map((f) => (
-               <button
-                  key={f}
-                  onClick={() => {
-                     setFilter(f)
-                     setListCategory("all")
-                  }}
-                  className={cn(
-                     "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-                     filter === f
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted/60 text-muted-foreground hover:bg-muted",
-                  )}
-               >
-                  {f === "all" ? "All Plans" : f.charAt(0).toUpperCase() + f.slice(1)}
-               </button>
-            ))}
-            <span className="ml-auto text-sm text-muted-foreground">
-               {visible.length} plan{visible.length !== 1 ? "s" : ""}
-            </span>
-         </div>
-
-         {/* Category chips (List tab only) */}
-         {filter === "list" && listCategories.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-               {["all", ...listCategories].map((c) => (
+         {/* Toolbar: segmented type tabs (left) + plan count (top right) */}
+         <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Segmented plan-type tabs */}
+            <div className="inline-flex items-center gap-1 rounded-xl bg-muted p-1">
+               {(["all", "snapshot", "list"] as FilterType[]).map((f) => (
                   <button
-                     key={c}
-                     onClick={() => setListCategory(c)}
+                     key={f}
+                     onClick={() => {
+                        setFilter(f)
+                        setListCategory("all")
+                     }}
+                     aria-pressed={filter === f}
                      className={cn(
-                        "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                        listCategory === c
-                           ? "border-primary bg-primary/10 text-primary"
-                           : "border-border text-muted-foreground hover:bg-muted",
+                        "rounded-lg px-4 py-1.5 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                        filter === f
+                           ? "bg-primary text-primary-foreground shadow-sm"
+                           : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
                      )}
                   >
-                     {c === "all" ? "All Categories" : c}
+                     {f === "all" ? "All Plans" : f.charAt(0).toUpperCase() + f.slice(1)}
                   </button>
                ))}
             </div>
+
+            <span className="whitespace-nowrap text-sm font-bold text-primary">
+               {visible.length} plan{visible.length !== 1 ? "s" : ""} available
+            </span>
+         </div>
+
+         {/* Category filters (List tab only) - below the tabs header */}
+         {showCategories && (
+            <div className="-mt-2 flex flex-wrap items-center gap-2.5">
+               <span className="text-sm text-muted-foreground">Filters:</span>
+               <div className="flex flex-wrap gap-1.5">
+                  {["all", ...listCategories].map((c) => (
+                     <button
+                        key={c}
+                        onClick={() => setListCategory(c)}
+                        aria-pressed={listCategory === c}
+                        className={cn(
+                           "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                           listCategory === c
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:border-primary hover:text-foreground",
+                        )}
+                     >
+                        {c === "all" ? "All Categories" : c}
+                     </button>
+                  ))}
+               </div>
+            </div>
          )}
 
-         {/* Grid */}
-         {visible.length === 0 ? (
-            <div className="rounded-xl border border-dashed py-16 text-center text-sm text-muted-foreground">
-               No plans available.
-            </div>
-         ) : (
-            <div className="grid grid-cols-1 gap-x-4 gap-y-6 @xl/main:grid-cols-2 @4xl/main:grid-cols-3">
-               {visible.map((plan) => (
-                  <PlanCard key={plan.id} plan={plan} isSubscribed={subscribedPlanIds.includes(plan.id)} customerState={customerState} />
-               ))}
-            </div>
-         )}
+         {/* Grid - plan cards followed by the advisory card */}
+         <div className="grid grid-cols-1 gap-x-4 gap-y-6 @xl/main:grid-cols-2 @4xl/main:grid-cols-3">
+            {visible.map((plan) => (
+               <PlanCard key={plan.id} plan={plan} isSubscribed={subscribedPlanIds.includes(plan.id)} customerState={customerState} />
+            ))}
+         </div>
       </div>
    )
 }
