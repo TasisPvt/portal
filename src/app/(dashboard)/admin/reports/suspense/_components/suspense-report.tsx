@@ -25,6 +25,7 @@ import { Input } from "@/src/components/ui/input"
 import { Badge } from "@/src/components/ui/badge"
 import { MonthYearPicker } from "@/src/components/month-year-picker"
 import { Spinner } from "@/src/components/ui/spinner"
+import { BrandedLoader } from "@/src/components/branded-loader"
 import {
    Table,
    TableBody,
@@ -294,6 +295,19 @@ export function SuspenseReport({
                {filtered.length > 0 && <DataTablePagination table={table} />}
             </CardContent>
          </Card>
+
+         {isExporting && (
+            <BrandedLoader
+               overlay
+               icon={FileSpreadsheetIcon}
+               title="Preparing your report"
+               messages={[
+                  "Compiling client records…",
+                  "Building your spreadsheet…",
+                  "Almost ready…",
+               ]}
+            />
+         )}
       </div>
    )
 }

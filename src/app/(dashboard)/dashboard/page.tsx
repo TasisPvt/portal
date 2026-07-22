@@ -32,6 +32,7 @@ import {
 import { cn } from "@/src/lib/utils"
 import { AnimatedProgress } from "./_components/animated-progress"
 import { AnimatedCounter } from "./_components/animated-counter"
+import { InvoicesWidget } from "./_components/invoices-widget"
 import { formatDate } from "@/src/lib/format"
 import { DURATION_LABELS, SUPPORT_EMAIL } from "@/src/lib/constants"
 import {
@@ -71,24 +72,52 @@ export default async function ClientDashboardPage() {
                </p>
             </header>
 
-            {/* ── Top summary row ── */}
-            <div className="grid grid-cols-1 gap-4 @3xl/main:grid-cols-3">
-               <div className="animate-slide-up motion-reduce:animate-none" style={{ animationDelay: "0ms" }}>
+            {/* ── Top summary row (5 / 4 / 3 of 12) ── */}
+            <div className="grid grid-cols-1 gap-4 @3xl/main:grid-cols-12">
+               <div
+                  className="animate-slide-up motion-reduce:animate-none @3xl/main:col-span-5 @4xl/main:col-span-4"
+                  style={{ animationDelay: "0ms" }}
+               >
                   <TotalPlansCard total={data.totalPlansTillDate} subscriptions={data.subscriptions} />
                </div>
-               <div className="animate-slide-up motion-reduce:animate-none" style={{ animationDelay: "80ms" }}>
+               <div
+                  className="animate-slide-up motion-reduce:animate-none @3xl/main:col-span-4 @4xl/main:col-span-4"
+                  style={{ animationDelay: "80ms" }}
+               >
                   <MarketInsightsCard compliant={data.compliantCompanies} screened={data.companiesScreened} />
                </div>
-               <div className="animate-slide-up motion-reduce:animate-none" style={{ animationDelay: "160ms" }}>
+               <div
+                  className="animate-slide-up motion-reduce:animate-none @3xl/main:col-span-3 @4xl/main:col-span-4"
+                  style={{ animationDelay: "160ms" }}
+               >
                   <PurgingCard />
                </div>
             </div>
 
-            {/* ── Middle: watchlist + leaderboards rail ── */}
-            <div className="grid grid-cols-1 gap-4 @4xl/main:grid-cols-12">
+            {/* ── Middle: trending + popular + watchlist ──
+                @3xl: Trending/Popular 6 cols each, Watchlist full width below.
+                @4xl: all three at 4 cols. Cards stretch full height per row. */}
+            <div className="grid grid-cols-1 gap-4 @3xl/main:grid-cols-12">
                <div
-                  className="animate-slide-up motion-reduce:animate-none @4xl/main:col-span-7"
+                  className="animate-slide-up motion-reduce:animate-none @3xl/main:col-span-6 @4xl/main:col-span-4"
                   style={{ animationDelay: "240ms" }}
+               >
+                  <TrendingStocksWidget
+                     stocks={data.mostViewed}
+                     hasActiveSnapshot={data.hasActiveSnapshot}
+                     universe={data.companiesScreened}
+                     className="h-full"
+                  />
+               </div>
+               <div
+                  className="animate-slide-up motion-reduce:animate-none @3xl/main:col-span-6 @4xl/main:col-span-4"
+                  style={{ animationDelay: "320ms" }}
+               >
+                  <PopularListsWidget lists={data.popularLists} className="h-full" />
+               </div>
+               <div
+                  className="animate-slide-up motion-reduce:animate-none @3xl/main:col-span-12 @4xl/main:col-span-4"
+                  style={{ animationDelay: "400ms" }}
                >
                   <WatchlistWidget
                      items={data.watchlist}
@@ -97,23 +126,16 @@ export default async function ClientDashboardPage() {
                      className="h-full"
                   />
                </div>
-               <div className="flex flex-col gap-4 @4xl/main:col-span-5">
-                  <div className="animate-slide-up motion-reduce:animate-none" style={{ animationDelay: "320ms" }}>
-                     <TrendingStocksWidget
-                        stocks={data.mostViewed}
-                        hasActiveSnapshot={data.hasActiveSnapshot}
-                        universe={data.companiesScreened}
-                     />
-                  </div>
-                  <div className="animate-slide-up motion-reduce:animate-none" style={{ animationDelay: "400ms" }}>
-                     <PopularListsWidget lists={data.popularLists} />
-                  </div>
-               </div>
             </div>
 
             {/* ── Bottom: active subscriptions ── */}
             <div className="animate-slide-up motion-reduce:animate-none" style={{ animationDelay: "480ms" }}>
                <SubscriptionsWidget subscriptions={data.subscriptions} />
+            </div>
+
+            {/* ── My invoices ── */}
+            <div className="animate-slide-up motion-reduce:animate-none" style={{ animationDelay: "560ms" }}>
+               <InvoicesWidget invoices={data.recentInvoices} />
             </div>
          </div>
       </>
@@ -124,12 +146,21 @@ export default async function ClientDashboardPage() {
 
 // Compact compliance dot - status is never conveyed by color alone (shape + label).
 function StatusPill({ status }: { status: number | null }) {
-   if (status === null) return <span className="text-xs text-muted-foreground">Unrated</span>
+   // In the narrow 4-col layout (@4xl) the label is hidden and the pill shrinks
+   // to a dot-only chip.
+   if (status === null) {
+      return (
+         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground @4xl/main:rounded-full @4xl/main:bg-muted @4xl/main:p-1.5">
+            <span className="hidden size-1.5 rounded-full bg-muted-foreground/50 @4xl/main:block" aria-hidden="true" />
+            <span className="@4xl/main:hidden">Unrated</span>
+         </span>
+      )
+   }
    const compliant = status === 1
    return (
       <span
          className={cn(
-            "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold",
+            "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold @4xl/main:gap-0 @4xl/main:px-1.5",
             compliant
                ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
                : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
@@ -139,7 +170,7 @@ function StatusPill({ status }: { status: number | null }) {
             className={cn("size-1.5 rounded-full", compliant ? "bg-green-600 dark:bg-green-400" : "bg-red-600 dark:bg-red-400")}
             aria-hidden="true"
          />
-         {compliant ? "Compliant" : "Non-compliant"}
+         <span className="@4xl/main:hidden">{compliant ? "Compliant" : "Non-compliant"}</span>
       </span>
    )
 }
@@ -274,7 +305,7 @@ function MarketInsightsCard({ compliant, screened }: { compliant: number; screen
 
 function PurgingCard() {
    return (
-      <Card className="h-full border-dashed">
+      <Card className="h-full border-dashed border-primary c-box-shadow!">
          <CardContent className="flex h-full flex-col">
             <div className="flex items-center justify-between gap-2">
                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
@@ -389,9 +420,9 @@ function WatchlistWidget({
 function WatchRowContent({ item }: { item: DashboardWatchItem }) {
    return (
       <>
-         {/* Lettered avatar tile, per the reference design. */}
+         {/* Lettered avatar tile - hidden in the narrow 4-col layout (@4xl). */}
          <span
-            className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted font-bold text-muted-foreground"
+            className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted font-bold text-muted-foreground @4xl/main:hidden"
             aria-hidden="true"
          >
             {item.companyName.charAt(0).toUpperCase()}
@@ -414,10 +445,10 @@ function WatchRow({ item }: { item: DashboardWatchItem }) {
          className="group flex items-center gap-3 rounded-xl border p-3 transition-all hover:border-primary/40 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
       >
          <WatchRowContent item={item} />
-         <ArrowUpRightIcon
+         {/* <ArrowUpRightIcon
             className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
             aria-hidden="true"
-         />
+         /> */}
       </Link>
    )
 }
@@ -445,13 +476,15 @@ function TrendingStocksWidget({
    stocks,
    hasActiveSnapshot,
    universe,
+   className,
 }: {
    stocks: DashboardStock[]
    hasActiveSnapshot: boolean
    universe: number
+   className?: string
 }) {
    return (
-      <Card>
+      <Card className={className}>
          <CardHeader>
             <WidgetHeading icon={<TrendingUpIcon className="size-4.5 text-primary" />} title="Trending Stocks" />
          </CardHeader>
@@ -525,9 +558,9 @@ function TrendingRow({
 
 // ─── ⑥ Popular lists ────────────────────────────────────────────────────────────
 
-function PopularListsWidget({ lists }: { lists: DashboardList[] }) {
+function PopularListsWidget({ lists, className }: { lists: DashboardList[]; className?: string }) {
    return (
-      <Card>
+      <Card className={className}>
          <CardHeader>
             <WidgetHeading icon={<Trophy className="size-4.5 text-primary" />} title="Popular Lists" />
          </CardHeader>
