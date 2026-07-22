@@ -188,7 +188,7 @@ function TotalPlansCard({ total, subscriptions }: { total: number; subscriptions
    const primary = subscriptions[0]
 
    return (
-      <Card className="h-full border-l-4 border-l-primary">
+      <Card className="h-full">
          <CardContent className="flex h-full flex-col">
             <div className="flex items-start justify-between gap-2">
                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
