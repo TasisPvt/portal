@@ -284,10 +284,10 @@ function PurgingCard() {
                   Coming soon
                </Badge>
             </div>
-            <h3 className="mt-3 text-base font-semibold">Purging Service</h3>
-            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+            <h3 className="mt-3 text-2xl font-semibold">Purging Service</h3>
+            {/* <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                Automated dividend cleansing reports and Shariah calculators tailored for your portfolio.
-            </p>
+            </p> */}
             <a
                href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Notify me when the Purging Service launches")}`}
                className="mt-auto inline-flex items-center gap-1 pt-3 text-xs font-bold text-primary hover:underline"

@@ -9,9 +9,7 @@ import {
    PieChartIcon,
    Building2Icon,
    GanttChartIcon,
-   Settings2Icon,
-   SearchIcon,
-   ShieldCheckIcon,
+   InfoIcon,
    BarChart3Icon,
    UsersIcon,
    ListOrderedIcon,
@@ -86,9 +84,8 @@ const clientNav = {
          items: [{ title: "Snapshot", url: "#" }, { title: "List", url: "#" }],
       },
    ],
-   navSecondary: [
-      { title: "Settings", url: "#", icon: <Settings2Icon /> },
-      { title: "Search", url: "#", icon: <SearchIcon /> },
+     navSecondary: [
+      { title: "About TASIS", url: "https://tasis.in/", icon: <InfoIcon /> },
    ],
 }
 
@@ -139,10 +136,6 @@ const adminNav = {
          icon: PercentIcon,
       },
    ],
-   // navSecondary: [
-   //    { title: "Team", url: "/admin/team", icon: <ShieldCheckIcon /> },
-   //    { title: "Settings", url: "/admin/settings", icon: <Settings2Icon /> },
-   // ],
 }
 
 export function AppSidebar({
@@ -192,7 +185,7 @@ export function AppSidebar({
             {userType === UserType.ADMIN && (
                <NavCollapsible title="Reports" items={adminNav.navReports} />
             )}
-            {/* <NavSecondary items={userType === UserType.ADMIN ? adminNav.navSecondary : clientNav.navSecondary} className="mt-auto" /> */}
+            <NavSecondary items={userType === UserType.ADMIN ? [] : clientNav.navSecondary} className="mt-auto" />
          </SidebarContent>
 
          <SidebarFooter>

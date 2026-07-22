@@ -529,10 +529,6 @@ export function SnapshotCard({ data, commonRemark, thresholds, watchlist }: { da
 
    const isCompliant = shariah?.shariahStatus === 1
 
-   const snapshotDate = shariah?.lastUpdatedAt
-      ? shariah.lastUpdatedAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-      : "-"
-
    function handleTabChange(tab: TabKey) {
       setActiveTab(tab)
       setSelectedParam(tab === "business" ? "last_financial_data" : null)
@@ -566,10 +562,6 @@ export function SnapshotCard({ data, commonRemark, thresholds, watchlist }: { da
                            <BookmarkIcon className={cn("size-4", watchlist.active && "fill-current")} />
                         </button>
                      )}
-                     <div className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1">
-                        <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" />
-                        <span className="text-sm font-medium text-white">Updated • {snapshotDate}</span>
-                     </div>
                   </div>
                </div>
                <div className="mt-2 flex flex-wrap items-center gap-4 text-sm">

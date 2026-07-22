@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { usePathname } from "next/navigation"
-import Link from "next/link"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -33,10 +32,10 @@ export function NavSecondary({
                 isActive={pathname === item.url || pathname.startsWith(item.url + "/")}
                 asChild
               >
-                <Link href={item.url}>
+                <a href={item.url} target="_blank" rel="noopener noreferrer">
                   {item.icon}
                   <span>{item.title}</span>
-                </Link>
+                </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
