@@ -214,6 +214,91 @@ export async function sendOtpEmail({
    })
 }
 
+export async function sendFeedbackEmail({
+   to,
+   categoryLabel,
+   subject,
+   message,
+   client,
+}: {
+   to: string
+   categoryLabel: string
+   subject: string | null
+   message: string
+   client: { name: string; email: string; phone: string | null; state: string | null }
+}) {
+   // Escape user-provided text before interpolating into the HTML email.
+   const esc = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+   const messageHtml = esc(message).replace(/\n/g, "<br />")
+
+   const detailRow = (label: string, value: string) => `
+      <tr>
+         <td style="padding:6px 0;font-size:13px;color:#71717a;width:120px;vertical-align:top;">${label}</td>
+         <td style="padding:6px 0;font-size:14px;color:#18181b;font-weight:600;">${value}</td>
+      </tr>`
+
+   const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head><meta charset="UTF-8" /><title>New ${categoryLabel}</title></head>
+      <body style="margin:0;padding:0;background:#f4f4f5;font-family:Inter,Arial,sans-serif;">
+         <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
+            <tr><td align="center">
+               <table width="560" cellpadding="0" cellspacing="0"
+                  style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                  <tr>
+                     <td style="background:#18181b;padding:28px 40px;">
+                        <span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.5px;">Tasis Portal</span>
+                        <span style="color:#a1a1aa;font-size:13px;margin-left:8px;">New ${categoryLabel}</span>
+                     </td>
+                  </tr>
+                  <tr>
+                     <td style="padding:32px 40px 8px;">
+                        <p style="margin:0 0 4px;font-size:12px;color:#71717a;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;">Category</p>
+                        <p style="margin:0 0 20px;font-size:18px;font-weight:700;color:#18181b;">${categoryLabel}</p>
+                        ${subject ? `
+                        <p style="margin:0 0 4px;font-size:12px;color:#71717a;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;">Subject</p>
+                        <p style="margin:0 0 20px;font-size:15px;font-weight:600;color:#18181b;">${esc(subject)}</p>` : ""}
+                        <p style="margin:0 0 6px;font-size:12px;color:#71717a;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;">Message</p>
+                        <div style="background:#f4f4f5;border:1px solid #e4e4e7;border-radius:8px;padding:16px;font-size:14px;color:#3f3f46;line-height:1.6;">${messageHtml}</div>
+                     </td>
+                  </tr>
+                  <tr>
+                     <td style="padding:20px 40px 8px;">
+                        <p style="margin:0 0 8px;font-size:12px;color:#71717a;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;">Submitted by</p>
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                           ${detailRow("Name", esc(client.name))}
+                           ${detailRow("Email", esc(client.email))}
+                           ${client.phone ? detailRow("Phone", esc(client.phone)) : ""}
+                           ${client.state ? detailRow("State", esc(client.state)) : ""}
+                        </table>
+                     </td>
+                  </tr>
+                  <tr>
+                     <td style="border-top:1px solid #f4f4f5;padding:20px 40px;text-align:center;">
+                        <p style="margin:0;font-size:12px;color:#a1a1aa;">
+                           © ${new Date().getFullYear()} Tasis Pvt Ltd. · Reply directly to this email to respond to the client.
+                        </p>
+                     </td>
+                  </tr>
+               </table>
+            </td></tr>
+         </table>
+      </body>
+      </html>
+   `
+
+   await transporter.sendMail({
+      from: `"Tasis Portal" <${process.env.DEFAULT_REPLY_TO_EMAIL}>`,
+      // Let the admin reply straight to the client who submitted the feedback.
+      replyTo: client.email,
+      to,
+      subject: subject ? `[${categoryLabel}] ${subject}` : `New ${categoryLabel} from ${client.name}`,
+      html,
+   })
+}
+
 export async function sendInvoiceEmail({
    to,
    name,

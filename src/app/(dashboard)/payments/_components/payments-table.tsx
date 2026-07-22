@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { SearchIcon, DownloadIcon } from "lucide-react"
+import { SearchIcon, DownloadIcon, ReceiptTextIcon } from "lucide-react"
 import { toast } from "sonner"
 import {
   getCoreRowModel,
@@ -32,6 +32,7 @@ import {
   SortableHeader,
 } from "@/src/components/ui/data-table-parts"
 import { PlanTypeBadge as TypeBadge } from "@/src/components/plan-type-badge"
+import { BrandedLoader } from "@/src/components/branded-loader"
 import { formatPrice as fmtPrice, formatDate as fmtDate } from "@/src/lib/format"
 import { DURATION_LABELS } from "@/src/lib/constants"
 import { cn } from "@/src/lib/utils"
@@ -55,32 +56,6 @@ function PaymentStatusBadge({ status }: { status: string }) {
     >
       {status === "created" ? "pending" : status}
     </Badge>
-  )
-}
-
-// Blocking activity overlay shown while an invoice is rendering + downloading.
-// It intentionally covers the whole screen so the user can't start a second
-// download until the current one finishes (invoices are one-at-a-time). The
-// bouncing icon + expanding ring signal that work is in progress.
-function DownloadOverlay() {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm"
-      role="status"
-      aria-live="polite"
-    >
-      <div className="flex flex-col items-center gap-4 rounded-2xl border bg-card px-10 py-8 shadow-xl">
-        <div className="relative flex size-16 items-center justify-center">
-          <span className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
-          <span className="absolute inset-0 rounded-full bg-primary/10" />
-          <DownloadIcon className="relative size-7 animate-bounce text-primary" />
-        </div>
-        <div className="text-center">
-          <p className="text-sm font-medium">Preparing your invoice…</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">This will only take a moment.</p>
-        </div>
-      </div>
-    </div>
   )
 }
 
@@ -272,7 +247,18 @@ export function PaymentsTable({ data }: { data: PaymentHistoryRow[] }) {
         <DataTablePagination table={table} />
       </DataTableCard>
 
-      {downloading && <DownloadOverlay />}
+      {downloading && (
+        <BrandedLoader
+          overlay
+          icon={ReceiptTextIcon}
+          title="Preparing your invoice"
+          messages={[
+            "Generating your tax invoice…",
+            "Adding your billing details…",
+            "Almost ready…",
+          ]}
+        />
+      )}
     </>
   )
 }

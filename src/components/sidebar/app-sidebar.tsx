@@ -23,6 +23,7 @@ import {
    BookmarkIcon,
    IndianRupeeIcon,
    FileSpreadsheetIcon,
+   LifeBuoyIcon,
 } from "lucide-react"
 import { NavCollapsible } from "@/src/components/sidebar/nav-collapsible"
 import { NavMain } from "@/src/components/sidebar/nav-main"
@@ -50,6 +51,7 @@ const clientNav = {
       { title: "Plans", url: "/plans", icon: <PackageIcon /> },
       { title: "My Subscriptions", url: "/subscriptions", icon: <CreditCardIcon /> },
       { title: "Payment History", url: "/payments", icon: <ReceiptIcon /> },
+      { title: "Support", url: "/feedback", icon: <LifeBuoyIcon /> },
    ],
    navScreening: [
       {
