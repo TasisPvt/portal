@@ -31,6 +31,12 @@ export function ClaimTrialBanner() {
          {/* Decorative glow */}
          <div className="pointer-events-none absolute -right-10 -top-16 size-48 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
 
+         {/* Diagonal sheen sweep */}
+         <div
+            className="animate-shimmer pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent"
+            aria-hidden="true"
+         />
+
          <div className="relative flex flex-col gap-4 px-5 py-4 @2xl/main:flex-row @2xl/main:items-center @2xl/main:justify-between">
             <div className="flex items-start gap-3.5 @2xl/main:items-center">
                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white/15">
