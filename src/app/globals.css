@@ -234,6 +234,24 @@ h6 {
   animation: wave 2.5s ease-in-out infinite;
 }
 
+/* Diagonal sheen sweep - a skewed light band that crosses the element then
+   rests off-screen before repeating. Pair with an overflow-hidden parent. */
+@keyframes shimmer {
+  0%   { transform: translateX(-150%) skewX(-12deg); }
+  45%  { transform: translateX(150%) skewX(-12deg); }
+  100% { transform: translateX(150%) skewX(-12deg); }
+}
+
+.animate-shimmer {
+  animation: shimmer 5.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer {
+    animation: none;
+  }
+}
+
 @utility c-box-shadow {
   box-shadow: var(--c-box-shadow);
 }

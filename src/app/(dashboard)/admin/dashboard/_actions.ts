@@ -1,10 +1,11 @@
 import "server-only"
 
-import { and, count, eq, gte, lt, sum, sql } from "drizzle-orm"
+import { and, count, eq, gte, lt, ne, sum, sql } from "drizzle-orm"
 
 import { db } from "@/src/db/client"
 import { user, subscription, payment, pricingPlan } from "@/src/db/schema"
 import { MONTHS_SHORT } from "@/src/lib/format"
+import { TRIAL_PLAN_ID } from "@/src/lib/constants"
 import { requireAdmin } from "@/src/lib/require-admin"
 
 export type ByPlanType = { list: number; snapshot: number }
@@ -165,12 +166,24 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
             .select({ type: pricingPlan.type, value: count() })
             .from(subscription)
             .innerJoin(pricingPlan, eq(subscription.planId, pricingPlan.id))
-            .where(and(gte(subscription.startDate, monthStart), lt(subscription.startDate, monthEnd)))
+            .where(
+               and(
+                  gte(subscription.startDate, monthStart),
+                  lt(subscription.startDate, monthEnd),
+                  ne(subscription.planId, TRIAL_PLAN_ID),
+               ),
+            )
             .groupBy(pricingPlan.type),
          db
             .select({ value: count() })
             .from(subscription)
-            .where(and(gte(subscription.startDate, prevMonthStart), lt(subscription.startDate, monthStart))),
+            .where(
+               and(
+                  gte(subscription.startDate, prevMonthStart),
+                  lt(subscription.startDate, monthStart),
+                  ne(subscription.planId, TRIAL_PLAN_ID),
+               ),
+            ),
       ]),
       Promise.all([
          clientDistribution(),

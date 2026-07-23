@@ -24,7 +24,13 @@ export const DURATION_LABELS: Record<string, string> = {
    monthly: "Monthly",
    quarterly: "Quarterly",
    annual: "Annual",
+   trial: "Free Trial",
 }
+
+export const TRIAL_PLAN_ID = "snapshot-free-trial"
+export const TRIAL_PLAN_NAME = "Snapshot Free Trial"
+export const TRIAL_DAYS = 7
+export const TRIAL_STOCKS_PER_DAY = 5
 
 // Max companies a user may keep bookmarked at once. Enforced server-side in the
 // watchlist toggle action; surfaced in the add-bookmark UI when reached.

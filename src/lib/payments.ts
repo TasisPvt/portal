@@ -13,6 +13,7 @@ import {
    subscriptionListSnapshot,
    payment,
 } from "@/src/db/schema"
+import { TRIAL_PLAN_ID } from "@/src/lib/constants"
 import { chunk } from "@/src/lib/db-batch"
 
 export type DurationType = "one_time" | "monthly" | "quarterly" | "annual"
@@ -231,6 +232,19 @@ export async function finalizePaidOrder(args: {
             gstRate: pay.gstRate,
             placeOfSupply: pay.placeOfSupply,
          })
+      }
+
+      if (plan.type === "snapshot" && plan.id !== TRIAL_PLAN_ID) {
+         await tx
+            .update(subscription)
+            .set({ status: "cancelled", updatedAt: new Date() })
+            .where(
+               and(
+                  eq(subscription.clientId, pay.clientId),
+                  eq(subscription.planId, TRIAL_PLAN_ID),
+                  eq(subscription.status, "active"),
+               ),
+            )
       }
 
       await tx
