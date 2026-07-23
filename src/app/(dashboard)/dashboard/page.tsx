@@ -32,6 +32,7 @@ import {
 import { cn } from "@/src/lib/utils"
 import { AnimatedProgress } from "./_components/animated-progress"
 import { AnimatedCounter } from "./_components/animated-counter"
+import { ClaimTrialBanner } from "./_components/claim-trial-banner"
 import { InvoicesWidget } from "./_components/invoices-widget"
 import { formatDate } from "@/src/lib/format"
 import { DURATION_LABELS, SUPPORT_EMAIL } from "@/src/lib/constants"
@@ -59,6 +60,9 @@ export default async function ClientDashboardPage() {
       <>
          <SiteHeader title="Dashboard" />
          <div className="@container/main flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
+            {/* ── Free trial claim banner (one-time, snapshot service) ── */}
+            {data.trialEligible && <ClaimTrialBanner />}
+
             {/* ── Welcome header ── */}
             <header>
                <h1 className="text-2xl font-bold tracking-tight">
@@ -488,7 +492,7 @@ function TrendingStocksWidget({
          <CardHeader>
             <WidgetHeading icon={<TrendingUpIcon className="size-4.5 text-primary" />} title="Trending Stocks" />
          </CardHeader>
-         <CardContent className="flex flex-col gap-2">
+         <CardContent className="flex flex-1 flex-col gap-2">
             {stocks.length === 0 ? (
                <p className="py-6 text-center text-sm text-muted-foreground">No view activity yet.</p>
             ) : (
@@ -497,7 +501,7 @@ function TrendingStocksWidget({
                      <TrendingRow key={s.id} stock={s} rank={i + 1} hasActiveSnapshot={hasActiveSnapshot} />
                   ))}
                   {!hasActiveSnapshot && (
-                     <Button asChild className="mt-2 w-full">
+                     <Button asChild className="mt-auto w-full">
                         <Link href="/plans">Unlock all {universe.toLocaleString("en-IN")} snapshots</Link>
                      </Button>
                   )}
@@ -564,13 +568,13 @@ function PopularListsWidget({ lists, className }: { lists: DashboardList[]; clas
          <CardHeader>
             <WidgetHeading icon={<Trophy className="size-4.5 text-primary" />} title="Popular Lists" />
          </CardHeader>
-         <CardContent className="flex flex-col gap-2">
+         <CardContent className="flex flex-1 flex-col gap-2">
             {lists.length === 0 ? (
                <p className="py-6 text-center text-sm text-muted-foreground">No active subscribers yet.</p>
             ) : (
                lists.map((l, i) => <PopularListRow key={l.planId} list={l} rank={i + 1} />)
             )}
-            <Button asChild variant="outline" className="mt-2 w-full">
+            <Button asChild variant="outline" className="mt-auto w-full">
                <Link href="/plans">Browse all plans</Link>
             </Button>
          </CardContent>
