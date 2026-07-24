@@ -14,6 +14,7 @@ import { Input } from "@/src/components/ui/input"
 import { Label } from "@/src/components/ui/label"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/src/components/ui/tabs"
 import { PhoneInput, validatePhone } from "@/src/components/ui/phone-input"
+import { PasswordStrength, passwordMeetsRules, PASSWORD_MAX_LENGTH } from "@/src/components/account/password-strength"
 import { updateDisplayName, updatePhone } from "../_actions"
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -322,7 +323,10 @@ export function ProfileForm({
               noValidate
             >
               <CardContent className="pt-6">
-                <div className="grid grid-cols-1 gap-x-6 gap-y-5 @xl/pcard:grid-cols-3">
+                <div className="grid grid-cols-1 items-start gap-x-8 gap-y-5 @xl/pcard:grid-cols-2">
+
+                  {/* Password fields column */}
+                  <div className="flex flex-col gap-5">
 
                   {/* Old Password */}
                   <div className="flex flex-col gap-1.5">
@@ -353,7 +357,8 @@ export function ProfileForm({
                       className={securityErrors.newPassword ? "border-destructive" : ""}
                       {...regSecurity("newPassword", {
                         required: "New password is required",
-                        minLength: { value: 8, message: "Min. 8 characters" },
+                        maxLength: { value: PASSWORD_MAX_LENGTH, message: `Max. ${PASSWORD_MAX_LENGTH} characters` },
+                        validate: (v) => passwordMeetsRules(v) || "Password must meet all requirements",
                       })}
                     />
                     {securityErrors.newPassword && (
@@ -381,6 +386,14 @@ export function ProfileForm({
                       <p className="text-xs text-destructive">{securityErrors.confirmPassword.message}</p>
                     )}
                   </div>
+
+                  </div>
+
+                  {/* Password complexity column */}
+                  <PasswordStrength
+                    value={watch("newPassword") ?? ""}
+                    className="@xl/pcard:rounded-xl @xl/pcard:border @xl/pcard:bg-muted/30 @xl/pcard:p-4"
+                  />
 
                 </div>
 

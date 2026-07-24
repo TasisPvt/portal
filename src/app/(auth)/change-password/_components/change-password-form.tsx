@@ -11,6 +11,7 @@ import { Input } from "@/src/components/ui/input"
 import { Label } from "@/src/components/ui/label"
 import { AlertDestructive } from "@/src/components/alerts/alertDestructive"
 import { Spinner } from "@/src/components/ui/spinner"
+import { PasswordStrength, passwordMeetsRules, PASSWORD_MAX_LENGTH } from "@/src/components/account/password-strength"
 import { changePasswordAndVerify } from "../_actions"
 
 type FormValues = {
@@ -97,7 +98,9 @@ export function ChangePasswordForm() {
                      className={errors.newPassword ? "border-destructive pr-10" : "pr-10"}
                      {...register("newPassword", {
                         required: "New password is required",
-                        minLength: { value: 8, message: "Password must be at least 8 characters" },
+                        maxLength: { value: PASSWORD_MAX_LENGTH, message: `Password must be at most ${PASSWORD_MAX_LENGTH} characters` },
+                        validate: (v) =>
+                           passwordMeetsRules(v) || "Password must meet all the requirements below",
                      })}
                   />
                   <Button type="button" variant="ghost" size="icon"
@@ -107,6 +110,9 @@ export function ChangePasswordForm() {
                      {show.next ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </Button>
                </div>
+
+               <PasswordStrength value={watch("newPassword") ?? ""} className="pt-1" />
+
                {errors.newPassword && (
                   <p className="text-xs text-destructive">{errors.newPassword.message}</p>
                )}
